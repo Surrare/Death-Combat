@@ -1,0 +1,20 @@
+{
+  "id": "fighter_red",
+  "displayName": "Красный (рабочее имя)",
+  "model": "characters/fighter_red/fighter_red.glb",
+  "stats": {
+    "health": 1000,
+    "walkForwardSpeed": 32,
+    "walkBackSpeed": 26,
+    "jumpVelocity": 160,
+    "jumpHorizontalSpeed": 45,
+    "gravity": 8,
+    "jumpSquatFrames": 4,
+    "landingFrames": 3
+  },
+  "pushbox": {
+    "standing": [-250, 0, 250, 1750],
+    "crouching": [-250, 0, 250, 1150],
+    "airborne": [-220, 300, 220, 1600]
+  }
+}

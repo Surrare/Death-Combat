@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "death-combat",
+  "version-string": "0.1.0",
+  "description": "3D-файтинг на C++20 и OpenGL 4.6 без движка",
+  "builtin-baseline": "c52f7bd748185ef0e0daf033d9f2ddfc8a3449ea",
+  "dependencies": [
+    "glfw3",
+    "glm",
+    "cgltf",
+    "stb",
+    "miniaudio",
+    "nlohmann-json",
+    "spdlog",
+    {
+      "name": "imgui",
+      "features": [ "glfw-binding", "opengl3-binding", "docking-experimental" ]
+    },
+    "doctest"
+  ]
+}

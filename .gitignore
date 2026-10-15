@@ -1,0 +1,22 @@
+# Сборка (Visual Studio + CMake пишет в out/)
+/out/
+/build/
+/.vs/
+CMakeUserPresets.json
+vcpkg_installed/
+
+# Бинарники и мусор
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.obj
+*.lib
+*.stackdump
+/DeathCombat
+
+# Локальные файлы игры
+logs/
+screenshots/
+imgui.ini
+*.user

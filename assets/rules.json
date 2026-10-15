@@ -1,0 +1,11 @@
+{
+  "roundSeconds": 90,
+  "roundsToWin": 2,
+  "introFrames": 120,
+  "roundOverFrames": 180,
+  "finishHimFrames": 480,
+  "arenaHalfWidth": 6000,
+  "maxFighterDistance": 5000,
+  "startDistance": 2400,
+  "fatalBlowHealthThreshold": 300
+}

@@ -1,0 +1,38 @@
+{
+  "moves": [
+    {
+      "id": "jab",
+      "command": "1",
+      "animation": "jab",
+      "startup": 7, "active": 3, "recovery": 11,
+      "damage": 30, "strength": "light", "height": "high",
+      "hitstun": 14, "blockstun": 9, "hitstop": 5,
+      "hitboxes": [ { "frames": [7, 9], "box": [380, 1280, 900, 1460] } ],
+      "cancels": [ { "into": ["back_punch", "#specials"], "window": [8, 16], "on": ["hit", "block"] } ]
+    },
+    {
+      "id": "back_punch",
+      "command": "2",
+      "animation": "back_punch",
+      "startup": 10, "active": 3, "recovery": 18,
+      "damage": 55, "strength": "medium", "height": "mid",
+      "hitstun": 18, "blockstun": 12, "hitstop": 7,
+      "hitboxes": [ { "frames": [10, 12], "box": [350, 1150, 950, 1450] } ]
+    },
+    {
+      "id": "fireball",
+      "command": "B,F+2",
+      "animation": "special_fireball",
+      "startup": 14, "active": 0, "recovery": 22,
+      "damage": 60, "chip": 6, "strength": "special", "height": "high",
+      "hitstun": 20, "blockstun": 12, "hitstop": 8,
+      "effects": [
+        { "frame": 14, "type": "spawnProjectile", "projectile": "fireball", "offset": [550, 1150], "speed": 210 }
+      ],
+      "events": [
+        { "frame": 10, "sfx": "fireball_charge" },
+        { "frame": 14, "vfx": "hand_flash", "bone": "hand_r" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": "fighter_blue",
+  "displayName": "Синий (рабочее имя)",
+  "model": "characters/fighter_blue/fighter_blue.glb",
+  "stats": {
+    "health": 1000,
+    "walkForwardSpeed": 30,
+    "walkBackSpeed": 25,
+    "jumpVelocity": 160,
+    "jumpHorizontalSpeed": 45,
+    "gravity": 8,
+    "jumpSquatFrames": 4,
+    "landingFrames": 3
+  },
+  "pushbox": {
+    "standing": [-250, 0, 250, 1750],
+    "crouching": [-250, 0, 250, 1150],
+    "airborne": [-220, 300, 220, 1600]
+  }
+}
