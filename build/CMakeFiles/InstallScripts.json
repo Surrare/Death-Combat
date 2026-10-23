@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/dus/Softgays/Death-Combat/build/cmake_install.cmake",
+		"/home/dus/Softgays/Death-Combat/build/third_party/glad/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

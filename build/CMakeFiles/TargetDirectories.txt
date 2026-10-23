@@ -1,0 +1,9 @@
+/home/dus/Softgays/Death-Combat/build/CMakeFiles/DeathCombat.dir
+/home/dus/Softgays/Death-Combat/build/CMakeFiles/DeathCombatSimTest.dir
+/home/dus/Softgays/Death-Combat/build/CMakeFiles/test.dir
+/home/dus/Softgays/Death-Combat/build/CMakeFiles/edit_cache.dir
+/home/dus/Softgays/Death-Combat/build/CMakeFiles/rebuild_cache.dir
+/home/dus/Softgays/Death-Combat/build/third_party/glad/CMakeFiles/glad.dir
+/home/dus/Softgays/Death-Combat/build/third_party/glad/CMakeFiles/test.dir
+/home/dus/Softgays/Death-Combat/build/third_party/glad/CMakeFiles/edit_cache.dir
+/home/dus/Softgays/Death-Combat/build/third_party/glad/CMakeFiles/rebuild_cache.dir
