@@ -11,6 +11,7 @@
 #include "game/rig.h"
 #include "game/hunt.h"
 #include "game/settings.h"
+#include "audio/audio.h"
 
 struct GLFWwindow;
 
@@ -91,6 +92,9 @@ private:
     RigRenderer rig_;
     Input input_;
     Settings settings_;
+    Audio audio_;
+    bool menuSoundsActive() const;
+    float lastHeartPulse_ = 0;
 
     // settings screen
     Scene settingsReturn_ = Scene::Title;

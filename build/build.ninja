@@ -49,12 +49,22 @@ cmake_ninja_workdir = /home/dus/Softgays/Death-Combat/build/
 
 build cmake_object_order_depends_target_DeathCombat: phony || cmake_object_order_depends_target_glad
 
+build CMakeFiles/DeathCombat.dir/src/audio/audio.cpp.o: CXX_COMPILER__DeathCombat_unscanned_Release /home/dus/Softgays/Death-Combat/src/audio/audio.cpp || cmake_object_order_depends_target_DeathCombat
+  CONFIG = Release
+  DEFINES = -DGLFW_INCLUDE_NONE
+  DEP_FILE = CMakeFiles/DeathCombat.dir/src/audio/audio.cpp.o.d
+  FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  OBJECT_DIR = CMakeFiles/DeathCombat.dir
+  OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/audio
+  TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
+
 build CMakeFiles/DeathCombat.dir/src/game/app.cpp.o: CXX_COMPILER__DeathCombat_unscanned_Release /home/dus/Softgays/Death-Combat/src/game/app.cpp || cmake_object_order_depends_target_DeathCombat
   CONFIG = Release
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/app.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -64,7 +74,7 @@ build CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o: CXX_COMPILER__DeathCo
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -74,7 +84,7 @@ build CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o: CXX_COMPILER__Deat
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -84,7 +94,7 @@ build CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o: CXX_COMPILER__DeathC
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -94,7 +104,7 @@ build CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o: CXX_COMPILER__DeathCombat
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -104,7 +114,7 @@ build CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o: CXX_COMPILER__DeathCom
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -114,7 +124,7 @@ build CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o: CXX_COMPILER__DeathCombat_
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -124,7 +134,7 @@ build CMakeFiles/DeathCombat.dir/src/game/input.cpp.o: CXX_COMPILER__DeathCombat
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/input.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -134,7 +144,7 @@ build CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o: CXX_COMPILER__DeathCombat_
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -144,7 +154,7 @@ build CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o: CXX_COMPILER__DeathCombat_u
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -154,7 +164,7 @@ build CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o: CXX_COMPILER__DeathCom
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -164,7 +174,7 @@ build CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o: CXX_COMPILER__DeathCombat_u
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/gfx
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -174,7 +184,7 @@ build CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o: CXX_COMPILER__DeathComb
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/gfx
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -184,7 +194,7 @@ build CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o: CXX_COMPILER__DeathCombat
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/gfx
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -194,7 +204,7 @@ build CMakeFiles/DeathCombat.dir/src/main.cpp.o: CXX_COMPILER__DeathCombat_unsca
   DEFINES = -DGLFW_INCLUDE_NONE
   DEP_FILE = CMakeFiles/DeathCombat.dir/src/main.cpp.o.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
-  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -I/home/dus/Softgays/Death-Combat/third_party -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
@@ -207,12 +217,12 @@ build CMakeFiles/DeathCombat.dir/src/main.cpp.o: CXX_COMPILER__DeathCombat_unsca
 #############################################
 # Link the executable DeathCombat
 
-build DeathCombat: CXX_EXECUTABLE_LINKER__DeathCombat_Release CMakeFiles/DeathCombat.dir/src/game/app.cpp.o CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o CMakeFiles/DeathCombat.dir/src/game/input.cpp.o CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o CMakeFiles/DeathCombat.dir/src/main.cpp.o | /usr/lib/libglfw.so.3.5 third_party/glad/libglad.a || third_party/glad/libglad.a
+build DeathCombat: CXX_EXECUTABLE_LINKER__DeathCombat_Release CMakeFiles/DeathCombat.dir/src/audio/audio.cpp.o CMakeFiles/DeathCombat.dir/src/game/app.cpp.o CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o CMakeFiles/DeathCombat.dir/src/game/input.cpp.o CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o CMakeFiles/DeathCombat.dir/src/main.cpp.o | /usr/lib/libglfw.so.3.5 third_party/glad/libglad.a || third_party/glad/libglad.a
   CONFIG = Release
   DEP_FILE = CMakeFiles/DeathCombat.dir/link.d
   FLAGS = -O3 -DNDEBUG
   LINK_FLAGS = -Wl,--dependency-file=CMakeFiles/DeathCombat.dir/link.d
-  LINK_LIBRARIES = /usr/lib/libglfw.so.3.5  third_party/glad/libglad.a  -ldl
+  LINK_LIBRARIES = /usr/lib/libglfw.so.3.5  third_party/glad/libglad.a  -ldl  -lm
   OBJECT_DIR = CMakeFiles/DeathCombat.dir
   POST_BUILD = :
   PRE_LINK = :

@@ -90,23 +90,28 @@ void App::processEvents() {
             Particle ring; ring.pos = e.pos; ring.life = ring.maxLife = 0.25f; ring.size = 0.3f; ring.growth = 6.0f * s; ring.col = sc.withAlpha(0.6f);
             particles_.push_back(ring);
             hudFlash_ = std::max(hudFlash_, 0.3f * s);
+            audio_.play(s >= 1.5f ? Sfx::HitHeavy : Sfx::HitLight, 0.8f + 0.2f * std::min(s, 2.0f), 0.92f + 0.16f * fxRng_.range(0, 100) / 100.0f);
             break;
         }
         case FightEvent::Block:
+            audio_.play(Sfx::Block);
             spawnSparks(e.pos, 6, Color(0.6f, 0.8f, 1), Color(1, 1, 1), 3.5f, 0.09f, 0.35f, Blend::Additive, 4.0f);
             if (!e.text.empty()) addFloat(e.pos + Vec3(0, 0.6f, 0), e.text, Color(0.7f, 0.85f, 1), 0.8f, 2);
             break;
         case FightEvent::Throw:
+            audio_.play(Sfx::Throw);
             spawnSparks(e.pos, 12, Color(1, 0.8f, 0.6f), Color(1, 0.4f, 0.3f), 5.0f, 0.14f, 0.5f, Blend::Additive, 8.0f);
             break;
         case FightEvent::Spark:
             spawnSparks(e.pos, (int)(8 * e.strength), sc, WHITE, 5.0f, 0.1f, 0.4f, Blend::Additive, 5.0f);
             break;
         case FightEvent::Dust:
+            audio_.play(Sfx::Whoosh, 0.4f * std::min(e.strength, 1.5f));
             spawnSparks(e.pos + Vec3(0, 0.1f, 0), (int)(6 * e.strength), Color(0.55f, 0.5f, 0.45f, 0.5f), Color(0.4f, 0.37f, 0.33f, 0.4f), 1.8f, 0.25f, 0.6f, Blend::Alpha, -1.5f);
             for (size_t i = particles_.size() - (size_t)(6 * e.strength); i < particles_.size(); ++i) { particles_[i].growth = 0.8f; particles_[i].vel.y = std::fabs(particles_[i].vel.y) * 0.4f; }
             break;
         case FightEvent::Land:
+            audio_.play(Sfx::Land);
             spawnSparks(e.pos + Vec3(0, 0.1f, 0), 14, Color(0.55f, 0.5f, 0.45f, 0.6f), Color(0.4f, 0.37f, 0.33f, 0.4f), 3.0f, 0.3f, 0.7f, Blend::Alpha, -1.0f);
             for (size_t i = particles_.size() - 14; i < particles_.size(); ++i) { particles_[i].growth = 1.0f; particles_[i].vel.y = std::fabs(particles_[i].vel.y) * 0.5f; }
             break;
@@ -118,6 +123,7 @@ void App::processEvents() {
             Color col = e.strength >= 3 ? Color(1, 0.3f, 0.2f) : (e.strength >= 2 ? GOLD : sc);
             addFloat(e.pos + Vec3(0, 2.4f, 0), displayName(e.text), col, e.strength >= 2 ? 1.8f : 1.0f, e.strength >= 2 ? 3.0f : 2.0f);
             if (e.strength >= 2) {
+                audio_.play(Sfx::HeartHeat, e.strength >= 3 ? 1.0f : 0.8f, e.strength >= 3 ? 0.8f : 1.0f);
                 addBanner(e.strength >= 3 ? "GREAT HEAT ATTACK" : "HEART HEAT ATTACK", col, 1.4f, 4, 0.25f);
                 const Fighter& f = sim_.fighter(e.player);
                 spawnSparks(f.pos + Vec3(0, 1.0f, 0), 40, sc, WHITE, 7.0f, 0.18f, 0.9f, Blend::Additive, 0.0f);
@@ -128,18 +134,22 @@ void App::processEvents() {
             break;
         }
         case FightEvent::Projectile:
+            audio_.play(Sfx::Projectile);
             spawnSparks(e.pos, 8, sc, WHITE, 2.0f, 0.1f, 0.4f, Blend::Additive, 0);
             break;
         case FightEvent::Clash:
+            audio_.play(Sfx::Clash);
             addBanner("RUSH MODE", Color(1, 0.4f, 0.2f), 2.0f, 7, 0.3f);
             addBanner("MASH ATTACK!", WHITE, 2.5f, 3, 0.42f);
             clashPulse_ = 1.0f;
             break;
         case FightEvent::StyleBreak:
+            audio_.play(Sfx::StyleBreak);
             addBanner(e.text, Color(0.6f, 0.4f, 1.0f), 1.5f, 6, 0.35f);
             spawnSparks(e.pos, 30, sc, Color(0.3f, 0.2f, 0.5f), 6.0f, 0.2f, 0.8f, Blend::Additive, 2.0f);
             break;
         case FightEvent::FlashCancel: {
+            audio_.play(Sfx::FlashCancel);
             addFloat(e.pos + Vec3(0, 1.2f, 0), "FLASH CANCEL", Color(1, 1, 0.5f), 1.0f, 2.4f);
             Particle flash; flash.pos = e.pos; flash.life = flash.maxLife = 0.25f; flash.size = 2.0f; flash.col = Color(1, 1, 0.7f, 0.9f); flash.growth = 10.0f;
             particles_.push_back(flash);
@@ -147,13 +157,16 @@ void App::processEvents() {
             break;
         }
         case FightEvent::KO:
+            audio_.play(Sfx::KO);
             addBanner(e.text, e.text == "DRAMATIC FINISH" ? Color(1, 0.35f, 0.2f) : RED, 2.2f, e.text.size() > 6 ? 6 : 9, 0.35f);
             hudFlash_ = 1.0f;
             break;
         case FightEvent::RoundStart:
+            audio_.play(Sfx::RoundStart);
             addBanner(e.text, WHITE, 1.5f, 6);
             break;
         case FightEvent::Tech:
+            audio_.play(Sfx::Tech);
             addFloat(e.pos, "THROW TECH", Color(0.7f, 0.9f, 1), 1.0f, 2.2f);
             spawnSparks(e.pos, 10, Color(0.7f, 0.9f, 1), WHITE, 3.0f, 0.1f, 0.4f, Blend::Additive, 2.0f);
             break;

@@ -3,7 +3,7 @@
 #   Linux:    cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build && ./build/DeathCombat
 #   Windows:  cmake -B build && cmake --build build --config Release   (Visual Studio / MinGW / clang)
 #
-# The only external dependency is GLFW. It is taken from the system when available,
+# The only external dependency is GLFW (audio uses the vendored single-header miniaudio).
 # otherwise it is downloaded and built automatically with FetchContent.
 cmake_minimum_required(VERSION 3.16)
 project(DeathCombat VERSION 1.0.0 LANGUAGES C CXX)
@@ -45,7 +45,7 @@ add_subdirectory(third_party/glad)
 # ---- Game ---------------------------------------------------------------------
 file(GLOB_RECURSE DC_SOURCES CONFIGURE_DEPENDS src/*.cpp src/*.h)
 add_executable(DeathCombat ${DC_SOURCES})
-target_include_directories(DeathCombat PRIVATE src)
+target_include_directories(DeathCombat PRIVATE src third_party)
 target_link_libraries(DeathCombat PRIVATE glfw glad)
 target_compile_definitions(DeathCombat PRIVATE GLFW_INCLUDE_NONE)
 if(MSVC)
@@ -58,12 +58,12 @@ else()
     target_compile_options(DeathCombat PRIVATE -Wall -Wextra -Wno-unused-parameter)
 endif()
 if(WIN32)
-    target_link_libraries(DeathCombat PRIVATE opengl32)
+    target_link_libraries(DeathCombat PRIVATE opengl32)   # miniaudio uses WASAPI via system DLLs, nothing extra to link
 elseif(APPLE)
-    target_link_libraries(DeathCombat PRIVATE "-framework OpenGL")
+    target_link_libraries(DeathCombat PRIVATE "-framework OpenGL" "-framework CoreFoundation" "-framework CoreAudio" "-framework AudioToolbox")
 else()
     find_package(Threads REQUIRED)
-    target_link_libraries(DeathCombat PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+    target_link_libraries(DeathCombat PRIVATE Threads::Threads ${CMAKE_DL_LIBS} m)
 endif()
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT DeathCombat)
 

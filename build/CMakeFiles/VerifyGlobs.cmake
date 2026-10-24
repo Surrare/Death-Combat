@@ -4,6 +4,7 @@
 # DC_SOURCES at CMakeLists.txt:46 (file)
 file(GLOB_RECURSE NEW_GLOB LIST_DIRECTORIES false "/home/dus/Softgays/Death-Combat/src/*.cpp")
 set(OLD_GLOB
+  "/home/dus/Softgays/Death-Combat/src/audio/audio.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/app.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/app_fight.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/app_settings.cpp"
@@ -44,6 +45,7 @@ endif()
 # DC_SOURCES at CMakeLists.txt:46 (file)
 file(GLOB_RECURSE NEW_GLOB LIST_DIRECTORIES false "/home/dus/Softgays/Death-Combat/src/*.h")
 set(OLD_GLOB
+  "/home/dus/Softgays/Death-Combat/src/audio/audio.h"
   "/home/dus/Softgays/Death-Combat/src/core/font.h"
   "/home/dus/Softgays/Death-Combat/src/core/math.h"
   "/home/dus/Softgays/Death-Combat/src/core/png.h"

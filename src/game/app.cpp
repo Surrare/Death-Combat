@@ -21,6 +21,7 @@ bool App::init(GLFWwindow* window, const AppOptions& opts) {
     settings_.load();
     input_.attach(window, &settings_);
     applyVideoSettings();
+    audio_.init();
     fxRng_ = Rng(opts.seed ? opts.seed : (uint64_t)glfwGetTime() * 1000 + 7);
     buildArena();
     {
@@ -81,12 +82,30 @@ void App::frame(float dt, int w, int h) {
     input_.poll();
     time_ += dt;
 
+    audio_.setVolumes(settings_.master, settings_.music, settings_.sfx);
+    if (menuSoundsActive()) {
+        const PadState& m = input_.menu();
+        bool capturing = scene_ == Scene::Settings && settingsCapturing_;
+        if (!capturing) {
+            if (m.justPressed(BTN_UP | BTN_DOWN | BTN_LEFT | BTN_RIGHT)) audio_.play(Sfx::UiMove);
+            if (m.justPressed(BTN_START | BTN_LIGHT)) audio_.play(Sfx::UiConfirm);
+            if (m.justPressed(BTN_BACK)) audio_.play(Sfx::UiBack);
+        }
+    }
+
     switch (scene_) {
     case Scene::Title: updateTitle(dt); renderTitle(); break;
     case Scene::Select: updateSelect(dt); renderSelect(); break;
     case Scene::Hunt: updateHunt(dt); renderHunt(); break;
     case Scene::Fight: updateFight(dt); renderFight(); break;
     case Scene::Settings: updateSettings(dt); renderSettings(); break;
+    }
+
+    switch (scene_) {
+    case Scene::Hunt: audio_.setMusic(MusicMode::Hunt, hunt_.senseLevel()); break;
+    case Scene::Fight: audio_.setMusic(MusicMode::Fight); break;
+    case Scene::Settings: if (settingsReturn_ == Scene::Hunt || settingsReturn_ == Scene::Fight) audio_.setMusic(MusicMode::Off); else audio_.setMusic(MusicMode::Menu); break;
+    default: audio_.setMusic(MusicMode::Menu); break;
     }
 
     // screenshots: F12, or automatic capture for the command line option
@@ -101,6 +120,16 @@ void App::frame(float dt, int w, int h) {
         shotTaken_ = true;
         quit_ = true;
     }
+}
+
+// Menus are on screen (as opposed to hunting / fighting), so navigation keys should click.
+bool App::menuSoundsActive() const {
+    switch (scene_) {
+    case Scene::Title: case Scene::Select: case Scene::Settings: return true;
+    case Scene::Hunt: return huntPaused_ || huntComplete_;
+    case Scene::Fight: return fightMode_ != FightMode::Demo && (paused_ || sim_.phase() == Phase::MatchOver);
+    }
+    return false;
 }
 
 // --------------------------------------------------------------------- title --
@@ -327,6 +356,7 @@ void App::updateHunt(float dt) {
     int engaged = hunt_.update(dt, pad, true);
     if (engaged >= 0) {
         huntEngaged_ = engaged; huntEngageTimer_ = 0;
+        audio_.play(Sfx::Engage);
         input_.setMouseCaptured(false);
     }
 }
