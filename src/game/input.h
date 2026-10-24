@@ -40,6 +40,13 @@ public:
     bool anyPressed() const { return (pads_[0].pressed | pads_[1].pressed) != 0; }
     void setMouseCaptured(bool captured);
     bool mouseCaptured() const { return captured_; }
+    // mouse pointer in framebuffer pixels (valid while the cursor is not captured)
+    float mouseX() const { return mouseX_; }
+    float mouseY() const { return mouseY_; }
+    bool mouseMoved() const { return mouseMoved_; }
+    bool leftClicked() const { return leftClicked_; }
+    bool rightClicked() const { return rightClicked_; }
+    bool mouseIn(float x, float y, float w, float h) const { return !captured_ && mouseX_ >= x && mouseX_ < x + w && mouseY_ >= y && mouseY_ < y + h; }
     int newKey() const { return newKey_; }   // key pressed this frame (for rebinding), 0 if none
 
 private:
@@ -54,6 +61,8 @@ private:
     const Settings* settings_ = nullptr;
     bool prevKeys_[400] = {};
     int newKey_ = 0;
+    float mouseX_ = -1, mouseY_ = -1;
+    bool mouseMoved_ = false, leftClicked_ = false, rightClicked_ = false, prevLeft_ = false, prevRight_ = false;
 };
 
 } // namespace dc

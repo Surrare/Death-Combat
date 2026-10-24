@@ -20,7 +20,7 @@ void App::buildArena() {
     MeshBuilder b;
     b.addPlane(Vec3(0, 0, 0), 44, 30, 22, Vec3(0.30f, 0.28f, 0.30f), Vec3(0.24f, 0.22f, 0.25f));
     // raised rim marking the fighting line
-    b.addBox(Vec3(0, -0.02f, 0), Vec3(19.0f, 0.04f, 6.0f), Vec3(0.34f, 0.3f, 0.3f));
+    b.addBox(Vec3(0, 0.0f, 0), Vec3(19.0f, 0.02f, 6.0f), Vec3(0.34f, 0.3f, 0.3f));
     arenaFloor_.upload(b);
 
     b.clear();
@@ -203,12 +203,18 @@ void App::updateFight(float dt) {
         return;
     }
     if (paused_) {
-        if (showMoveList_) { if (m.justPressed(BTN_BACK) || m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT)) showMoveList_ = false; return; }
+        if (showMoveList_) { if (m.justPressed(BTN_BACK) || m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT) || input_.leftClicked() || input_.rightClicked()) showMoveList_ = false; return; }
         int n = 4;
+        bool clicked = false;
+        for (int i = 0; i < n; ++i) {
+            if (!input_.mouseIn(width_ * 0.5f - 180, height_ * 0.45f + i * 42 - 6, 360, 33)) continue;
+            if (input_.mouseMoved() || input_.leftClicked()) pauseIndex_ = i;
+            clicked = input_.leftClicked();
+        }
         if (m.justPressed(BTN_DOWN)) pauseIndex_ = (pauseIndex_ + 1) % n;
         if (m.justPressed(BTN_UP)) pauseIndex_ = (pauseIndex_ + n - 1) % n;
-        if (m.justPressed(BTN_BACK)) { paused_ = false; return; }
-        if (m.justPressed(BTN_LIGHT) || m.justPressed(BTN_START)) {
+        if (m.justPressed(BTN_BACK) || input_.rightClicked()) { paused_ = false; return; }
+        if (m.justPressed(BTN_LIGHT) || m.justPressed(BTN_START) || clicked) {
             if (pauseIndex_ == 0) paused_ = false;
             else if (pauseIndex_ == 1) showMoveList_ = true;
             else if (pauseIndex_ == 2) openSettings(Scene::Fight);
@@ -257,7 +263,13 @@ void App::updateFight(float dt) {
             // defeat: retry or give up
             int n = 2;
             if (m.justPressed(BTN_DOWN) || m.justPressed(BTN_UP)) resultIndex_ = (resultIndex_ + 1) % n;
-            if (m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT)) {
+            bool clicked = false;
+            for (int i = 0; i < n; ++i) {
+                if (!input_.mouseIn(width_ * 0.5f - 180, height_ * 0.3f + 130 + i * 36 - 6, 360, 30)) continue;
+                if (input_.mouseMoved() || input_.leftClicked()) resultIndex_ = i;
+                clicked = input_.leftClicked();
+            }
+            if (m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT) || clicked) {
                 if (resultIndex_ == 0) startFight(huntPlayerChar_, hunt_.opponents()[huntEngaged_].charId, FightMode::Hunt, huntDefeatedCount_ < 2 ? 0 : (huntDefeatedCount_ < 4 ? 1 : 2));
                 else { scene_ = Scene::Title; }
             }
@@ -266,7 +278,13 @@ void App::updateFight(float dt) {
         int n = 3;
         if (m.justPressed(BTN_DOWN)) resultIndex_ = (resultIndex_ + 1) % n;
         if (m.justPressed(BTN_UP)) resultIndex_ = (resultIndex_ + n - 1) % n;
-        if (m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT)) {
+        bool clicked = false;
+        for (int i = 0; i < n; ++i) {
+            if (!input_.mouseIn(width_ * 0.5f - 180, height_ * 0.3f + 100 + i * 36 - 6, 360, 30)) continue;
+            if (input_.mouseMoved() || input_.leftClicked()) resultIndex_ = i;
+            clicked = input_.leftClicked();
+        }
+        if (m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT) || clicked) {
             if (resultIndex_ == 0) startFight(sim_.fighter(0).ch - &roster()[0], sim_.fighter(1).ch - &roster()[0], fightMode_, 1);
             else if (resultIndex_ == 1) { scene_ = Scene::Select; selectFor_ = 0; }
             else scene_ = Scene::Title;
@@ -301,6 +319,7 @@ void App::renderFight() {
         fightCam_.fovDeg = lerp(fightCam_.fovDeg, want.fovDeg, k);
     }
     Camera cam = fightCam_;
+    cam.znear = 0.5f;   // more depth precision for the far floor; nothing renders closer than this
     float sh = sim_.shake();
     if (sh > 0) {
         Vec3 off(fxRng_.uniform(-1, 1) * sh * 0.18f, fxRng_.uniform(-1, 1) * sh * 0.14f, 0);
@@ -314,9 +333,9 @@ void App::renderFight() {
     renderer_.setFog(Vec3(0.05f, 0.04f, 0.06f), 0.0015f);
     renderer_.addPointLight(Vec3(-6, 3.5f, 1.5f), ca.styleColor.rgb() * 1.1f, 12);
     renderer_.addPointLight(Vec3(6, 3.5f, 1.5f), cb.styleColor.rgb() * 1.1f, 12);
-    renderer_.addPointLight(Vec3(-11, 1.9f, -5.5f), Vec3(1.0f, 0.55f, 0.2f) * (1.0f + 0.2f * std::sin(time_ * 9)), 9);
-    renderer_.addPointLight(Vec3(11, 1.9f, -5.5f), Vec3(1.0f, 0.55f, 0.2f) * (1.0f + 0.2f * std::cos(time_ * 7)), 9);
-    if (hudFlash_ > 0) renderer_.addPointLight(Vec3(midX, 2.5f, 1), Vec3(1, 1, 1) * hudFlash_ * 2.0f, 10);
+    renderer_.addPointLight(Vec3(-11, 1.9f, -5.5f), Vec3(1.0f, 0.55f, 0.2f) * (1.0f + 0.06f * std::sin(time_ * 3.0f)), 9);
+    renderer_.addPointLight(Vec3(11, 1.9f, -5.5f), Vec3(1.0f, 0.55f, 0.2f) * (1.0f + 0.06f * std::cos(time_ * 2.3f)), 9);
+    if (hudFlash_ > 0) renderer_.addPointLight(Vec3(midX, 2.5f, 1), Vec3(1, 1, 1) * hudFlash_ * 0.5f, 10);
 
     renderer_.draw(arenaFloor_, Mat4::identity(), Color(1, 1, 1), 0, 1);
     renderer_.draw(arenaWalls_, Mat4::identity(), Color(1, 1, 1), 0, 2);
@@ -587,7 +606,7 @@ void App::drawPauseMenu() {
     renderer_.textCentered(cx, H * 0.3f, "PAUSED", 6, WHITE);
     const char* items[4] = {"RESUME", "MOVE LIST", "SETTINGS", "QUIT TO TITLE"};
     for (int i = 0; i < 4; ++i) renderer_.textCentered(cx, H * 0.45f + i * 42, items[i], 3, i == pauseIndex_ ? GOLD : WHITE);
-    renderer_.textCentered(cx, H * 0.85f, "UP / DOWN  CHOOSE     ENTER  CONFIRM     ESC  RESUME", 1.6f, DIM);
+    renderer_.textCentered(cx, H * 0.85f, "UP / DOWN / MOUSE  CHOOSE     ENTER / CLICK  CONFIRM     ESC  RESUME", 1.6f, DIM);
 }
 
 void App::drawMoveList() {
@@ -618,7 +637,7 @@ void App::drawMoveList() {
     for (const Move& m : c.moves) if (m.kind == MoveKind::HHA) lines.push_back("HHA  " + m.name);
     for (const Move& m : c.moves) if (m.kind == MoveKind::GHA) lines.push_back("GHA  " + m.name);
     drawPanelText(x, y + 50, lines, 1.7f, WHITE, 1.55f);
-    renderer_.textCentered(W * 0.5f, H - 40, "ENTER / ESC  BACK", 1.6f, DIM);
+    renderer_.textCentered(W * 0.5f, H - 40, "ENTER / ESC / CLICK  BACK", 1.6f, DIM);
 }
 
 } // namespace dc

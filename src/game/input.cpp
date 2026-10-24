@@ -77,7 +77,19 @@ void Input::poll() {
         }
         haveMouse_ = true;
     }
+    mouseMoved_ = mx != lastMouseX_ || my != lastMouseY_;
     lastMouseX_ = mx; lastMouseY_ = my;
+    {
+        int ww, wh, fw, fh;
+        glfwGetWindowSize(window_, &ww, &wh);
+        glfwGetFramebufferSize(window_, &fw, &fh);
+        float sx = ww > 0 ? (float)fw / (float)ww : 1.0f, sy = wh > 0 ? (float)fh / (float)wh : 1.0f;
+        mouseX_ = (float)mx * sx; mouseY_ = (float)my * sy;
+        bool l = glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+        bool r = glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+        leftClicked_ = l && !prevLeft_; rightClicked_ = r && !prevRight_;
+        prevLeft_ = l; prevRight_ = r;
+    }
 
     // ---- gamepads: joystick 0 -> player 1, joystick 1 -> player 2
     for (int p = 0; p < 2; ++p) {

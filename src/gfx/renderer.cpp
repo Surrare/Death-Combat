@@ -32,6 +32,13 @@ uniform int uNumLights; uniform vec4 uLightPos[16]; uniform vec3 uLightColor[16]
 uniform sampler2DShadow uShadowMap;
 uniform int uShadowEnabled;
 
+// 0 on a grid line, 1 inside a cell; lines fade out with distance so they do not shimmer when the camera moves
+float gridLine(vec2 f, vec2 width, vec2 fw){
+    vec2 e = smoothstep(width, width + fw * 1.5, f);
+    float line = e.x * e.y;
+    return mix(line, 0.94, clamp(max(fw.x, fw.y) * 6.0, 0.0, 1.0));
+}
+
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
 
 float shadowFactor(vec3 n){
@@ -51,7 +58,7 @@ vec3 patternColor(vec3 base){
         vec2 c = floor(vWorld.xz * 0.5);
         float h = hash(c);
         vec2 f = fract(vWorld.xz * 0.5);
-        float edge = step(0.03, f.x) * step(0.03, f.y);
+        float edge = gridLine(f, vec2(0.03), fwidth(vWorld.xz * 0.5));
         return base * (0.85 + 0.3*h) * (0.55 + 0.45*edge);
     } else if (uPattern == 2) { // bricks on walls
         float row = floor(vWorld.y * 3.0);
@@ -59,13 +66,13 @@ vec3 patternColor(vec3 base){
         vec2 c = vec2(floor(along), row);
         float h = hash(c);
         vec2 f = vec2(fract(along), fract(vWorld.y * 3.0));
-        float mortar = step(0.05, f.x) * step(0.08, f.y);
+        float mortar = gridLine(f, vec2(0.05, 0.08), vec2(fwidth(along), fwidth(vWorld.y * 3.0)));
         return base * (0.8 + 0.4*h) * (0.5 + 0.5*mortar);
     } else if (uPattern == 3) { // metal panels
         vec2 uv = (abs(vNormal.y) > 0.5) ? vWorld.xz : (abs(vNormal.x) > 0.5 ? vWorld.zy : vWorld.xy);
         vec2 c = floor(uv * 0.75);
         vec2 f = fract(uv * 0.75);
-        float groove = step(0.04, f.x) * step(0.04, f.y);
+        float groove = gridLine(f, vec2(0.04), fwidth(uv * 0.75));
         return base * (0.9 + 0.2*hash(c)) * (0.6 + 0.4*groove);
     }
     return base;
@@ -84,7 +91,8 @@ void main(){
     float sh = shadowFactor(n);
     vec3 h = normalize(l + v);
     float spec = pow(max(dot(n, h), 0.0), 32.0) * 0.25;
-    col += (base * ndl + vec3(spec)) * uSunColor * sh;
+    float specMul = uPattern == 1 ? 0.25 : 1.0;   // floor: tame glints that crawl as the camera moves
+    col += (base * ndl + vec3(spec * specMul)) * uSunColor * sh;
     // point lights
     for (int i = 0; i < uNumLights; i++) {
         vec3 d = uLightPos[i].xyz - vWorld;
@@ -95,7 +103,7 @@ void main(){
         float pdl = max(dot(n, ld), 0.0);
         vec3 ph = normalize(ld + v);
         float ps = pow(max(dot(n, ph), 0.0), 24.0) * 0.3;
-        col += (base * pdl + vec3(ps)) * uLightColor[i] * att;
+        col += (base * pdl + vec3(ps * specMul)) * uLightColor[i] * att;
     }
     // rim
     float rim = pow(1.0 - max(dot(n, v), 0.0), 3.0) * 0.15;
@@ -317,9 +325,15 @@ void Renderer::textRight(float rx, float y, const std::string& s, float scale, c
 
 // -------------------------------------------------------------- rendering ----
 void Renderer::renderShadowPass() {
-    Vec3 center = shadowCenter_;
-    Vec3 eye = center - sunDir_ * (shadowExtent_ * 2.5f);
-    Mat4 lv = Mat4::lookAt(eye, center, std::fabs(sunDir_.y) > 0.95f ? Vec3(0, 0, 1) : Vec3(0, 1, 0));
+    // Light view fixed to the world origin, then slid in whole shadow-texel steps to follow the focus.
+    // Moving the shadow map continuously makes shadow edges shimmer on the floor whenever the camera / fighters move.
+    float dist = shadowExtent_ * 2.5f;
+    Vec3 up = std::fabs(sunDir_.y) > 0.95f ? Vec3(0, 0, 1) : Vec3(0, 1, 0);
+    Mat4 lvFixed = Mat4::lookAt(sunDir_ * -dist, Vec3(0, 0, 0), up);
+    Vec3 c = lvFixed.transformPoint(shadowCenter_);
+    float texel = 2.0f * shadowExtent_ / (float)shadowSize_;
+    float sx = std::floor(c.x / texel + 0.5f) * texel, sy = std::floor(c.y / texel + 0.5f) * texel;
+    Mat4 lv = Mat4::translate(Vec3(-sx, -sy, -(c.z + dist))) * lvFixed;
     Mat4 lp = Mat4::ortho(-shadowExtent_, shadowExtent_, -shadowExtent_, shadowExtent_, 0.1f, shadowExtent_ * 6.0f);
     Mat4 lightVP = lp * lv;
 

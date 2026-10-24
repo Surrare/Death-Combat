@@ -88,8 +88,8 @@ void App::frame(float dt, int w, int h) {
         bool capturing = scene_ == Scene::Settings && settingsCapturing_;
         if (!capturing) {
             if (m.justPressed(BTN_UP | BTN_DOWN | BTN_LEFT | BTN_RIGHT)) audio_.play(Sfx::UiMove);
-            if (m.justPressed(BTN_START | BTN_LIGHT)) audio_.play(Sfx::UiConfirm);
-            if (m.justPressed(BTN_BACK)) audio_.play(Sfx::UiBack);
+            if (m.justPressed(BTN_START | BTN_LIGHT) || input_.leftClicked()) audio_.play(Sfx::UiConfirm);
+            if (m.justPressed(BTN_BACK) || input_.rightClicked()) audio_.play(Sfx::UiBack);
         }
     }
 
@@ -140,7 +140,13 @@ void App::updateTitle(float dt) {
     int n = 5;
     if (p.justPressed(BTN_DOWN)) menuIndex_ = (menuIndex_ + 1) % n;
     if (p.justPressed(BTN_UP)) menuIndex_ = (menuIndex_ + n - 1) % n;
-    if (p.justPressed(BTN_START) || p.justPressed(BTN_LIGHT)) {
+    bool clicked = false;
+    for (int i = 0; i < n; ++i) {
+        if (!input_.mouseIn(width_ * 0.5f - 170, height_ * 0.5f + i * 44 - 8, 340, 38)) continue;
+        if (input_.mouseMoved() || input_.leftClicked()) menuIndex_ = i;
+        clicked = input_.leftClicked();
+    }
+    if (p.justPressed(BTN_START) || p.justPressed(BTN_LIGHT) || clicked) {
         switch (menuIndex_) {
         case 0: pendingMode_ = FightMode::Hunt; scene_ = Scene::Select; selectFor_ = 0; selChosen_[0] = selChosen_[1] = -1; break;
         case 1: pendingMode_ = FightMode::VsCpu; scene_ = Scene::Select; selectFor_ = 0; selChosen_[0] = selChosen_[1] = -1; break;
@@ -191,7 +197,7 @@ void App::renderTitle() {
         if (sel) renderer_.rect(cx - 170, y - 8, 340, 38, Color(0.9f, 0.15f, 0.2f, 0.35f));
         renderer_.textCentered(cx, y, MENU_ITEMS[i], 3, sel ? GOLD : WHITE);
     }
-    renderer_.textCentered(cx, my + 5 * 44 + 10, "UP / DOWN  CHOOSE      ENTER  CONFIRM", 1.8f, DIM);
+    renderer_.textCentered(cx, my + 5 * 44 + 10, "UP / DOWN  CHOOSE      ENTER  CONFIRM      (OR USE THE MOUSE)", 1.8f, DIM);
     auto K = [&](Action a) { return settings_.keyLabel(a); };
     renderer_.text(20, height_ - 100, "MOVE  " + K(Action::Up) + " " + K(Action::Left) + " " + K(Action::Down) + " " + K(Action::Right) + " / LEFT STICK      LIGHT " + K(Action::Light) + "   MEDIUM " + K(Action::Medium) + "   HEAVY " + K(Action::Heavy), 1.6f, DIM);
     renderer_.text(20, height_ - 80, "STAND / MODE  " + K(Action::Style) + "      DASH / EVADE  " + K(Action::Dash) + "      TAUNT  " + K(Action::Taunt), 1.6f, DIM);
@@ -211,11 +217,20 @@ void App::updateSelect(float dt) {
     // left/right (and up/down) cycle through the roster
     if (m.justPressed(BTN_RIGHT) || m.justPressed(BTN_DOWN)) selCursor_[who] = (selCursor_[who] + 1) % n;
     if (m.justPressed(BTN_LEFT) || m.justPressed(BTN_UP)) selCursor_[who] = (selCursor_[who] + n - 1) % n;
-    if (m.justPressed(BTN_BACK)) {
+    bool clicked = false;
+    {
+        float cardW = 170, cardH = 84, gap = 12, totalW = n * cardW + (n - 1) * gap, x0 = (width_ - totalW) * 0.5f;
+        for (int i = 0; i < n; ++i) {
+            if (!input_.mouseIn(x0 + i * (cardW + gap), height_ - 120, cardW, cardH)) continue;
+            if (input_.mouseMoved() || input_.leftClicked()) selCursor_[who] = i;
+            clicked = input_.leftClicked();
+        }
+    }
+    if (m.justPressed(BTN_BACK) || input_.rightClicked()) {
         if (who == 1) { selectFor_ = 0; return; }   // step back to player 1's pick
         scene_ = Scene::Title; return;
     }
-    if (m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT)) {
+    if (m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT) || clicked) {
         selChosen_[who] = selCursor_[who];
         if (pendingMode_ == FightMode::Hunt) { startHunt(selChosen_[0]); return; }
         if (pendingMode_ == FightMode::VsCpu) {
@@ -299,7 +314,7 @@ void App::renderSelect() {
     for (const Move& m : c.moves) if (m.kind == MoveKind::HHA) ml.push_back("HHA  " + m.name + "  D,DF,F + 2 ATK");
     for (const Move& m : c.moves) if (m.kind == MoveKind::GHA) ml.push_back("GHA  " + m.name + "  D,DF,F + 3 ATK");
     drawPanelText(width_ - 440, 120, ml, 1.6f, WHITE, 1.5f);
-    renderer_.textCentered(width_ * 0.5f, height_ - 150, "ARROWS  CHOOSE FIGHTER     ENTER  CONFIRM     ESC  BACK", 1.6f, DIM);
+    renderer_.textCentered(width_ * 0.5f, height_ - 150, "ARROWS / MOUSE  CHOOSE FIGHTER     ENTER / CLICK  CONFIRM     ESC / RIGHT CLICK  BACK", 1.6f, DIM);
     renderer_.endFrame();
 }
 
@@ -322,7 +337,7 @@ void App::updateHunt(float dt) {
     if (huntComplete_) {
         huntCompleteTimer_ += dt;
         if (input_.mouseCaptured()) input_.setMouseCaptured(false);
-        if (huntCompleteTimer_ > 1.5f && (pad.justPressed(BTN_START) || pad.justPressed(BTN_LIGHT) || pad.justPressed(BTN_BACK))) scene_ = Scene::Title;
+        if (huntCompleteTimer_ > 1.5f && (pad.justPressed(BTN_START) || pad.justPressed(BTN_LIGHT) || pad.justPressed(BTN_BACK) || input_.leftClicked())) scene_ = Scene::Title;
         hunt_.update(dt, PadState(), false);
         return;
     }
@@ -334,7 +349,13 @@ void App::updateHunt(float dt) {
     if (huntPaused_) {
         if (pad.justPressed(BTN_DOWN)) huntPauseIndex_ = (huntPauseIndex_ + 1) % 3;
         if (pad.justPressed(BTN_UP)) huntPauseIndex_ = (huntPauseIndex_ + 2) % 3;
-        if (pad.justPressed(BTN_START) || pad.justPressed(BTN_LIGHT)) {
+        bool clicked = false;
+        for (int i = 0; i < 3; ++i) {
+            if (!input_.mouseIn(width_ * 0.5f - 180, height_ * 0.5f + i * 40 - 6, 360, 33)) continue;
+            if (input_.mouseMoved() || input_.leftClicked()) huntPauseIndex_ = i;
+            clicked = input_.leftClicked();
+        }
+        if (pad.justPressed(BTN_START) || pad.justPressed(BTN_LIGHT) || clicked) {
             if (huntPauseIndex_ == 0) { huntPaused_ = false; input_.setMouseCaptured(true); }
             else if (huntPauseIndex_ == 1) openSettings(Scene::Hunt);
             else { scene_ = Scene::Title; input_.setMouseCaptured(false); }
@@ -439,14 +460,14 @@ void App::renderHunt() {
         renderer_.textCentered(cx, height_ * 0.35f, "PAUSED", 5, WHITE);
         const char* items[3] = {"RESUME", "SETTINGS", "QUIT TO TITLE"};
         for (int i = 0; i < 3; ++i) renderer_.textCentered(cx, height_ * 0.5f + i * 40, items[i], 3, i == huntPauseIndex_ ? GOLD : WHITE);
-        renderer_.textCentered(cx, height_ * 0.85f, "UP / DOWN  CHOOSE     ENTER  CONFIRM     ESC  RESUME", 1.6f, DIM);
+        renderer_.textCentered(cx, height_ * 0.85f, "UP / DOWN / MOUSE  CHOOSE     ENTER / CLICK  CONFIRM     ESC  RESUME", 1.6f, DIM);
     }
     if (huntComplete_) {
         float a = clampf(huntCompleteTimer_, 0, 1);
         renderer_.rect(0, 0, width_, height_, Color(0, 0, 0, 0.7f * a));
         renderer_.textCentered(cx, height_ * 0.35f, "HUNT COMPLETE", 7, GOLD.withAlpha(a));
         renderer_.textCentered(cx, height_ * 0.35f + 80, ros[huntPlayerChar_].name + " STANDS ALONE IN THE HALLS", 2.5f, WHITE.withAlpha(a));
-        if (huntCompleteTimer_ > 1.5f) renderer_.textCentered(cx, height_ * 0.7f, "PRESS ENTER", 2, DIM);
+        if (huntCompleteTimer_ > 1.5f) renderer_.textCentered(cx, height_ * 0.7f, "PRESS ENTER OR CLICK", 2, DIM);
     }
     renderer_.endFrame();
 }

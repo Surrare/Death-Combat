@@ -491,7 +491,7 @@ void FightSim::updateFighter(Fighter& f, Fighter& o, const SimInput& in) {
         if (f.timer >= f.stateLen) {
             f.pos.y = 0.3f;
             setState(f, FState::AirHit);
-            f.vy = 0.10f; f.vx = -o.facing * 0.18f;
+            f.vy = 0.10f; f.vx = o.facing * 0.18f;
             f.hardKD = true;
         }
         break;
@@ -565,7 +565,7 @@ void FightSim::applyBlock(Fighter& att, Fighter& def, const HitWindow& w, const 
     bool crouch = def.state == FState::CrouchBlock || def.state == FState::Crouch ||
                   (def.state != FState::Block && def.dirHistory[((def.histHead - 1) % 32 + 32) % 32] <= 3);
     setState(def, crouch ? FState::CrouchBlock : FState::Block, w.blockstun);
-    def.vx = -att.facing * w.knockX * 0.7f;
+    def.vx = att.facing * w.knockX * 0.7f;
     float dmg = w.damage * att.effectiveDamageMul();
     if (w.chip > 0) def.hp = std::max(1.0f, def.hp - dmg * w.chip);
     att.hhg = std::min(3000.0f, att.hhg + dmg * 0.3f);
@@ -612,7 +612,7 @@ void FightSim::applyHit(Fighter& att, Fighter& def, const HitWindow& w, const Mo
     }
     if (styleBreak) {
         setState(def, FState::StyleBreak, 110);
-        def.vx = -att.facing * w.knockX;
+        def.vx = att.facing * w.knockX;
         emit(FightEvent::StyleBreak, def.pos + Vec3(0, 1.5f, 0), 1.5f, def.index, "STAND BREAK");
         shake_ = 1.0f;
         return;
@@ -628,20 +628,20 @@ void FightSim::applyHit(Fighter& att, Fighter& def, const HitWindow& w, const Mo
         float vy = w.launcher ? std::max(w.knockY, 0.16f) : std::max(0.08f, w.knockY + 0.06f);
         setState(def, FState::AirHit);
         def.vy = std::max(0.05f, vy - juggleDecay);
-        def.vx = -att.facing * std::max(w.knockX, 0.04f);
+        def.vx = att.facing * std::max(w.knockX, 0.04f);
         def.hardKD = w.hardKnockdown;
         if (def.pos.y <= 0) def.pos.y = 0.01f;
     } else if (w.knockdown) {
         setState(def, FState::AirHit);
         def.vy = std::max(w.knockY, 0.09f);
-        def.vx = -att.facing * w.knockX;
+        def.vx = att.facing * w.knockX;
         def.hardKD = w.hardKnockdown;
         def.pos.y = 0.01f;
     } else {
         bool crouch = def.state == FState::Crouch || def.state == FState::CrouchHit || def.state == FState::CrouchBlock ||
                       (def.state == FState::Attack && def.move && def.move->stance == Stance::Crouch);
         setState(def, crouch ? FState::CrouchHit : FState::Hit, w.hitstun);
-        def.vx = -att.facing * w.knockX;
+        def.vx = att.facing * w.knockX;
     }
 }
 
@@ -757,7 +757,7 @@ void FightSim::updateClash(const SimInput& inA, const SimInput& inB) {
         if (lose.hp <= 0) { lose.hp = 0; }
         else {
             setState(lose, FState::AirHit);
-            lose.vy = 0.2f; lose.vx = -win.facing * 0.22f; lose.hardKD = true; lose.pos.y = 0.01f;
+            lose.vy = 0.2f; lose.vx = win.facing * 0.22f; lose.hardKD = true; lose.pos.y = 0.01f;
         }
     }
 }
@@ -783,7 +783,7 @@ void FightSim::checkRoundEnd() {
         if (lost) {
             const Fighter& o = f_[1 - i];
             setState(f, FState::KO);
-            f.vy = 0.14f; f.vx = -o.facing * 0.10f;
+            f.vy = 0.14f; f.vx = o.facing * 0.10f;
             if (f.pos.y <= 0) f.pos.y = 0.01f;
             if (o.state == FState::Attack && o.move && (o.move->kind == MoveKind::HHA || o.move->kind == MoveKind::GHA)) dramatic_ = true;
         }

@@ -266,19 +266,26 @@ void Hunt::render(Renderer& r, RigRenderer& rig, float time) {
     struct L { float d; Vec3 p; Vec3 c; float rad; };
     std::vector<L> lights;
     for (const Vec3& t : maze_.torches()) {
-        float flick = 0.85f + 0.15f * std::sin(time * 9.0f + t.x * 3.1f + t.z * 1.7f);
+        float flick = 0.94f + 0.06f * std::sin(time * 3.0f + t.x * 3.1f + t.z * 1.7f);
         lights.push_back({distance(t, playerPos_), t, Vec3(1.0f, 0.55f, 0.22f) * flick, 7.5f});
     }
     for (const HuntOpponent& o : opps_) {
         if (o.defeated) continue;
         const Character& c = ros[o.charId];
-        float pulse = 0.8f + 0.2f * std::sin(time * 5.0f);
+        float pulse = 0.9f + 0.1f * std::sin(time * 3.0f);
         lights.push_back({distance(o.pos, playerPos_) * 0.5f, o.pos + Vec3(0, 1.6f, 0), c.styleColor.rgb() * (1.4f * pulse), 9.0f});
     }
     lights.push_back({0, playerPos_ + Vec3(0, 2.0f, 0), ros[playerChar_].styleColor.rgb() * 0.9f + Vec3(0.3f, 0.3f, 0.3f), 7.0f});
     std::sort(lights.begin(), lights.end(), [](const L& a, const L& b) { return a.d < b.d; });
     r.clearPointLights();
-    for (size_t i = 0; i < lights.size() && i < 16; ++i) r.addPointLight(lights[i].p, lights[i].c, lights[i].rad);
+    // Only 16 lights fit in the shader. A light that enters or leaves the set would pop on the floor,
+    // so lights near the cut-off fade in/out smoothly instead.
+    const size_t MAXL = 16;
+    float cutoff = lights.size() > MAXL ? lights[MAXL].d : 1e9f;
+    for (size_t i = 0; i < lights.size() && i < MAXL; ++i) {
+        float fade = clampf((cutoff - lights[i].d) / 2.5f, 0.0f, 1.0f);
+        r.addPointLight(lights[i].p, lights[i].c * fade, lights[i].rad);
+    }
 
     r.draw(floor_, Mat4::identity(), Color(1, 1, 1), 0, 1);
     r.draw(walls_, Mat4::identity(), Color(1, 1, 1), 0, 2);

@@ -11,6 +11,11 @@ const Color WHITE(1, 1, 1), GOLD(1.0f, 0.82f, 0.3f), RED(0.95f, 0.2f, 0.2f), DIM
 enum Row { ROW_MASTER, ROW_MUSIC, ROW_SFX, ROW_FULLSCREEN, ROW_VSYNC, ROW_MOUSE, ROW_KEYS, ROW_RESET = ROW_KEYS + ACTION_COUNT, ROW_BACK, ROW_COUNT };
 }
 
+// shared by update (mouse hit-testing) and render so the two never disagree
+static float settingsRowH(int height) { return std::min(26.0f, (height - 150.0f) / ROW_COUNT); }
+static float settingsRowY(int r, float rowH) { return 80.0f + r * rowH + (r >= ROW_KEYS ? 22.0f : 0.0f); }
+static const float CHAR_W = 6.0f * 1.7f;   // text scale 1.7 used for settings rows
+
 void App::openSettings(Scene returnTo) {
     settingsReturn_ = returnTo;
     settingsIndex_ = 0; settingsSlot_ = 0; settingsCapturing_ = false;
@@ -43,7 +48,7 @@ void App::updateSettings(float dt) {
 
     if (settingsCapturing_) {
         int k = input_.newKey();
-        if (k == GLFW_KEY_ESCAPE) settingsCapturing_ = false;
+        if (k == GLFW_KEY_ESCAPE || input_.rightClicked()) settingsCapturing_ = false;
         else if (k) {
             settings_.bind((Action)(settingsIndex_ - ROW_KEYS), settingsSlot_, k);
             settingsCapturing_ = false;
@@ -51,10 +56,37 @@ void App::updateSettings(float dt) {
         return;
     }
 
+    // mouse: hover selects, left click acts, right click goes back
+    bool clicked = false;
+    int clickDx = 0;
+    {
+        float cx = width_ * 0.5f, rowH = settingsRowH(height_), labelX = cx - 300, valueX = cx + 20;
+        for (int r = 0; r < ROW_COUNT; ++r) {
+            float y = settingsRowY(r, rowH);
+            if (!input_.mouseIn(labelX - 12, y - 4, 640, rowH - 2)) continue;
+            if (input_.mouseMoved() || input_.leftClicked()) settingsIndex_ = r;
+            if (!input_.leftClicked()) break;
+            float mx = input_.mouseX();
+            if (r >= ROW_KEYS && r < ROW_RESET) {
+                if (mx >= valueX - 6) { settingsSlot_ = std::clamp((int)((mx - valueX + 6) / 190), 0, BIND_SLOTS - 1); clicked = true; }
+            } else if (r == ROW_MASTER || r == ROW_MUSIC || r == ROW_SFX || r == ROW_MOUSE) {
+                int& v = r == ROW_MASTER ? settings_.master : r == ROW_MUSIC ? settings_.music : r == ROW_SFX ? settings_.sfx : settings_.mouseSens;
+                int lo = r == ROW_MOUSE ? 1 : 0;
+                float barX = valueX + 3 * CHAR_W;
+                if (mx >= barX && mx < barX + 10 * CHAR_W) v = std::clamp((int)((mx - barX) / CHAR_W) + 1, lo, 10);
+                else if (mx >= valueX && mx < barX) clickDx = -1;
+                else if (mx >= barX + 10 * CHAR_W && mx < barX + 10 * CHAR_W + 5 * CHAR_W) clickDx = 1;
+            } else if (r == ROW_FULLSCREEN || r == ROW_VSYNC) {
+                if (mx >= valueX) clicked = true;
+            } else clicked = true;
+            break;
+        }
+    }
+
     if (m.justPressed(BTN_DOWN)) settingsIndex_ = (settingsIndex_ + 1) % ROW_COUNT;
     if (m.justPressed(BTN_UP)) settingsIndex_ = (settingsIndex_ + ROW_COUNT - 1) % ROW_COUNT;
-    int dx = (m.justPressed(BTN_RIGHT) ? 1 : 0) - (m.justPressed(BTN_LEFT) ? 1 : 0);
-    bool confirm = m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT);
+    int dx = (m.justPressed(BTN_RIGHT) ? 1 : 0) - (m.justPressed(BTN_LEFT) ? 1 : 0) + clickDx;
+    bool confirm = m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT) || clicked;
     int r = settingsIndex_;
 
     auto slider = [&](int& v, int lo, int hi) {
@@ -76,7 +108,7 @@ void App::updateSettings(float dt) {
     else if (r == ROW_RESET && confirm) settings_.resetKeys();
     else if (r == ROW_BACK && confirm) { closeSettings(); return; }
 
-    if (m.justPressed(BTN_BACK)) closeSettings();
+    if (m.justPressed(BTN_BACK) || input_.rightClicked()) closeSettings();
 }
 
 void App::renderSettings() {
@@ -84,15 +116,15 @@ void App::renderSettings() {
     float cx = width_ * 0.5f;
     renderer_.textCentered(cx, 24, "SETTINGS", 4, GOLD);
 
-    const float rowH = std::min(26.0f, (height_ - 150.0f) / ROW_COUNT);
-    const float y0 = 80, labelX = cx - 300, valueX = cx + 20;
+    const float rowH = settingsRowH(height_);
+    const float labelX = cx - 300, valueX = cx + 20;
     auto bar = [&](float y, int v, int maxV) {
         std::string s = "<  ";
         for (int i = 0; i < maxV; ++i) s += i < v ? "#" : "-";
         return s + "  >";
     };
     for (int r = 0; r < ROW_COUNT; ++r) {
-        float y = y0 + r * rowH + (r >= ROW_KEYS ? 22.0f : 0.0f);
+        float y = settingsRowY(r, rowH);
         if (r == ROW_KEYS) renderer_.text(labelX, y - 22, "CONTROLS   (KEYBOARD, PLAYER 1)", 1.6f, CYAN);
         bool sel = r == settingsIndex_;
         if (sel) renderer_.rect(labelX - 12, y - 4, 640, rowH - 2, Color(0.9f, 0.15f, 0.2f, 0.3f));
