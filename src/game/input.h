@@ -1,6 +1,7 @@
 // Keyboard + gamepad input, mapped to fighting-game buttons (JoJo ASB layout).
 #pragma once
 #include <cstdint>
+#include "game/settings.h"
 struct GLFWwindow;
 
 namespace dc {
@@ -31,20 +32,28 @@ struct PadState {
 
 class Input {
 public:
-    void attach(GLFWwindow* window);
+    void attach(GLFWwindow* window, const Settings* settings);
     void poll();                      // call once per frame
     const PadState& player(int i) const { return pads_[i]; }
+    // Both players' controls merged: arrows + WASD, Enter / J confirm, Esc back. Use for menus.
+    const PadState& menu() const { return menu_; }
     bool anyPressed() const { return (pads_[0].pressed | pads_[1].pressed) != 0; }
     void setMouseCaptured(bool captured);
     bool mouseCaptured() const { return captured_; }
+    int newKey() const { return newKey_; }   // key pressed this frame (for rebinding), 0 if none
 
 private:
     GLFWwindow* window_ = nullptr;
     PadState pads_[2];
+    PadState menu_;
+    uint32_t prevMenuHeld_ = 0;
     uint32_t prevHeld_[2] = {0, 0};
     double lastMouseX_ = 0, lastMouseY_ = 0;
     bool haveMouse_ = false;
     bool captured_ = false;
+    const Settings* settings_ = nullptr;
+    bool prevKeys_[400] = {};
+    int newKey_ = 0;
 };
 
 } // namespace dc

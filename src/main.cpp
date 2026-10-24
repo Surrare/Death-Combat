@@ -22,6 +22,7 @@ int main(int argc, char** argv) {
         if (a == "--demo-fight") opts.demo = 1;
         else if (a == "--demo-hunt") opts.demo = 2;
         else if (a == "--demo-select") opts.demo = 3;
+        else if (a == "--demo-settings") opts.demo = 4;
         else if (a == "--shot" && i + 2 < argc) { opts.screenshotPath = argv[i + 1]; opts.screenshotTime = (float)std::atof(argv[i + 2]); i += 2; }
         else if (a == "--seed" && i + 1 < argc) { opts.seed = (uint64_t)std::atoll(argv[i + 1]); i += 1; }
     }

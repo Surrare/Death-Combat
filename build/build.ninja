@@ -69,6 +69,16 @@ build CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o: CXX_COMPILER__DeathCo
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
 
+build CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o: CXX_COMPILER__DeathCombat_unscanned_Release /home/dus/Softgays/Death-Combat/src/game/app_settings.cpp || cmake_object_order_depends_target_DeathCombat
+  CONFIG = Release
+  DEFINES = -DGLFW_INCLUDE_NONE
+  DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o.d
+  FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  OBJECT_DIR = CMakeFiles/DeathCombat.dir
+  OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
+  TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
+
 build CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o: CXX_COMPILER__DeathCombat_unscanned_Release /home/dus/Softgays/Death-Combat/src/game/characters.cpp || cmake_object_order_depends_target_DeathCombat
   CONFIG = Release
   DEFINES = -DGLFW_INCLUDE_NONE
@@ -139,6 +149,16 @@ build CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o: CXX_COMPILER__DeathCombat_u
   OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
   TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
 
+build CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o: CXX_COMPILER__DeathCombat_unscanned_Release /home/dus/Softgays/Death-Combat/src/game/settings.cpp || cmake_object_order_depends_target_DeathCombat
+  CONFIG = Release
+  DEFINES = -DGLFW_INCLUDE_NONE
+  DEP_FILE = CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o.d
+  FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wno-unused-parameter
+  INCLUDES = -I/home/dus/Softgays/Death-Combat/src -isystem /home/dus/Softgays/Death-Combat/third_party/glad/include
+  OBJECT_DIR = CMakeFiles/DeathCombat.dir
+  OBJECT_FILE_DIR = CMakeFiles/DeathCombat.dir/src/game
+  TARGET_SUPPORT_DIR = CMakeFiles/DeathCombat.dir
+
 build CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o: CXX_COMPILER__DeathCombat_unscanned_Release /home/dus/Softgays/Death-Combat/src/gfx/mesh.cpp || cmake_object_order_depends_target_DeathCombat
   CONFIG = Release
   DEFINES = -DGLFW_INCLUDE_NONE
@@ -187,7 +207,7 @@ build CMakeFiles/DeathCombat.dir/src/main.cpp.o: CXX_COMPILER__DeathCombat_unsca
 #############################################
 # Link the executable DeathCombat
 
-build DeathCombat: CXX_EXECUTABLE_LINKER__DeathCombat_Release CMakeFiles/DeathCombat.dir/src/game/app.cpp.o CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o CMakeFiles/DeathCombat.dir/src/game/input.cpp.o CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o CMakeFiles/DeathCombat.dir/src/main.cpp.o | /usr/lib/libglfw.so.3.5 third_party/glad/libglad.a || third_party/glad/libglad.a
+build DeathCombat: CXX_EXECUTABLE_LINKER__DeathCombat_Release CMakeFiles/DeathCombat.dir/src/game/app.cpp.o CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o CMakeFiles/DeathCombat.dir/src/game/input.cpp.o CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o CMakeFiles/DeathCombat.dir/src/main.cpp.o | /usr/lib/libglfw.so.3.5 third_party/glad/libglad.a || third_party/glad/libglad.a
   CONFIG = Release
   DEP_FILE = CMakeFiles/DeathCombat.dir/link.d
   FLAGS = -O3 -DNDEBUG

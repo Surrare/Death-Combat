@@ -10,6 +10,7 @@
 #include "game/fight_ai.h"
 #include "game/rig.h"
 #include "game/hunt.h"
+#include "game/settings.h"
 
 struct GLFWwindow;
 
@@ -42,7 +43,7 @@ struct Banner {
     float life = 0, maxLife = 1, scale = 5, yFrac = 0.4f;
 };
 
-enum class Scene { Title, Select, Hunt, Fight };
+enum class Scene { Title, Select, Hunt, Fight, Settings };
 enum class FightMode { Hunt, VsCpu, Versus, Demo };
 
 class App {
@@ -59,6 +60,11 @@ private:
     void renderSelect();
     void updateHunt(float dt);
     void renderHunt();
+    void updateSettings(float dt);
+    void renderSettings();
+    void openSettings(Scene returnTo);
+    void closeSettings();
+    void applyVideoSettings();
     void updateFight(float dt);
     void renderFight();
     void drawFightHud();
@@ -84,6 +90,13 @@ private:
     Renderer renderer_;
     RigRenderer rig_;
     Input input_;
+    Settings settings_;
+
+    // settings screen
+    Scene settingsReturn_ = Scene::Title;
+    int settingsIndex_ = 0, settingsSlot_ = 0;
+    bool settingsCapturing_ = false;
+    int windowedX_ = 100, windowedY_ = 100, windowedW_ = 1280, windowedH_ = 720;
     Scene scene_ = Scene::Title;
     float time_ = 0;
     bool quit_ = false;

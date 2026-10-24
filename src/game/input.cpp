@@ -5,7 +5,7 @@
 
 namespace dc {
 
-void Input::attach(GLFWwindow* w) { window_ = w; }
+void Input::attach(GLFWwindow* w, const Settings* s) { window_ = w; settings_ = s; }
 
 void Input::setMouseCaptured(bool c) {
     captured_ = c;
@@ -27,20 +27,32 @@ void Input::poll() {
     float ax[2] = {0, 0}, ay[2] = {0, 0}, lx[2] = {0, 0}, ly[2] = {0, 0};
 
     // ---- keyboard, player 1
-    if (key(GLFW_KEY_W)) held[0] |= BTN_UP;
-    if (key(GLFW_KEY_S)) held[0] |= BTN_DOWN;
-    if (key(GLFW_KEY_A)) held[0] |= BTN_LEFT;
-    if (key(GLFW_KEY_D)) held[0] |= BTN_RIGHT;
-    if (key(GLFW_KEY_J)) held[0] |= BTN_LIGHT;
-    if (key(GLFW_KEY_K)) held[0] |= BTN_MEDIUM;
-    if (key(GLFW_KEY_L)) held[0] |= BTN_HEAVY;
-    if (key(GLFW_KEY_I)) held[0] |= BTN_STYLE;
-    if (key(GLFW_KEY_U) || key(GLFW_KEY_LEFT_SHIFT) || key(GLFW_KEY_SPACE)) held[0] |= BTN_DASH;
-    if (key(GLFW_KEY_O)) held[0] |= BTN_TAUNT;
-    if (key(GLFW_KEY_ENTER) || key(GLFW_KEY_E)) held[0] |= BTN_START;
+    auto bound = [&](Action a) {
+        for (int k : settings_->keys[(int)a]) if (k && key(k)) return true;
+        return false;
+    };
+    if (bound(Action::Up)) held[0] |= BTN_UP;
+    if (bound(Action::Down)) held[0] |= BTN_DOWN;
+    if (bound(Action::Left)) held[0] |= BTN_LEFT;
+    if (bound(Action::Right)) held[0] |= BTN_RIGHT;
+    if (bound(Action::Light)) held[0] |= BTN_LIGHT;
+    if (bound(Action::Medium)) held[0] |= BTN_MEDIUM;
+    if (bound(Action::Heavy)) held[0] |= BTN_HEAVY;
+    if (bound(Action::Style)) held[0] |= BTN_STYLE;
+    if (bound(Action::Dash)) held[0] |= BTN_DASH;
+    if (bound(Action::Taunt)) held[0] |= BTN_TAUNT;
+    if (key(GLFW_KEY_ENTER)) held[0] |= BTN_START;
     if (key(GLFW_KEY_ESCAPE)) held[0] |= BTN_BACK;
-    if (key(GLFW_KEY_Q)) lx[0] -= 1.0f;
-    if (key(GLFW_KEY_R)) lx[0] += 1.0f;
+    if (bound(Action::LookLeft)) lx[0] -= 1.0f;
+    if (bound(Action::LookRight)) lx[0] += 1.0f;
+
+    // first newly pressed key, used by the rebinding screen
+    newKey_ = 0;
+    for (int k = GLFW_KEY_SPACE; k <= GLFW_KEY_LAST && k < 400; ++k) {
+        bool d = key(k);
+        if (d && !prevKeys_[k] && !newKey_) newKey_ = k;
+        prevKeys_[k] = d;
+    }
 
     // ---- keyboard, player 2 (arrows + numpad)
     if (key(GLFW_KEY_UP)) held[1] |= BTN_UP;
@@ -60,8 +72,8 @@ void Input::poll() {
     glfwGetCursorPos(window_, &mx, &my);
     if (captured_) {
         if (haveMouse_) {
-            lx[0] += (float)(mx - lastMouseX_) * 0.12f;
-            ly[0] += (float)(my - lastMouseY_) * 0.12f;
+            lx[0] += (float)(mx - lastMouseX_) * settings_->mouseScale();
+            ly[0] += (float)(my - lastMouseY_) * settings_->mouseScale();
         }
         haveMouse_ = true;
     }
@@ -112,6 +124,20 @@ void Input::poll() {
         s.axisY = std::clamp(ay[p] + ky, -1.0f, 1.0f);
         s.lookX = lx[p]; s.lookY = ly[p];
     }
+
+    // merged pad for menus and hunt movement: either player's keys work
+    PadState& m = menu_;
+    m.held = pads_[0].held | pads_[1].held;
+    m.pressed = m.held & ~prevMenuHeld_;
+    m.released = ~m.held & prevMenuHeld_;
+    prevMenuHeld_ = m.held;
+    int mdx = (m.down(BTN_RIGHT) ? 1 : 0) - (m.down(BTN_LEFT) ? 1 : 0);
+    int mdy = (m.down(BTN_UP) ? 1 : 0) - (m.down(BTN_DOWN) ? 1 : 0);
+    m.dirX = mdx; m.dirY = mdy;
+    m.axisX = std::clamp(pads_[0].axisX + pads_[1].axisX, -1.0f, 1.0f);
+    m.axisY = std::clamp(pads_[0].axisY + pads_[1].axisY, -1.0f, 1.0f);
+    m.lookX = pads_[0].lookX + pads_[1].lookX;
+    m.lookY = pads_[0].lookY + pads_[1].lookY;
 }
 
 } // namespace dc

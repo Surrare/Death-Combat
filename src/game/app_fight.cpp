@@ -181,20 +181,24 @@ void App::updateEffects(float dt) {
 void App::updateFight(float dt) {
     const PadState& p1 = input_.player(0);
     const PadState& p2 = input_.player(1);
+    const PadState& m = input_.menu();
     bool matchOver = sim_.phase() == Phase::MatchOver;
 
-    if (!matchOver && (p1.justPressed(BTN_BACK) || p1.justPressed(BTN_START) || p2.justPressed(BTN_START)) && fightMode_ != FightMode::Demo) {
-        if (showMoveList_) showMoveList_ = false;
-        else { paused_ = !paused_; pauseIndex_ = 0; }
+    // Esc / Enter opens the pause menu; once open, Enter confirms and Esc backs out
+    if (!matchOver && !paused_ && fightMode_ != FightMode::Demo && (m.justPressed(BTN_BACK) || m.justPressed(BTN_START))) {
+        paused_ = true; pauseIndex_ = 0; showMoveList_ = false;
+        return;
     }
     if (paused_) {
-        if (showMoveList_) { if (p1.justPressed(BTN_BACK) || p1.justPressed(BTN_LIGHT)) showMoveList_ = false; return; }
-        int n = 3;
-        if (p1.justPressed(BTN_DOWN) || p2.justPressed(BTN_DOWN)) pauseIndex_ = (pauseIndex_ + 1) % n;
-        if (p1.justPressed(BTN_UP) || p2.justPressed(BTN_UP)) pauseIndex_ = (pauseIndex_ + n - 1) % n;
-        if (p1.justPressed(BTN_LIGHT) || p2.justPressed(BTN_LIGHT) || p1.justPressed(BTN_START)) {
+        if (showMoveList_) { if (m.justPressed(BTN_BACK) || m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT)) showMoveList_ = false; return; }
+        int n = 4;
+        if (m.justPressed(BTN_DOWN)) pauseIndex_ = (pauseIndex_ + 1) % n;
+        if (m.justPressed(BTN_UP)) pauseIndex_ = (pauseIndex_ + n - 1) % n;
+        if (m.justPressed(BTN_BACK)) { paused_ = false; return; }
+        if (m.justPressed(BTN_LIGHT) || m.justPressed(BTN_START)) {
             if (pauseIndex_ == 0) paused_ = false;
             else if (pauseIndex_ == 1) showMoveList_ = true;
+            else if (pauseIndex_ == 2) openSettings(Scene::Fight);
             else { paused_ = false; scene_ = Scene::Title; }
         }
         return;
@@ -239,17 +243,17 @@ void App::updateFight(float dt) {
             }
             // defeat: retry or give up
             int n = 2;
-            if (p1.justPressed(BTN_DOWN) || p1.justPressed(BTN_UP)) resultIndex_ = (resultIndex_ + 1) % n;
-            if (p1.justPressed(BTN_START) || p1.justPressed(BTN_LIGHT)) {
+            if (m.justPressed(BTN_DOWN) || m.justPressed(BTN_UP)) resultIndex_ = (resultIndex_ + 1) % n;
+            if (m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT)) {
                 if (resultIndex_ == 0) startFight(huntPlayerChar_, hunt_.opponents()[huntEngaged_].charId, FightMode::Hunt, huntDefeatedCount_ < 2 ? 0 : (huntDefeatedCount_ < 4 ? 1 : 2));
                 else { scene_ = Scene::Title; }
             }
             return;
         }
         int n = 3;
-        if (p1.justPressed(BTN_DOWN) || p2.justPressed(BTN_DOWN)) resultIndex_ = (resultIndex_ + 1) % n;
-        if (p1.justPressed(BTN_UP) || p2.justPressed(BTN_UP)) resultIndex_ = (resultIndex_ + n - 1) % n;
-        if (p1.justPressed(BTN_START) || p1.justPressed(BTN_LIGHT) || p2.justPressed(BTN_START) || p2.justPressed(BTN_LIGHT)) {
+        if (m.justPressed(BTN_DOWN)) resultIndex_ = (resultIndex_ + 1) % n;
+        if (m.justPressed(BTN_UP)) resultIndex_ = (resultIndex_ + n - 1) % n;
+        if (m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT)) {
             if (resultIndex_ == 0) startFight(sim_.fighter(0).ch - &roster()[0], sim_.fighter(1).ch - &roster()[0], fightMode_, 1);
             else if (resultIndex_ == 1) { scene_ = Scene::Select; selectFor_ = 0; }
             else scene_ = Scene::Title;
@@ -568,9 +572,9 @@ void App::drawPauseMenu() {
     float W = (float)width_, H = (float)height_, cx = W * 0.5f;
     renderer_.rect(0, 0, W, H, Color(0, 0, 0, 0.65f));
     renderer_.textCentered(cx, H * 0.3f, "PAUSED", 6, WHITE);
-    const char* items[3] = {"RESUME", "MOVE LIST", "QUIT TO TITLE"};
-    for (int i = 0; i < 3; ++i) renderer_.textCentered(cx, H * 0.45f + i * 42, items[i], 3, i == pauseIndex_ ? GOLD : WHITE);
-    renderer_.textCentered(cx, H * 0.85f, "J / ENTER  SELECT", 1.6f, DIM);
+    const char* items[4] = {"RESUME", "MOVE LIST", "SETTINGS", "QUIT TO TITLE"};
+    for (int i = 0; i < 4; ++i) renderer_.textCentered(cx, H * 0.45f + i * 42, items[i], 3, i == pauseIndex_ ? GOLD : WHITE);
+    renderer_.textCentered(cx, H * 0.85f, "UP / DOWN  CHOOSE     ENTER  CONFIRM     ESC  RESUME", 1.6f, DIM);
 }
 
 void App::drawMoveList() {
@@ -601,7 +605,7 @@ void App::drawMoveList() {
     for (const Move& m : c.moves) if (m.kind == MoveKind::HHA) lines.push_back("HHA  " + m.name);
     for (const Move& m : c.moves) if (m.kind == MoveKind::GHA) lines.push_back("GHA  " + m.name);
     drawPanelText(x, y + 50, lines, 1.7f, WHITE, 1.55f);
-    renderer_.textCentered(W * 0.5f, H - 40, "ESC / J  BACK", 1.6f, DIM);
+    renderer_.textCentered(W * 0.5f, H - 40, "ENTER / ESC  BACK", 1.6f, DIM);
 }
 
 } // namespace dc

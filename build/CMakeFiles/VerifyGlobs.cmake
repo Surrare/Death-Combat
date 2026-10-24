@@ -6,6 +6,7 @@ file(GLOB_RECURSE NEW_GLOB LIST_DIRECTORIES false "/home/dus/Softgays/Death-Comb
 set(OLD_GLOB
   "/home/dus/Softgays/Death-Combat/src/game/app.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/app_fight.cpp"
+  "/home/dus/Softgays/Death-Combat/src/game/app_settings.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/characters.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/fight.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/fight_ai.cpp"
@@ -13,6 +14,7 @@ set(OLD_GLOB
   "/home/dus/Softgays/Death-Combat/src/game/input.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/maze.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/rig.cpp"
+  "/home/dus/Softgays/Death-Combat/src/game/settings.cpp"
   "/home/dus/Softgays/Death-Combat/src/gfx/mesh.cpp"
   "/home/dus/Softgays/Death-Combat/src/gfx/renderer.cpp"
   "/home/dus/Softgays/Death-Combat/src/gfx/shader.cpp"
@@ -53,6 +55,7 @@ set(OLD_GLOB
   "/home/dus/Softgays/Death-Combat/src/game/input.h"
   "/home/dus/Softgays/Death-Combat/src/game/maze.h"
   "/home/dus/Softgays/Death-Combat/src/game/rig.h"
+  "/home/dus/Softgays/Death-Combat/src/game/settings.h"
   "/home/dus/Softgays/Death-Combat/src/gfx/mesh.h"
   "/home/dus/Softgays/Death-Combat/src/gfx/renderer.h"
   "/home/dus/Softgays/Death-Combat/src/gfx/shader.h"
