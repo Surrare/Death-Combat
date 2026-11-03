@@ -1,5 +1,6 @@
 // Procedural humanoid rig: poses are generated from fighter state in code, no animation assets.
 #pragma once
+#include <array>
 #include "core/math.h"
 #include "gfx/renderer.h"
 #include "game/fight.h"
@@ -26,12 +27,22 @@ Pose standIdlePose(float time);      // floating guardian pose for Stands
 Pose poseForFighter(const Fighter& f, float time);
 Pose attackPose(AnimKind kind, float phase, float time, bool variant);   // phase: 0..1 startup, 1..2 active, 2..3 recovery
 
+// Model matrices for the same unit boxes used to draw each leg.
+struct RigLeg {
+    Mat4 thigh, shin, foot;
+};
+std::array<RigLeg, 2> rigLegs(const Pose& p, const Mat4& root);
+// floorY is a world-space surface height. Floating Stands keep their authored pose.
+Mat4 rigRoot(const Pose& p, const Vec3& feet, float yaw, float heightScale,
+             bool asStand = false, float floorY = 0.0f);
+
 class RigRenderer {
 public:
     bool init();
     // feet position, yaw (radians, 0 = facing +z), colours. alpha < 1 renders the ghostly Stand.
     void draw(Renderer& r, const Pose& p, const Vec3& feet, float yaw, const Character& c, float scale,
-              float alpha = 1.0f, float flash = 0.0f, bool asStand = false, bool castShadow = true);
+              float alpha = 1.0f, float flash = 0.0f, bool asStand = false, bool castShadow = true,
+              float floorY = 0.0f);
     const Mesh& unitBox() const { return box_; }
     const Mesh& unitSphere() const { return sphere_; }
 

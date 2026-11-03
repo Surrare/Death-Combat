@@ -6,6 +6,11 @@ namespace dc {
 namespace {
 float easeOut(float t) { t = clampf(t, 0, 1); return 1 - (1 - t) * (1 - t); }
 float easeInOut(float t) { return smoothstep(0, 1, t); }
+
+float boxBottom(const Mat4& model) {
+    // A unit box spans [-0.5, 0.5] on every axis. Project its half extents onto world Y.
+    return model.m[3][1] - 0.5f * (std::fabs(model.m[0][1]) + std::fabs(model.m[1][1]) + std::fabs(model.m[2][1]));
+}
 }
 
 Pose lerpPose(const Pose& a, const Pose& b, float t) {
@@ -370,6 +375,38 @@ Pose poseForFighter(const Fighter& f, float time) {
     return idlePose(time);
 }
 
+std::array<RigLeg, 2> rigLegs(const Pose& p, const Mat4& root) {
+    std::array<RigLeg, 2> legs;
+    for (int i = 0; i < 2; ++i) {
+        const float side = i == 0 ? 1.0f : -1.0f;
+        const Mat4 hip = root * Mat4::translate(Vec3(side * 0.11f, -0.08f, 0))
+                       * Mat4::rotateZ(side * p.legOut[i]) * Mat4::rotateX(-p.legPitch[i]);
+        const Mat4 knee = hip * Mat4::translate(Vec3(0, -0.45f, 0)) * Mat4::rotateX(p.knee[i]);
+        legs[i].thigh = hip * Mat4::translate(Vec3(0, -0.22f, 0)) * Mat4::scale(Vec3(0.16f, 0.45f, 0.17f));
+        legs[i].shin = knee * Mat4::translate(Vec3(0, -0.22f, 0)) * Mat4::scale(Vec3(0.14f, 0.45f, 0.15f));
+        legs[i].foot = knee * Mat4::translate(Vec3(0, -0.47f, 0.06f)) * Mat4::scale(Vec3(0.14f, 0.09f, 0.28f));
+    }
+    return legs;
+}
+
+Mat4 rigRoot(const Pose& p, const Vec3& feet, float yaw, float heightScale, bool asStand, float floorY) {
+    Mat4 root = Mat4::translate(feet) * Mat4::rotateY(yaw + p.bodyYaw) * Mat4::scale(Vec3(heightScale))
+              * Mat4::translate(Vec3(0, p.hipHeight, 0) + p.rootOffset)
+              * Mat4::rotateX(p.rootPitch) * Mat4::rotateZ(p.rootRoll);
+    if (!asStand) {
+        // Correct only actual penetration. Preserve clear/airborne poses and simulation positions.
+        // Include thighs and shins: during sweeps or knockdowns a foot need not be the lowest part.
+        float bottom = floorY;
+        for (const RigLeg& leg : rigLegs(p, root)) {
+            bottom = std::min(bottom, boxBottom(leg.thigh));
+            bottom = std::min(bottom, boxBottom(leg.shin));
+            bottom = std::min(bottom, boxBottom(leg.foot));
+        }
+        root.m[3][1] += floorY - bottom;
+    }
+    return root;
+}
+
 // --------------------------------------------------------------- renderer ----
 bool RigRenderer::init() {
     MeshBuilder b;
@@ -382,7 +419,7 @@ bool RigRenderer::init() {
 }
 
 void RigRenderer::draw(Renderer& r, const Pose& p, const Vec3& feet, float yaw, const Character& c, float scale,
-                       float alpha, float flash, bool asStand, bool castShadow) {
+                       float alpha, float flash, bool asStand, bool castShadow, float floorY) {
     const Vec3 skinV(0.92f, 0.74f, 0.62f);
     Color body = asStand ? c.styleColor : c.bodyColor;
     Color accent = asStand ? mix(c.styleColor, Color(1, 1, 1), 0.5f) : c.accentColor;
@@ -397,9 +434,9 @@ void RigRenderer::draw(Renderer& r, const Pose& p, const Vec3& feet, float yaw, 
     }
     auto A = [&](Color col) { col.a = alpha; return col; };
 
-    float heightScale = (c.height / 1.85f) * scale;
-    Mat4 root = Mat4::translate(feet) * Mat4::rotateY(yaw + p.bodyYaw) * Mat4::scale(Vec3(heightScale))
-              * Mat4::translate(Vec3(0, p.hipHeight, 0) + p.rootOffset) * Mat4::rotateX(p.rootPitch) * Mat4::rotateZ(p.rootRoll);
+    const float heightScale = (c.height / 1.85f) * scale;
+    const Mat4 root = rigRoot(p, feet, yaw, heightScale, asStand, floorY);
+    const auto legs = rigLegs(p, root);
 
     auto drawBox = [&](const Mat4& m, Vec3 center, Vec3 size, Color col) {
         r.draw(box_, m * Mat4::translate(center) * Mat4::scale(size), A(col), em, 0, castShadow);
@@ -436,11 +473,9 @@ void RigRenderer::draw(Renderer& r, const Pose& p, const Vec3& feet, float yaw, 
         drawBox(elbow, Vec3(0, -0.14f, 0), Vec3(0.11f, 0.28f, 0.11f), accent);
         drawBox(elbow, Vec3(0, -0.32f, 0.01f), Vec3(0.12f, 0.12f, 0.12f), skin);
         // leg
-        Mat4 hip = root * Mat4::translate(Vec3(sx * 0.11f, -0.08f, 0)) * Mat4::rotateZ(sx * p.legOut[i]) * Mat4::rotateX(-p.legPitch[i]);
-        drawBox(hip, Vec3(0, -0.22f, 0), Vec3(0.16f, 0.45f, 0.17f), dark);
-        Mat4 knee = hip * Mat4::translate(Vec3(0, -0.45f, 0)) * Mat4::rotateX(p.knee[i]);
-        drawBox(knee, Vec3(0, -0.22f, 0), Vec3(0.14f, 0.45f, 0.15f), body);
-        drawBox(knee, Vec3(0, -0.47f, 0.06f), Vec3(0.14f, 0.09f, 0.28f), accent);
+        r.draw(box_, legs[i].thigh, A(dark), em, 0, castShadow);
+        r.draw(box_, legs[i].shin, A(body), em, 0, castShadow);
+        r.draw(box_, legs[i].foot, A(accent), em, 0, castShadow);
     }
 }
 

@@ -80,4 +80,17 @@ if(DC_BUILD_TESTS)
     endif()
     enable_testing()
     add_test(NAME sim_smoke COMMAND DeathCombatSimTest)
+
+    # Exercise the rendered rig's geometry on the CPU, without creating a GL context.
+    add_executable(DeathCombatRigTest tests/rig_test.cpp src/game/rig.cpp src/game/characters.cpp
+        src/gfx/renderer.cpp src/gfx/mesh.cpp src/gfx/shader.cpp)
+    target_include_directories(DeathCombatRigTest PRIVATE src)
+    target_link_libraries(DeathCombatRigTest PRIVATE glad ${CMAKE_DL_LIBS})
+    if(MSVC)
+        target_compile_options(DeathCombatRigTest PRIVATE /W4 /utf-8)
+        target_compile_definitions(DeathCombatRigTest PRIVATE NOMINMAX _CRT_SECURE_NO_WARNINGS)
+    else()
+        target_compile_options(DeathCombatRigTest PRIVATE -Wall -Wextra -Wno-unused-parameter)
+    endif()
+    add_test(NAME rig_grounding COMMAND DeathCombatRigTest)
 endif()

@@ -9,6 +9,8 @@ namespace dc {
 
 namespace {
 const Color WHITE(1, 1, 1), GOLD(1.0f, 0.82f, 0.3f), RED(0.95f, 0.2f, 0.2f), DIM(0.55f, 0.55f, 0.6f);
+constexpr float ARENA_SURFACE_Y = 0.01f;
+constexpr float ARENA_FLOOR_THICKNESS = 0.02f;
 std::string upper(std::string s) { for (char& c : s) c = (char)toupper((unsigned char)c); return s; }
 std::string displayName(const std::string& n) {
     if (n.size() > 2 && n[n.size() - 2] == ' ' && (n.back() == 'L' || n.back() == 'M' || n.back() == 'H')) return upper(n.substr(0, n.size() - 2));
@@ -20,7 +22,8 @@ void App::buildArena() {
     MeshBuilder b;
     b.addPlane(Vec3(0, 0, 0), 44, 30, 22, Vec3(0.30f, 0.28f, 0.30f), Vec3(0.24f, 0.22f, 0.25f));
     // raised rim marking the fighting line
-    b.addBox(Vec3(0, 0.0f, 0), Vec3(19.0f, 0.02f, 6.0f), Vec3(0.34f, 0.3f, 0.3f));
+    b.addBox(Vec3(0, ARENA_SURFACE_Y - ARENA_FLOOR_THICKNESS * 0.5f, 0),
+             Vec3(19.0f, ARENA_FLOOR_THICKNESS, 6.0f), Vec3(0.34f, 0.3f, 0.3f));
     arenaFloor_.upload(b);
 
     b.clear();
@@ -368,7 +371,7 @@ void App::renderFight() {
         float flash = f.flash * 0.8f;
         if (f.state == FState::StyleBreak) flash = 0.25f + 0.25f * std::sin(fightTime_ * 20);
         bool modeOn = c.style == StyleType::Mode && f.styleOn;
-        rig_.draw(renderer_, p, pos, yaw, c, 1.0f, 1.0f, flash);
+        rig_.draw(renderer_, p, pos, yaw, c, 1.0f, 1.0f, flash, false, true, ARENA_SURFACE_Y);
         if (modeOn) {
             renderer_.drawBillboard(pos + Vec3(0, 1.0f, 0), 2.6f + 0.2f * std::sin(fightTime_ * 10), c.styleColor.withAlpha(0.22f), Blend::Additive, fightTime_ * 2);
             if (fxRng_.chance(0.4f)) {
