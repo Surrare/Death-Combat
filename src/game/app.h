@@ -10,6 +10,7 @@
 #include "game/fight_ai.h"
 #include "game/rig.h"
 #include "game/hunt.h"
+#include "game/arena.h"
 #include "game/settings.h"
 #include "audio/audio.h"
 
@@ -23,6 +24,7 @@ struct AppOptions {
     int demo = 0;                 // 0 none, 1 = AI vs AI fight, 2 = hunt, 3 = character select
     uint64_t seed = 0;
     int character = 0;            // --char N: fighter shown by the demo screens
+    int arena = -1;               // --arena N: arena / hunting ground for the demo screens (-1 random / default)
 };
 
 struct Particle {
@@ -45,7 +47,7 @@ struct Banner {
     float life = 0, maxLife = 1, scale = 5, yFrac = 0.4f;
 };
 
-enum class Scene { Title, Select, Hunt, Fight, Settings };
+enum class Scene { Title, Select, StageSelect, Hunt, Fight, Settings };
 enum class FightMode { Hunt, VsCpu, Versus, Demo };
 
 class App {
@@ -73,19 +75,20 @@ private:
     void drawPauseMenu();
     void drawMoveList();
 
-    void startHunt(int playerChar);
-    void startFight(int charA, int charB, FightMode mode, int difficulty);
+    void startHunt(int playerChar, int ground = 0);
+    void startFight(int charA, int charB, FightMode mode, int difficulty, int arena = -1);   // arena -1 = random
+    void updateStageSelect(float dt);
+    void renderStageSelect();
+    void updateFightCamera();
     void processEvents();
     void updateEffects(float dt);
     void spawnSparks(Vec3 pos, int n, Color a, Color b, float speed, float size, float life, Blend blend, float gravity);
     void addBanner(const std::string& t, Color c, float life, float scale, float yFrac = 0.4f);
     void addFloat(Vec3 pos, const std::string& t, Color c, float life, float scale);
-    bool project(const Vec3& p, float& sx, float& sy) const;
     void drawPanelText(float x, float y, const std::vector<std::string>& lines, float scale, Color col, float lineGap = 1.5f);
-    void buildArena();
     void drawCharacterCard(int id, float x, float y, float w, float h, bool highlighted, bool defeated);
     void takeScreenshot(const std::string& path);
-    SimInput padToSim(const PadState& p) const;
+    SimInput padToSim(const PadState& p, int who) const;
 
     GLFWwindow* window_ = nullptr;
     AppOptions opts_;
@@ -123,6 +126,11 @@ private:
     FightMode pendingMode_ = FightMode::Hunt;
     float selectSpin_ = 0;
 
+    // stage select (arena for fights, hunting ground for the hunt)
+    int stageCursor_ = 0;
+    float stageSpin_ = 0;
+    int stagePreviewGround_ = -1;   // hunting ground currently generated for the preview
+
     // hunt
     Hunt hunt_;
     int huntPlayerChar_ = 0;
@@ -146,7 +154,16 @@ private:
     int pauseIndex_ = 0;
     bool showMoveList_ = false;
     int resultIndex_ = 0;
-    Mesh arenaFloor_, arenaWalls_, arenaProps_, arenaEmblem_, arenaBanners_, projectileMesh_;
+    Mesh projectileMesh_;
+    Arena arenas_[ARENA_COUNT];
+    int arenaId_ = 0;
+    // fight camera: shared side-on yaw, smoothed merged camera, per-player views for the Voronoi split screen
+    float fightCamYaw_ = 0;
+    Camera viewCam_[2];
+    bool splitActive_ = false;
+    float splitAmount_ = 0;       // 0..1 divider visibility
+    Vec2 splitNormal_{1, 0};      // screen direction from player 1 to player 2
+    float displayYaw_[2] = {0, 0};
     Camera fightCam_;
     bool fightCamInit_ = false;
     std::vector<Particle> particles_;

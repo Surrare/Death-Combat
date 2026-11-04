@@ -15,11 +15,15 @@ float hurtHeight(const Fighter& f) {
     if (f.isDown() || f.state == FState::KO) return 0.5f;
     return f.ch->height;
 }
-bool overlap(Vec3 ca, Vec3 sa, Vec3 cb, Vec3 sb) {
-    return std::fabs(ca.x - cb.x) * 2 < sa.x + sb.x &&
-           std::fabs(ca.y - cb.y) * 2 < sa.y + sb.y &&
-           std::fabs(ca.z - cb.z) * 2 < sa.z + sb.z;
+// Hitbox (centre c, axis dir on the ground, extents size: x along dir, y up, z sideways) against the defender's
+// upright hurtbox, evaluated in the hitbox frame.
+bool hitsHurtbox(Vec3 c, Vec3 dir, Vec3 size, const Fighter& def) {
+    float h = hurtHeight(def);
+    Vec3 d = Vec3(def.pos.x, def.pos.y + h * 0.5f, def.pos.z) - c;
+    Vec3 side(-dir.z, 0, dir.x);
+    return std::fabs(dot(d, dir)) * 2 < size.x + 0.75f && std::fabs(d.y) * 2 < size.y + h && std::fabs(dot(d, side)) * 2 < size.z + 0.8f;
 }
+Vec3 flat(Vec3 v) { v.y = 0; return v; }
 int kindPriority(MoveKind k) {
     switch (k) {
         case MoveKind::GHA: return 0; case MoveKind::HHA: return 1; case MoveKind::Throw: return 2;
@@ -50,8 +54,8 @@ void FightSim::startRound() {
         float hhg = f.hhg; int wins = f.roundsWon; const Character* ch = f.ch;
         f = Fighter();
         f.ch = ch; f.index = i; f.hhg = hhg; f.roundsWon = wins;
-        f.pos = Vec3(i == 0 ? -2.2f : 2.2f, 0, 0);
-        f.facing = i == 0 ? 1 : -1;
+        f.pos = Vec3((i == 0 ? -0.5f : 0.5f) * arena_.spawnGap, 0, 0);
+        f.fwd = Vec3(i == 0 ? 1.0f : -1.0f, 0, 0);
         f.hp = f.hpShown = f.hpRedShown = ch->hp;
         f.styleGauge = 1.0f;
         f.state = FState::Intro;
@@ -71,8 +75,15 @@ void FightSim::setState(Fighter& f, FState s, int len) {
 }
 
 // ------------------------------------------------------------------ input ----
+Vec3 FightSim::clampArena(Vec3 p, float r) const {
+    float lim = std::max(0.0f, arena_.radius - r);
+    float d = std::sqrt(p.x * p.x + p.z * p.z);
+    if (d > lim) { p.x *= lim / d; p.z *= lim / d; }
+    return p;
+}
+
 void FightSim::updateInput(Fighter& f, const SimInput& in) {
-    int rel = in.dirX * f.facing;
+    int rel = in.moveF > 0.4f ? 1 : (in.moveF < -0.4f ? -1 : 0);
     int numpad = 5 + rel + 3 * in.dirY;
     f.dirHistory[f.histHead % 32] = numpad;
     f.histHead = (f.histHead + 1) % 32;
@@ -254,7 +265,8 @@ bool FightSim::tryStartMove(Fighter& f, Fighter& o, uint32_t group, bool fromCan
 
 // --------------------------------------------------------------- fighters ----
 void FightSim::updateFacing(Fighter& f, const Fighter& o) {
-    if (std::fabs(o.pos.x - f.pos.x) > 0.05f) f.facing = o.pos.x > f.pos.x ? 1 : -1;
+    Vec3 d = flat(o.pos - f.pos);
+    if (d.length() > 0.05f) f.fwd = normalize(d);
 }
 
 void FightSim::applyPhysics(Fighter& f) {
@@ -272,30 +284,31 @@ void FightSim::applyPhysics(Fighter& f) {
                     emit(FightEvent::Dust, f.pos, 0.6f, f.index);
                 } else if (f.state == FState::AirHit) {
                     setState(f, FState::Knockdown, f.hardKD ? 52 : 34);
-                    f.vx *= 0.3f;
+                    f.vel *= 0.3f;
                     emit(FightEvent::Land, f.pos, 1.0f, f.index);
                     shake_ = std::max(shake_, 0.25f);
                 } else if (f.state == FState::KO) {
-                    f.vx *= 0.2f;
+                    f.vel *= 0.2f;
                     emit(FightEvent::Land, f.pos, 1.0f, f.index);
                 }
                 f.airAttackUsed = false;
             }
         }
     }
-    f.pos.x += f.vx;
-    if (f.grounded()) f.vx *= 0.82f; else f.vx *= 0.995f;
-    if (std::fabs(f.vx) < 0.001f) f.vx = 0;
-    f.pos.x = clampf(f.pos.x, -STAGE_HALF, STAGE_HALF);
-    // lateral (sidestep) motion
-    f.pos.z = moveTowards(f.pos.z, f.sideTarget, 0.22f);
+    f.pos.x += f.vel.x; f.pos.z += f.vel.z;
+    f.vel *= f.grounded() ? 0.82f : 0.995f;
+    f.vel.y = 0;
+    if (f.vel.lengthSq() < 1e-6f) f.vel = Vec3();
+    f.pos = clampArena(f.pos, FIGHTER_RADIUS);
 }
 
 void FightSim::updateMovement(Fighter& f, Fighter& o, const SimInput& in) {
     const Character& c = *f.ch;
-    int rel = in.dirX * f.facing;
+    int rel = in.moveF > 0.4f ? 1 : (in.moveF < -0.4f ? -1 : 0);
     float spd = c.walkSpeed * f.effectiveSpeedMul();
     float bspd = c.backSpeed * f.effectiveSpeedMul();
+    float sspd = c.walkSpeed * 0.9f * f.effectiveSpeedMul();   // circling around the opponent
+    const Vec3 fwd = f.fwd, right = f.right();
 
     // style toggle
     if ((in.pressed & BTN_STYLE) && f.styleLock == 0) {
@@ -308,13 +321,14 @@ void FightSim::updateMovement(Fighter& f, Fighter& o, const SimInput& in) {
         }
     }
 
-    // dash / sidestep
+    // dash / sidestep: dash with a sideways direction is a sidestep (invulnerable lateral hop)
     int dashDir = f.dashRequest;
     f.dashRequest = 0;
     if (in.pressed & BTN_DASH) {
-        if (in.dirY != 0) {
+        if (std::fabs(in.moveS) > 0.5f && std::fabs(in.moveS) >= std::fabs(in.moveF)) {
             setState(f, FState::Sidestep, 22);
-            f.sideTarget = in.dirY > 0 ? -1.5f : 1.5f;
+            f.sideDir = in.moveS > 0 ? 1.0f : -1.0f;
+            f.vel = right * (f.sideDir * 0.21f * f.effectiveSpeedMul());
             f.invulStrikes = 14;
             f.invulThrows = 16;
             emit(FightEvent::Dust, f.pos, 0.5f, f.index);
@@ -322,25 +336,28 @@ void FightSim::updateMovement(Fighter& f, Fighter& o, const SimInput& in) {
         }
         dashDir = rel >= 0 ? 1 : -1;
     }
-    if (dashDir == 1) { setState(f, FState::Dash, 14); f.vx = f.facing * 0.17f * f.effectiveSpeedMul(); emit(FightEvent::Dust, f.pos, 0.5f, f.index); return; }
-    if (dashDir == -1) { setState(f, FState::Backdash, 18); f.vx = -f.facing * 0.14f; f.invulStrikes = 8; f.invulThrows = 10; emit(FightEvent::Dust, f.pos, 0.5f, f.index); return; }
+    if (dashDir == 1) { setState(f, FState::Dash, 14); f.vel = fwd * (0.17f * f.effectiveSpeedMul()); emit(FightEvent::Dust, f.pos, 0.5f, f.index); return; }
+    if (dashDir == -1) { setState(f, FState::Backdash, 18); f.vel = fwd * -0.14f; f.invulStrikes = 8; f.invulThrows = 10; emit(FightEvent::Dust, f.pos, 0.5f, f.index); return; }
 
-    // jump
+    // jump (in the held direction)
     if (in.dirY > 0) {
         setState(f, FState::Jump);
         f.vy = c.jumpVel;
-        f.vx = rel * (rel > 0 ? spd : bspd) * 1.15f * f.facing;
+        f.vel = fwd * (in.moveF * (in.moveF > 0 ? spd : bspd) * 1.15f) + right * (in.moveS * sspd * 1.15f);
         f.airAttackUsed = false;
         emit(FightEvent::Dust, f.pos, 0.4f, f.index);
         return;
     }
     // crouch
     if (in.dirY < 0) { if (f.state != FState::Crouch) setState(f, FState::Crouch); return; }
-    // walk
-    if (rel != 0) {
+    // walk freely: forward / back relative to the opponent plus circling sideways
+    float mf = in.moveF, ms = in.moveS;
+    float len = std::sqrt(mf * mf + ms * ms);
+    if (len > 0.2f) {
+        if (len > 1.0f) { mf /= len; ms /= len; }
         if (f.state != FState::Walk) setState(f, FState::Walk);
-        f.pos.x += rel * (rel > 0 ? spd : bspd) * f.facing;
-        f.pos.x = clampf(f.pos.x, -STAGE_HALF, STAGE_HALF);
+        f.pos += fwd * (mf * (mf > 0 ? spd : bspd)) + right * (ms * sspd);
+        f.pos = clampArena(f.pos, FIGHTER_RADIUS);
         return;
     }
     if (f.state != FState::Idle) setState(f, FState::Idle);
@@ -409,7 +426,6 @@ void FightSim::updateFighter(Fighter& f, Fighter& o, const SimInput& in) {
         break;
 
     case FState::Sidestep:
-        if (f.timer >= 10) f.sideTarget = 0;
         if (f.timer >= f.stateLen) { setState(f, FState::Idle); updateFacing(f, o); }
         break;
 
@@ -420,10 +436,10 @@ void FightSim::updateFighter(Fighter& f, Fighter& o, const SimInput& in) {
         // movement during the move
         if (f.moveFrame >= m->moveStart && f.moveFrame <= m->moveEnd && m->moveSpeed != 0) {
             // rush moves stop at the opponent's body
-            float dx = (o.pos.x - f.pos.x) * f.facing;
+            float dx = dot(flat(o.pos - f.pos), f.fwd);
             if (!(m->commandThrow && dx < 0.9f)) {
-                f.pos.x += f.facing * m->moveSpeed * f.effectiveSpeedMul();
-                f.pos.x = clampf(f.pos.x, -STAGE_HALF, STAGE_HALF);
+                f.pos += f.fwd * (m->moveSpeed * f.effectiveSpeedMul());
+                f.pos = clampArena(f.pos, FIGHTER_RADIUS);
             }
         }
         if (f.moveFrame == std::max(1, m->moveStart) && m->jumpVel > 0) f.vy = m->jumpVel;
@@ -437,8 +453,9 @@ void FightSim::updateFighter(Fighter& f, Fighter& o, const SimInput& in) {
         // projectile spawn
         if (m->projectile && !m->hits.empty() && f.moveFrame == m->hits[0].start) {
             Projectile p;
-            p.pos = Vec3(f.pos.x + f.facing * m->hits[0].boxPos.x, f.pos.y + m->hits[0].boxPos.y, f.pos.z);
-            p.vx = f.facing * m->projectileSpeed;
+            const Vec3 bp = m->hits[0].boxPos;
+            p.pos = f.pos + f.fwd * bp.x + f.right() * bp.z + Vec3(0, bp.y, 0);
+            p.dir = f.fwd; p.speed = m->projectileSpeed;
             p.owner = f.index; p.life = 110; p.hit = m->hits[0]; p.color = c.styleColor;
             projectiles_.push_back(p);
             emit(FightEvent::Projectile, p.pos, 1, f.index);
@@ -470,9 +487,10 @@ void FightSim::updateFighter(Fighter& f, Fighter& o, const SimInput& in) {
     case FState::Block:
     case FState::CrouchBlock:
         // Stylish Evade: sidestep out of blockstun
-        if ((in.pressed & BTN_DASH) && in.dirY != 0) {
+        if ((in.pressed & BTN_DASH) && std::fabs(in.moveS) > 0.5f) {
             setState(f, FState::Sidestep, 22);
-            f.sideTarget = in.dirY > 0 ? -1.5f : 1.5f;
+            f.sideDir = in.moveS > 0 ? 1.0f : -1.0f;
+            f.vel = f.right() * (f.sideDir * 0.21f);
             f.invulStrikes = 14; f.invulThrows = 16;
             emit(FightEvent::Text, f.pos + Vec3(0, 2.2f, 0), 1, f.index, "STYLISH EVADE");
             break;
@@ -494,12 +512,15 @@ void FightSim::updateFighter(Fighter& f, Fighter& o, const SimInput& in) {
         break;
     case FState::Thrown:
         // held in front of the thrower
-        f.pos.x = clampf(o.pos.x + o.facing * 0.85f, -STAGE_HALF, STAGE_HALF);
+        {
+            Vec3 held = clampArena(o.pos + o.fwd * 0.85f, FIGHTER_RADIUS);
+            f.pos.x = held.x; f.pos.z = held.z;
+        }
         f.pos.y = 0.15f + 0.25f * std::sin(PI * std::min(1.0f, (float)f.timer / (float)f.stateLen));
         if (f.timer >= f.stateLen) {
             f.pos.y = 0.3f;
             setState(f, FState::AirHit);
-            f.vy = 0.10f; f.vx = o.facing * 0.18f;
+            f.vy = 0.10f; f.vel = o.fwd * 0.18f;
             f.hardKD = true;
         }
         break;
@@ -512,18 +533,15 @@ void FightSim::updateFighter(Fighter& f, Fighter& o, const SimInput& in) {
     }
 
     // walking into the opponent's attack range shows guard pose (proximity guard)
-    f.proxGuard = (f.wantsBlock && (o.attacking()) && std::fabs(o.pos.x - f.pos.x) < 2.6f) ? 1 : 0;
+    f.proxGuard = (f.wantsBlock && (o.attacking()) && flat(o.pos - f.pos).length() < 2.6f) ? 1 : 0;
 }
 
 // ----------------------------------------------------------------- hits -----
-bool FightSim::checkHit(Fighter& att, Fighter& def, const HitWindow& w, const Move* move, Vec3 box, Vec3 size, bool fromProjectile) {
+bool FightSim::checkHit(Fighter& att, Fighter& def, const HitWindow& w, const Move* move, Vec3 box, Vec3 dir, Vec3 size, bool fromProjectile) {
     if (def.state == FState::KO || def.state == FState::Win || def.state == FState::Intro) return false;
     if (def.isDown()) return false;
     if (def.state == FState::Thrown) return false;
-    float h = hurtHeight(def);
-    Vec3 hurtC(def.pos.x, def.pos.y + h * 0.5f, def.pos.z);
-    Vec3 hurtS(0.75f, h, 0.8f);
-    if (!overlap(box, size, hurtC, hurtS)) return false;
+    if (!hitsHurtbox(box, dir, size, def)) return false;
 
     bool isThrow = move && move->commandThrow;
     if (isThrow) {
@@ -531,7 +549,7 @@ bool FightSim::checkHit(Fighter& att, Fighter& def, const HitWindow& w, const Mo
         // throw tech
         if (move->kind == MoveKind::Throw && def.state == FState::Attack && def.move && def.move->kind == MoveKind::Throw && def.moveFrame <= 10) {
             setState(att, FState::Idle); setState(def, FState::Idle);
-            att.vx = -att.facing * 0.14f; def.vx = -def.facing * 0.14f;
+            att.vel = att.fwd * -0.14f; def.vel = def.fwd * -0.14f;
             emit(FightEvent::Tech, (att.pos + def.pos) * 0.5f + Vec3(0, 1.2f, 0), 1, att.index, "THROW TECH");
             return true;
         }
@@ -562,31 +580,31 @@ bool FightSim::checkHit(Fighter& att, Fighter& def, const HitWindow& w, const Mo
             else blocking = true;
             if (blocking && def.state == FState::Block && w.low) blocking = false;
             if (blocking && def.state == FState::CrouchBlock && w.overhead) blocking = false;
-            if (blocking) { applyBlock(att, def, w, move, box); return true; }
+            if (blocking) { applyBlock(att, def, w, box, dir, fromProjectile); return true; }
         }
     }
-    applyHit(att, def, w, move, box, fromProjectile);
+    applyHit(att, def, w, move, box, dir, fromProjectile);
     return true;
 }
 
-void FightSim::applyBlock(Fighter& att, Fighter& def, const HitWindow& w, const Move* move, Vec3 at) {
+void FightSim::applyBlock(Fighter& att, Fighter& def, const HitWindow& w, Vec3 at, Vec3 pushDir, bool fromProjectile) {
     bool crouch = def.state == FState::CrouchBlock || def.state == FState::Crouch ||
                   (def.state != FState::Block && def.dirHistory[((def.histHead - 1) % 32 + 32) % 32] <= 3);
     setState(def, crouch ? FState::CrouchBlock : FState::Block, w.blockstun);
-    def.vx = att.facing * w.knockX * 0.7f;
+    def.vel = pushDir * (w.knockX * 0.7f);
     float dmg = w.damage * att.effectiveDamageMul();
     if (w.chip > 0) def.hp = std::max(1.0f, def.hp - dmg * w.chip);
     att.hhg = std::min(3000.0f, att.hhg + dmg * 0.3f);
     def.hhg = std::min(3000.0f, def.hhg + dmg * 0.25f);
     att.hitstop = 3; def.hitstop = 3;
     att.moveConnected = true;
-    if (std::fabs(def.pos.x) >= STAGE_HALF - 0.01f) att.vx -= att.facing * w.knockX * 0.6f;
+    if (!fromProjectile && atWall(def)) att.vel -= pushDir * (w.knockX * 0.6f);   // pushed off a cornered opponent
     emit(FightEvent::Block, at, 0.8f, att.index);
     def.inCombo = false;
     att.comboHits = 0;
 }
 
-void FightSim::applyHit(Fighter& att, Fighter& def, const HitWindow& w, const Move* move, Vec3 at, bool fromProjectile) {
+void FightSim::applyHit(Fighter& att, Fighter& def, const HitWindow& w, const Move* move, Vec3 at, Vec3 pushDir, bool fromProjectile) {
     bool isThrow = move && move->commandThrow;
     bool wasInCombo = def.inHitstun() || def.inCombo;
     if (wasInCombo) att.comboHits++; else { att.comboHits = 1; att.comboDamage = 0; }
@@ -612,7 +630,7 @@ void FightSim::applyHit(Fighter& att, Fighter& def, const HitWindow& w, const Mo
         if (def.styleGauge <= 0) { def.styleGauge = 0; def.styleOn = false; def.styleLock = 120; styleBreak = true; }
     }
     // corner push
-    if (std::fabs(def.pos.x) >= STAGE_HALF - 0.01f && !isThrow) att.vx -= att.facing * w.knockX * 0.9f;
+    if (atWall(def) && !isThrow && !fromProjectile) att.vel -= pushDir * (w.knockX * 0.9f);
 
     if (def.hp <= 0) {
         def.hp = 0;
@@ -620,7 +638,7 @@ void FightSim::applyHit(Fighter& att, Fighter& def, const HitWindow& w, const Mo
     }
     if (styleBreak) {
         setState(def, FState::StyleBreak, 110);
-        def.vx = att.facing * w.knockX;
+        def.vel = pushDir * w.knockX;
         emit(FightEvent::StyleBreak, def.pos + Vec3(0, 1.5f, 0), 1.5f, def.index, "STAND BREAK");
         shake_ = 1.0f;
         return;
@@ -636,20 +654,20 @@ void FightSim::applyHit(Fighter& att, Fighter& def, const HitWindow& w, const Mo
         float vy = w.launcher ? std::max(w.knockY, 0.16f) : std::max(0.08f, w.knockY + 0.06f);
         setState(def, FState::AirHit);
         def.vy = std::max(0.05f, vy - juggleDecay);
-        def.vx = att.facing * std::max(w.knockX, 0.04f);
+        def.vel = pushDir * std::max(w.knockX, 0.04f);
         def.hardKD = w.hardKnockdown;
         if (def.pos.y <= 0) def.pos.y = 0.01f;
     } else if (w.knockdown) {
         setState(def, FState::AirHit);
         def.vy = std::max(w.knockY, 0.09f);
-        def.vx = att.facing * w.knockX;
+        def.vel = pushDir * w.knockX;
         def.hardKD = w.hardKnockdown;
         def.pos.y = 0.01f;
     } else {
         bool crouch = def.state == FState::Crouch || def.state == FState::CrouchHit || def.state == FState::CrouchBlock ||
                       (def.state == FState::Attack && def.move && def.move->stance == Stance::Crouch);
         setState(def, crouch ? FState::CrouchHit : FState::Hit, w.hitstun);
-        def.vx = att.facing * w.knockX;
+        def.vel = pushDir * w.knockX;
     }
 }
 
@@ -663,13 +681,16 @@ void FightSim::resolveHits() {
         for (size_t k = 0; k < m.hits.size() && k < 24; ++k) {
             const HitWindow& w = m.hits[k];
             if (a.moveFrame < w.start || a.moveFrame > w.end || a.hitDone[k]) continue;
-            Vec3 box(a.pos.x + a.facing * w.boxPos.x, a.pos.y + w.boxPos.y, a.pos.z + w.boxPos.z);
+            Vec3 box = a.pos + a.fwd * w.boxPos.x + a.right() * w.boxPos.z + Vec3(0, w.boxPos.y, 0);
             // clash detection
             if (m.rush && d.state == FState::Attack && d.move && d.move->rush && d.hitstop == 0 && !clash_.active) {
                 bool dActive = d.moveFrame >= d.move->startup - 6 && d.moveFrame <= d.move->startup + d.move->active;
-                if (dActive && std::fabs(a.pos.x - d.pos.x) < 3.4f && std::fabs(a.pos.z - d.pos.z) < 0.8f) { startClash(); return; }
+                Vec3 ad = flat(d.pos - a.pos);
+                float sep = ad.length();
+                // rush attacks collide when the two are close and roughly facing each other
+                if (dActive && sep < 3.4f && sep > 0.01f && dot(ad / sep, a.fwd) > 0.75f && dot(ad / sep, d.fwd) < -0.75f) { startClash(); return; }
             }
-            if (checkHit(a, d, w, &m, box, w.boxSize, false)) a.hitDone[k] = true;
+            if (checkHit(a, d, w, &m, box, a.fwd, w.boxSize, false)) a.hitDone[k] = true;
         }
     }
 }
@@ -677,11 +698,11 @@ void FightSim::resolveHits() {
 void FightSim::resolveProjectiles() {
     for (Projectile& p : projectiles_) {
         if (!p.alive) continue;
-        p.pos.x += p.vx;
+        p.pos += p.dir * p.speed;
         p.spin += 0.3f;
-        if (--p.life <= 0 || std::fabs(p.pos.x) > STAGE_HALF + 2.0f) { p.alive = false; continue; }
+        if (--p.life <= 0 || !insideArena(p.pos, 2.0f)) { p.alive = false; continue; }
         Fighter& att = f_[p.owner]; Fighter& def = f_[1 - p.owner];
-        if (checkHit(att, def, p.hit, nullptr, p.pos, p.hit.boxSize, true)) {
+        if (checkHit(att, def, p.hit, nullptr, p.pos, p.dir, p.hit.boxSize, true)) {
             p.alive = false;
             emit(FightEvent::Spark, p.pos, 1.0f, p.owner);
         }
@@ -691,7 +712,7 @@ void FightSim::resolveProjectiles() {
         for (size_t j = i + 1; j < projectiles_.size(); ++j) {
             Projectile& a = projectiles_[i]; Projectile& b = projectiles_[j];
             if (!a.alive || !b.alive || a.owner == b.owner) continue;
-            if (overlap(a.pos, a.hit.boxSize, b.pos, b.hit.boxSize)) {
+            if (distance(a.pos, b.pos) < 0.5f * (a.hit.boxSize.x + b.hit.boxSize.x)) {
                 a.alive = b.alive = false;
                 emit(FightEvent::Spark, (a.pos + b.pos) * 0.5f, 1.5f, 0);
             }
@@ -705,19 +726,17 @@ void FightSim::pushboxes() {
     if (a.isDown() || b.isDown()) return;
     bool aAir = a.pos.y > 0.6f, bAir = b.pos.y > 0.6f;
     if (aAir != bAir) return; // crossups allowed
-    if (std::fabs(a.pos.z - b.pos.z) > 0.9f) return;
-    float minDist = 0.85f;
-    float dx = b.pos.x - a.pos.x;
-    if (std::fabs(dx) < minDist) {
-        float push = (minDist - std::fabs(dx)) * 0.5f;
-        float dir = dx >= 0 ? 1.0f : -1.0f;
-        if (dx == 0) dir = a.facing >= 0 ? 1.0f : -1.0f;
-        a.pos.x -= dir * push; b.pos.x += dir * push;
-        // wall: transfer push
-        if (a.pos.x < -STAGE_HALF) { b.pos.x += -STAGE_HALF - a.pos.x; a.pos.x = -STAGE_HALF; }
-        if (a.pos.x > STAGE_HALF) { b.pos.x -= a.pos.x - STAGE_HALF; a.pos.x = STAGE_HALF; }
-        if (b.pos.x < -STAGE_HALF) { a.pos.x += -STAGE_HALF - b.pos.x; b.pos.x = -STAGE_HALF; }
-        if (b.pos.x > STAGE_HALF) { a.pos.x -= b.pos.x - STAGE_HALF; b.pos.x = STAGE_HALF; }
+    const float minDist = 0.85f;
+    for (int iter = 0; iter < 2; ++iter) {
+        Vec3 d = flat(b.pos - a.pos);
+        float len = d.length();
+        if (len >= minDist) return;
+        Vec3 dir = len > 1e-4f ? d / len : a.fwd;
+        float push = (minDist - len) * 0.5f;
+        a.pos -= dir * push; b.pos += dir * push;
+        // the arena edge: whoever is pinned stays, the other is pushed the whole way on the next iteration
+        a.pos = clampArena(a.pos, FIGHTER_RADIUS);
+        b.pos = clampArena(b.pos, FIGHTER_RADIUS);
     }
 }
 
@@ -727,15 +746,16 @@ void FightSim::startClash() {
     clash_.active = true; clash_.timer = 0;
     for (int i = 0; i < 2; ++i) {
         setState(f_[i], FState::Clash, 150);
-        f_[i].hitstop = 0; f_[i].vx = 0;
+        f_[i].hitstop = 0; f_[i].vel = Vec3();
     }
-    // line them up
-    float mid = clampf((f_[0].pos.x + f_[1].pos.x) * 0.5f, -STAGE_HALF + 1.5f, STAGE_HALF - 1.5f);
-    int left = f_[0].pos.x <= f_[1].pos.x ? 0 : 1;
-    f_[left].pos.x = mid - 1.4f; f_[1 - left].pos.x = mid + 1.4f;
-    f_[left].facing = 1; f_[1 - left].facing = -1;
-    f_[0].pos.z = f_[1].pos.z = 0; f_[0].sideTarget = f_[1].sideTarget = 0;
-    emit(FightEvent::Clash, Vec3(mid, 1.5f, 0), 1, 0, "RUSH MODE");
+    // line them up face to face on their current axis
+    Vec3 axis = flat(f_[1].pos - f_[0].pos);
+    axis = axis.length() > 1e-3f ? normalize(axis) : f_[0].fwd;
+    Vec3 mid = clampArena(flat(f_[0].pos + f_[1].pos) * 0.5f, 1.4f + FIGHTER_RADIUS + 0.2f);
+    f_[0].pos.x = mid.x - axis.x * 1.4f; f_[0].pos.z = mid.z - axis.z * 1.4f;
+    f_[1].pos.x = mid.x + axis.x * 1.4f; f_[1].pos.z = mid.z + axis.z * 1.4f;
+    f_[0].fwd = axis; f_[1].fwd = -axis;
+    emit(FightEvent::Clash, mid + Vec3(0, 1.5f, 0), 1, 0, "RUSH MODE");
     shake_ = 0.8f;
 }
 
@@ -765,7 +785,7 @@ void FightSim::updateClash(const SimInput& inA, const SimInput& inB) {
         if (lose.hp <= 0) { lose.hp = 0; }
         else {
             setState(lose, FState::AirHit);
-            lose.vy = 0.2f; lose.vx = win.facing * 0.22f; lose.hardKD = true; lose.pos.y = 0.01f;
+            lose.vy = 0.2f; lose.vel = win.fwd * 0.22f; lose.hardKD = true; lose.pos.y = 0.01f;
         }
     }
 }
@@ -791,7 +811,8 @@ void FightSim::checkRoundEnd() {
         if (lost) {
             const Fighter& o = f_[1 - i];
             setState(f, FState::KO);
-            f.vy = 0.14f; f.vx = o.facing * 0.10f;
+            Vec3 away = flat(f.pos - o.pos);
+            f.vy = 0.14f; f.vel = (away.length() > 1e-3f ? normalize(away) : o.fwd) * 0.10f;
             if (f.pos.y <= 0) f.pos.y = 0.01f;
             if (o.state == FState::Attack && o.move && (o.move->kind == MoveKind::HHA || o.move->kind == MoveKind::GHA)) dramatic_ = true;
         }
@@ -861,7 +882,7 @@ void FightSim::step(const SimInput& inA, const SimInput& inB) {
                 if (f.state != FState::KO && f.state != FState::Win && f.state != FState::Idle && f.state != FState::Knockdown && f.timer++ > 20) setState(f, FState::Idle);
             }
         }
-        for (Projectile& p : projectiles_) { p.pos.x += p.vx; p.spin += 0.3f; if (--p.life <= 0) p.alive = false; }
+        for (Projectile& p : projectiles_) { p.pos += p.dir * p.speed; p.spin += 0.3f; if (--p.life <= 0) p.alive = false; }
         projectiles_.erase(std::remove_if(projectiles_.begin(), projectiles_.end(), [](const Projectile& p) { return !p.alive; }), projectiles_.end());
         if (phaseTimer_ >= 110) {
             phase_ = Phase::RoundOver; phaseTimer_ = 0;

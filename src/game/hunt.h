@@ -25,10 +25,12 @@ struct HuntOpponent {
 
 class Hunt {
 public:
-    void init(int playerChar, const std::vector<int>& opponentChars, uint64_t seed);
+    void init(int playerChar, const std::vector<int>& opponentChars, uint64_t seed, int ground = 0);
     // Returns the index of an opponent the player engaged this frame, or -1.
     int update(float dt, const PadState& pad, bool engageAllowed);
     void render(Renderer& r, RigRenderer& rig, float time);
+    int ground() const { return ground_; }
+    Vec3 mazeCentre() const;
     void markDefeated(int idx);
     void resumeAfterFight();
 
@@ -53,6 +55,7 @@ private:
     float yawToward(const Vec3& dir) const { return std::atan2(dir.x, dir.z); }
 
     Maze maze_;
+    int ground_ = 0;
     Mesh floor_, walls_, ceiling_, props_;
     int playerChar_ = 0;
     Vec3 playerPos_;

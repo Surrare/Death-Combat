@@ -327,7 +327,7 @@ Pose poseForFighter(const Fighter& f, float time) {
     }
     case FState::Sidestep: {
         float t = (float)f.timer / (float)std::max(1, f.stateLen);
-        Pose p = idlePose(time); p.bodyYaw = (f.sideTarget < 0 ? 1.0f : -1.0f) * std::sin(PI * t) * 0.9f;
+        Pose p = idlePose(time); p.bodyYaw = -f.sideDir * std::sin(PI * t) * 0.9f;
         p.hipHeight = 0.86f + 0.12f * std::sin(PI * t); p.knee[0] = 0.9f; p.knee[1] = 0.9f; p.legPitch[0] = 0.5f; p.legPitch[1] = 0.5f;
         return p;
     }
@@ -622,7 +622,7 @@ void drawFace(const Painter& P, const Mat4& head, const Look& L, const Palette& 
 
 void drawClothes(const Painter& P, const Mat4& root, const Mat4& spine, const Mat4& head, const Mat4 shoulder[2], const Mat4 elbow[2],
                  const std::array<RigLeg, 2>& legs, const Look& L, const Palette& pal, float t) {
-    const float T = L.torso, S = L.shoulders, A = L.arms;
+    const float T = L.torso, A = L.arms;
     const float sway = std::sin(t * 2.4f), sway2 = std::sin(t * 3.1f + 1.0f);
 
     if (L.has(ACC_BELT)) {

@@ -4,6 +4,28 @@
 
 namespace dc {
 
+namespace {
+const MazeTheme THEMES[MAZE_THEME_COUNT] = {
+    {"CATACOMBS", "Torch-lit brick corridors under the city. Tight turns, long shadows.",
+     11, 1.0f / 7.0f, 3.6f, true,
+     {0.26f, 0.25f, 0.27f}, {0.22f, 0.21f, 0.24f}, {0.42f, 0.36f, 0.33f}, {0.12f, 0.1f, 0.1f}, {0.12f, 0.11f, 0.13f}, {0.35f, 0.33f, 0.36f},
+     1, 2, 0.28f, 0, {1.0f, 0.55f, 0.22f}, 2.2f,
+     {-0.35f, -1.0f, -0.25f}, {0.30f, 0.28f, 0.34f}, 0.22f, {0.02f, 0.015f, 0.03f}, 0.0032f, Color(0.02f, 0.015f, 0.03f), {0.45f, 0.6f, 1.0f}, 0},
+    {"MOONLIT GARDEN", "An overgrown hedge maze under the stars. Wide paths, many ways round, nowhere to hide.",
+     13, 1.0f / 4.0f, 3.0f, false,
+     {0.17f, 0.22f, 0.16f}, {0.14f, 0.19f, 0.13f}, {0.12f, 0.27f, 0.13f}, {0.1f, 0.08f, 0.06f}, {0, 0, 0}, {0.42f, 0.41f, 0.45f},
+     1, 0, 0.2f, 1, {1.0f, 0.72f, 0.4f}, 1.9f,
+     {0.45f, -1.0f, 0.5f}, {0.5f, 0.58f, 0.9f}, 0.36f, {0.04f, 0.05f, 0.1f}, 0.0018f, Color(0.03f, 0.04f, 0.09f), {0.55f, 0.7f, 1.0f}, 1},
+    {"EMBER FOUNDRY", "Iron tunnels beneath the forge. Furnace vents breathe fire through the grates.",
+     10, 1.0f / 3.5f, 3.8f, true,
+     {0.2f, 0.19f, 0.19f}, {0.17f, 0.16f, 0.16f}, {0.3f, 0.28f, 0.28f}, {0.35f, 0.25f, 0.06f}, {0.1f, 0.09f, 0.09f}, {0.26f, 0.22f, 0.2f},
+     3, 3, 0.34f, 2, {1.0f, 0.45f, 0.15f}, 0.6f,
+     {0.2f, -1.0f, 0.3f}, {0.6f, 0.4f, 0.3f}, 0.26f, {0.08f, 0.03f, 0.015f}, 0.0028f, Color(0.05f, 0.02f, 0.012f), {1.0f, 0.55f, 0.3f}, 2},
+};
+}
+
+const MazeTheme& mazeTheme(int id) { return THEMES[((id % MAZE_THEME_COUNT) + MAZE_THEME_COUNT) % MAZE_THEME_COUNT]; }
+
 bool Maze::hasWall(int cx, int cz, int dir) const {
     if (!inBounds(cx, cz)) return true;
     return (walls8_[cellIndex(cx, cz)] & dir) != 0;
@@ -29,8 +51,10 @@ std::vector<int> Maze::neighbours(int cx, int cz) const {
     return out;
 }
 
-void Maze::generate(int w, int h, uint64_t seed) {
+void Maze::generate(int w, int h, uint64_t seed, int theme) {
     w_ = w; h_ = h;
+    theme_ = ((theme % MAZE_THEME_COUNT) + MAZE_THEME_COUNT) % MAZE_THEME_COUNT;
+    const MazeTheme& T = this->theme();
     walls8_.assign((size_t)(w * h), (uint8_t)(N | E | S | W));
     Rng rng(seed);
     // recursive backtracker (iterative)
@@ -56,7 +80,7 @@ void Maze::generate(int w, int h, uint64_t seed) {
         stack.push_back(next);
     }
     // knock out some extra walls so there are loops (less frustrating hunts)
-    int extra = (w * h) / 7;
+    int extra = (int)((float)(w * h) * T.loops);
     for (int i = 0; i < extra; ++i) {
         int cx = rng.range(1, w - 2), cz = rng.range(1, h - 2);
         int d = rng.chance(0.5f) ? E : S;
@@ -80,13 +104,13 @@ void Maze::generate(int w, int h, uint64_t seed) {
     pillarCells_.assign((size_t)(w * h), 0);
     for (int cz = 0; cz < h; ++cz)
         for (int cx = 0; cx < w; ++cx) {
-            if (rng.chance(0.28f)) {
+            if (rng.chance(T.lightChance)) {
                 Vec3 c = cellCenter(cx, cz);
                 int d = rng.range(0, 3);
                 int dir = d == 0 ? N : d == 1 ? S : d == 2 ? E : W;
                 if (hasWall(cx, cz, dir)) {
                     float off = half - WALL * 0.5f - 0.15f;
-                    Vec3 p = c + Vec3(dir == E ? off : dir == W ? -off : 0, 2.2f, dir == S ? off : dir == N ? -off : 0);
+                    Vec3 p = c + Vec3(dir == E ? off : dir == W ? -off : 0, T.lightHeight, dir == S ? off : dir == N ? -off : 0);
                     torches_.push_back(p);
                 }
             }
@@ -165,33 +189,63 @@ std::vector<int> Maze::pathDistances(int from) const {
 }
 
 void Maze::buildMesh(MeshBuilder& floorOut, MeshBuilder& wallsOut, MeshBuilder& ceilingOut, MeshBuilder& propsOut) const {
+    const MazeTheme& T = theme();
+    const float H = T.height;
     float half = CELL * 0.5f;
     float minX = -half - WALL, minZ = -half - WALL;
     float maxX = (w_ - 1) * CELL + half + WALL, maxZ = (h_ - 1) * CELL + half + WALL;
-    Vec3 floorA(0.26f, 0.25f, 0.27f), floorB(0.22f, 0.21f, 0.24f);
-    floorOut.addPlane(Vec3((minX + maxX) * 0.5f, 0, (minZ + maxZ) * 0.5f), maxX - minX, maxZ - minZ, std::max(w_, h_) * 2, floorA, floorB);
+    floorOut.addPlane(Vec3((minX + maxX) * 0.5f, 0, (minZ + maxZ) * 0.5f), maxX - minX, maxZ - minZ, std::max(w_, h_) * 2, T.floorA, T.floorB);
     // ceiling (normals facing down)
-    Vec3 cc(0.12f, 0.11f, 0.13f);
-    ceilingOut.addQuad(Vec3(minX, HEIGHT, minZ), Vec3(maxX, HEIGHT, minZ), Vec3(maxX, HEIGHT, maxZ), Vec3(minX, HEIGHT, maxZ), cc);
+    if (T.ceiling)
+        ceilingOut.addQuad(Vec3(minX, H, minZ), Vec3(maxX, H, minZ), Vec3(maxX, H, maxZ), Vec3(minX, H, maxZ), T.ceilingColor);
     Rng rng(99);
     for (const AABB2& b : walls_) {
         float shade = 0.85f + 0.3f * rng.uniform();
-        Vec3 col = Vec3(0.42f, 0.36f, 0.33f) * shade;
-        wallsOut.addBox(Vec3((b.x0 + b.x1) * 0.5f, HEIGHT * 0.5f, (b.z0 + b.z1) * 0.5f), Vec3(b.x1 - b.x0, HEIGHT, b.z1 - b.z0), col);
-        // a dark skirting strip along the base
-        wallsOut.addBox(Vec3((b.x0 + b.x1) * 0.5f, 0.12f, (b.z0 + b.z1) * 0.5f), Vec3(b.x1 - b.x0 + 0.08f, 0.24f, b.z1 - b.z0 + 0.08f), Vec3(0.12f, 0.1f, 0.1f));
+        Vec3 c((b.x0 + b.x1) * 0.5f, 0, (b.z0 + b.z1) * 0.5f), sz(b.x1 - b.x0, 0, b.z1 - b.z0);
+        wallsOut.addBox(c + Vec3(0, H * 0.5f, 0), Vec3(sz.x, H, sz.z), T.wall * shade);
+        // a strip along the base: skirting, or hazard paint in the foundry
+        wallsOut.addBox(c + Vec3(0, 0.12f, 0), Vec3(sz.x + 0.08f, 0.24f, sz.z + 0.08f), T.skirting);
+        if (T.lightStyle == 1) {
+            // hedges: leafy bumps break up the flat walls and the top edge
+            int n = 2 + (int)(std::max(sz.x, sz.z) / 1.2f);
+            for (int k = 0; k < n; ++k) {
+                bool alongX = sz.x > sz.z;
+                float u = rng.uniform(-0.5f, 0.5f) * (alongX ? sz.x : sz.z);
+                Vec3 p = c + Vec3(alongX ? u : 0, rng.uniform(0.5f, H), alongX ? 0 : u);
+                float s = rng.uniform(0.45f, 0.9f);
+                propsOut.addBox(p, Vec3(alongX ? s : sz.x + 0.16f, s, alongX ? sz.z + 0.16f : s), T.wall * rng.uniform(0.75f, 1.25f));
+            }
+        } else if (T.lightStyle == 2) {
+            // foundry: copper pipes running along the walls
+            bool alongX = sz.x > sz.z;
+            Vec3 pipe = alongX ? Vec3(sz.x, 0.14f, sz.z + 0.22f) : Vec3(sz.x + 0.22f, 0.14f, sz.z);
+            wallsOut.addBox(c + Vec3(0, H - 0.55f, 0), pipe, Vec3(0.55f, 0.32f, 0.16f));
+            wallsOut.addBox(c + Vec3(0, H - 0.85f, 0), pipe * Vec3(1, 0.7f, 1), Vec3(0.35f, 0.33f, 0.32f));
+        }
     }
     for (int cz = 0; cz < h_; ++cz)
         for (int cx = 0; cx < w_; ++cx)
             if (pillarCells_[cellIndex(cx, cz)]) {
                 Vec3 c = cellCenter(cx, cz);
-                propsOut.addBox(c + Vec3(0, HEIGHT * 0.5f, 0), Vec3(0.7f, HEIGHT, 0.7f), Vec3(0.35f, 0.33f, 0.36f));
-                propsOut.addBox(c + Vec3(0, 0.2f, 0), Vec3(1.0f, 0.4f, 1.0f), Vec3(0.3f, 0.28f, 0.3f));
-                propsOut.addBox(c + Vec3(0, HEIGHT - 0.2f, 0), Vec3(1.0f, 0.4f, 1.0f), Vec3(0.3f, 0.28f, 0.3f));
+                propsOut.addBox(c + Vec3(0, H * 0.5f, 0), Vec3(0.7f, H, 0.7f), T.pillar);
+                propsOut.addBox(c + Vec3(0, 0.2f, 0), Vec3(1.0f, 0.4f, 1.0f), T.pillar * 0.85f);
+                propsOut.addBox(c + Vec3(0, H - 0.2f, 0), Vec3(1.0f, 0.4f, 1.0f), T.pillar * 0.85f);
             }
     for (const Vec3& t : torches_) {
-        propsOut.addBox(t - Vec3(0, 0.25f, 0), Vec3(0.12f, 0.5f, 0.12f), Vec3(0.2f, 0.12f, 0.08f));
-        propsOut.addBox(t + Vec3(0, 0.08f, 0), Vec3(0.2f, 0.16f, 0.2f), Vec3(1.0f, 0.6f, 0.2f));
+        if (T.lightStyle == 0) {
+            propsOut.addBox(t - Vec3(0, 0.25f, 0), Vec3(0.12f, 0.5f, 0.12f), Vec3(0.2f, 0.12f, 0.08f));
+            propsOut.addBox(t + Vec3(0, 0.08f, 0), Vec3(0.2f, 0.16f, 0.2f), Vec3(1.0f, 0.6f, 0.2f));
+        } else if (T.lightStyle == 1) {
+            // lantern on a short iron bracket
+            propsOut.addBox(t + Vec3(0, 0.3f, 0), Vec3(0.06f, 0.35f, 0.06f), Vec3(0.12f, 0.12f, 0.13f));
+            propsOut.addBox(t, Vec3(0.28f, 0.34f, 0.28f), Vec3(0.12f, 0.12f, 0.13f));
+            propsOut.addBox(t, Vec3(0.22f, 0.26f, 0.3f), T.lightColor);
+            propsOut.addBox(t, Vec3(0.3f, 0.26f, 0.22f), T.lightColor);
+        } else {
+            // furnace vent: a glowing grate low on the wall
+            propsOut.addBox(t, Vec3(0.75f, 0.5f, 0.75f), Vec3(0.12f, 0.1f, 0.1f));
+            for (int k = -1; k <= 1; ++k) propsOut.addBox(t + Vec3(0, k * 0.13f, 0), Vec3(0.8f, 0.06f, 0.8f), T.lightColor);
+        }
     }
 }
 

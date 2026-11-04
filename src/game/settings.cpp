@@ -11,7 +11,8 @@ namespace dc {
 
 const char* actionName(Action a) {
     static const char* n[] = {"MOVE UP", "MOVE DOWN", "MOVE LEFT", "MOVE RIGHT", "LIGHT ATTACK", "MEDIUM ATTACK",
-                              "HEAVY ATTACK", "STAND / MODE", "DASH / EVADE", "TAUNT", "LOOK LEFT", "LOOK RIGHT"};
+                              "HEAVY ATTACK", "STAND / MODE", "DASH / EVADE", "TAUNT", "LOOK LEFT", "LOOK RIGHT",
+                              "JUMP", "CROUCH"};
     return n[(int)a];
 }
 
@@ -68,6 +69,8 @@ void Settings::resetKeys() {
     set(Action::Taunt, GLFW_KEY_O);
     set(Action::LookLeft, GLFW_KEY_Q);
     set(Action::LookRight, GLFW_KEY_R);
+    set(Action::Jump, GLFW_KEY_SPACE);
+    set(Action::Crouch, GLFW_KEY_LEFT_CONTROL, GLFW_KEY_C);
 }
 
 void Settings::bind(Action a, int slot, int key) {

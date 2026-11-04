@@ -26,6 +26,12 @@ int main() {
         "Russian control hints");
     check(localizeText("A brawler whose Stand beats in time with his heart. Close the distance and never stop punching.",
         Language::Kazakh).find(u8"Жүрегімен") != std::string::npos, "Kazakh character bio");
+    for (const char* text : {"CHOOSE THE ARENA", "CHOOSE YOUR HUNTING GROUND", "RANDOM", "JUMP", "CROUCH",
+                             "CRIMSON COLOSSEUM", "MOONLIT SHRINE", "EMBER FORGE", "GLASS CATHEDRAL",
+                             "CATACOMBS", "MOONLIT GARDEN", "EMBER FOUNDRY"}) {
+        check(localizeText(text, Language::Russian) != text, text);
+        check(localizeText(text, Language::Kazakh) != text, text);
+    }
     check(std::string(languageName(Language::English)) == "ENGLISH", "English language label");
     check(std::string(languageName(Language::Russian)) == u8"РУССКИЙ", "Russian language label");
     check(std::string(languageName(Language::Kazakh)) == u8"ҚАЗАҚША", "Kazakh language label");

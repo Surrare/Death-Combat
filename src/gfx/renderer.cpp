@@ -201,6 +201,16 @@ void main(){
     FragColor = vec4(c, 1.0);
 })";
 
+// Split screen mask: marks the second view's half-plane with stencil = 1, fills it with the clear colour at far depth.
+static const char* MASK_FS = R"(#version 330 core
+out vec4 FragColor;
+uniform vec2 uCenter, uNormal; uniform vec3 uClear;
+void main(){
+    if (dot(gl_FragCoord.xy - uCenter, uNormal) <= 0.0) discard;
+    FragColor = vec4(uClear, 1.0);
+    gl_FragDepth = 1.0;
+})";
+
 static const char* COMPOSITE_FS = R"(#version 330 core
 in vec2 vUV; out vec4 FragColor;
 uniform sampler2D uScene, uBloom, uDepth;
@@ -255,6 +265,7 @@ bool Renderer::init() {
     bool postShaders = bright_.compile(POST_VS, BRIGHT_FS, "bright") && blur_.compile(POST_VS, BLUR_FS, "blur") &&
                        composite_.compile(POST_VS, COMPOSITE_FS, "composite");
     glGenVertexArrays(1, &postVao_);
+    if (!mask_.compile(POST_VS, MASK_FS, "split mask")) return false;
     if (!postShaders) targetW_ = targetH_ = -1;   // never create targets
 
     // shadow map
@@ -339,6 +350,36 @@ void Renderer::beginFrame(const Camera& cam, const Color& clear) {
     opaque_.clear(); transparent_.clear();
     unlitAlpha_.clear(); unlitAdd_.clear(); ui_.clear();
     pointLights_.clear();
+    split_ = false;
+}
+
+void Renderer::setSecondView(const Camera& cam, const Vec2& splitNormal) {
+    split_ = true;
+    camB_ = cam;
+    float aspect = (float)std::max(width_, 1) / (float)std::max(height_, 1);
+    projB_ = Mat4::perspective(radians(cam.fovDeg), aspect, cam.znear, cam.zfar);
+    viewB_ = Mat4::lookAt(cam.eye, cam.target, Vec3(0, 1, 0));
+    float l = std::sqrt(splitNormal.x * splitNormal.x + splitNormal.y * splitNormal.y);
+    splitN_ = l > 1e-5f ? Vec2(splitNormal.x / l, splitNormal.y / l) : Vec2(1, 0);
+}
+
+bool Renderer::projectToScreen(const Vec3& p, float& sx, float& sy) const {
+    const float w = (float)width_, h = (float)height_;
+    auto toScreen = [&](const Mat4& pv, float& x, float& y) {
+        Vec4 c = pv * Vec4(p, 1.0f);
+        if (c.w <= 0.001f) return false;
+        x = (c.x / c.w * 0.5f + 0.5f) * w;
+        y = (1.0f - (c.y / c.w * 0.5f + 0.5f)) * h;
+        return true;
+    };
+    auto inB = [&](float x, float y) { return (x - w * 0.5f) * splitN_.x + (y - h * 0.5f) * splitN_.y > 0.0f; };
+    float ax = 0, ay = 0;
+    bool okA = toScreen(proj_ * view_, ax, ay);
+    if (!split_) { sx = ax; sy = ay; return okA; }
+    if (okA && !inB(ax, ay)) { sx = ax; sy = ay; return true; }
+    float bx, by;
+    if (toScreen(projB_ * viewB_, bx, by) && inB(bx, by)) { sx = bx; sy = by; return true; }
+    return false;
 }
 
 void Renderer::setDirectionalLight(const Vec3& dir, const Vec3& color, float ambient) {
@@ -382,6 +423,18 @@ void Renderer::rect(float x, float y, float w, float h, const Color& col) {
 void Renderer::rectOutline(float x, float y, float w, float h, float t, const Color& col) {
     rect(x, y, w, t, col); rect(x, y + h - t, w, t, col);
     rect(x, y, t, h, col); rect(x + w - t, y, t, h, col);
+}
+
+void Renderer::triangle(float x0, float y0, float x1, float y1, float x2, float y2, const Color& col) {
+    ui_.push_back({x0, y0, -2, -2, col}); ui_.push_back({x1, y1, -2, -2, col}); ui_.push_back({x2, y2, -2, -2, col});
+}
+
+void Renderer::line(float x0, float y0, float x1, float y1, float thickness, const Color& col) {
+    float dx = x1 - x0, dy = y1 - y0, l = std::sqrt(dx * dx + dy * dy);
+    if (l < 1e-4f) return;
+    float nx = -dy / l * thickness * 0.5f, ny = dx / l * thickness * 0.5f;
+    triangle(x0 + nx, y0 + ny, x1 + nx, y1 + ny, x1 - nx, y1 - ny, col);
+    triangle(x0 + nx, y0 + ny, x1 - nx, y1 - ny, x0 - nx, y0 - ny, col);
 }
 
 void Renderer::text(float x, float y, const std::string& s, float scale, const Color& col) {
@@ -443,10 +496,14 @@ void Renderer::renderShadowPass() {
     lit_.set("uLightVP", lightVP);
 }
 
-void Renderer::renderScenePass() {
+void Renderer::renderScenePass(bool clear) {
     glViewport(0, 0, width_, height_);
-    glClearColor(clear_.r, clear_.g, clear_.b, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if (clear) {
+        glClearColor(clear_.r, clear_.g, clear_.b, 1.0f);
+        glClearStencil(0);
+        glStencilMask(0xFF);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    }
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
@@ -567,10 +624,10 @@ void Renderer::createTargets(int w, int h) {
     glBindRenderbuffer(GL_RENDERBUFFER, msaaColor_);
     glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGBA16F, w, h);
     glBindRenderbuffer(GL_RENDERBUFFER, msaaDepth_);
-    glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH_COMPONENT24, w, h);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH24_STENCIL8, w, h);
     glBindFramebuffer(GL_FRAMEBUFFER, msaaFbo_);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, msaaColor_);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, msaaDepth_);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, msaaDepth_);
     bool ok = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
 
     auto makeTex = [&](GLuint& tex, GLenum internal, GLenum format, GLenum type, int tw, int th) {
@@ -583,14 +640,14 @@ void Renderer::createTargets(int w, int h) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     };
     makeTex(sceneTex_, GL_RGBA16F, GL_RGBA, GL_FLOAT, w, h);
-    makeTex(depthTex_, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT, w, h);
+    makeTex(depthTex_, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, w, h);   // stencil drives the split screen
     glBindTexture(GL_TEXTURE_2D, depthTex_);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glGenFramebuffers(1, &resolveFbo_);
     glBindFramebuffer(GL_FRAMEBUFFER, resolveFbo_);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneTex_, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTex_, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthTex_, 0);
     ok = ok && glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
 
     const int bw = std::max(1, w / 2), bh = std::max(1, h / 2);
@@ -664,13 +721,47 @@ void Renderer::renderPost() {
     glEnable(GL_DEPTH_TEST);
 }
 
+void Renderer::renderSecondView() {
+    // 1) stencil-mark the second view's half-plane, resetting colour / depth there
+    glEnable(GL_STENCIL_TEST);
+    glStencilMask(0xFF);
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    glDepthFunc(GL_ALWAYS);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_BLEND);
+    mask_.use();
+    mask_.set("uCenter", Vec2(width_ * 0.5f, height_ * 0.5f));
+    mask_.set("uNormal", Vec2(splitN_.x, -splitN_.y));   // gl_FragCoord is bottom-up
+    mask_.set("uClear", Vec3(clear_.r, clear_.g, clear_.b));
+    glBindVertexArray(postVao_);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_CULL_FACE);
+
+    // 2) draw the same submissions from the second camera, only where stencil == 1.
+    // Billboards were built for the first camera; both views share one orientation so they still face the viewer.
+    glStencilFunc(GL_EQUAL, 1, 0xFF);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    const Camera camA = cam_; const Mat4 viewA = view_, projA = proj_;
+    cam_ = camB_; view_ = viewB_; proj_ = projB_;
+    renderScenePass(false);
+    renderUnlit(unlitAlpha_, Blend::Alpha);
+    renderUnlit(unlitAdd_, Blend::Additive);
+    cam_ = camA; view_ = viewA; proj_ = projA;
+    glDisable(GL_STENCIL_TEST);
+}
+
 void Renderer::endFrame() {
     if (targetW_ >= 0 && (targetW_ != width_ || targetH_ != height_)) createTargets(width_, height_);
     renderShadowPass();
     if (postOk_) glBindFramebuffer(GL_FRAMEBUFFER, msaaFbo_);
-    renderScenePass();
+    renderScenePass(true);
     renderUnlit(unlitAlpha_, Blend::Alpha);
     renderUnlit(unlitAdd_, Blend::Additive);
+    if (split_) renderSecondView();
     if (postOk_) renderPost();
     renderUi();
 }

@@ -10,15 +10,17 @@ enum Button : uint32_t {
     BTN_LIGHT = 1u << 0,   // Square  / X     / J
     BTN_MEDIUM = 1u << 1,  // Triangle/ Y     / K
     BTN_HEAVY = 1u << 2,   // Circle  / B     / L
-    BTN_STYLE = 1u << 3,   // Cross   / A     / I   (Stand on/off)
+    BTN_STYLE = 1u << 3,   // L1      / LB    / I   (Stand on/off)
     BTN_DASH = 1u << 4,    // R1      / RB    / U   (dash / stylish evade)
-    BTN_TAUNT = 1u << 5,   // L1      / LB    / O
+    BTN_TAUNT = 1u << 5,   // R3      / RS    / O
     BTN_START = 1u << 6,   // Start   / Enter
     BTN_BACK = 1u << 7,    // Select  / Escape
     BTN_UP = 1u << 8,
     BTN_DOWN = 1u << 9,
     BTN_LEFT = 1u << 10,
     BTN_RIGHT = 1u << 11,
+    BTN_JUMP = 1u << 12,     // Space   / A      (fights: up/down walk around the opponent)
+    BTN_CROUCH = 1u << 13,   // Ctrl    / LT
 };
 
 struct PadState {

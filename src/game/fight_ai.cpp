@@ -6,7 +6,7 @@ namespace dc {
 void FightAI::reset(int difficulty, uint64_t seed) {
     difficulty_ = difficulty;
     rng_ = Rng(seed);
-    thinkTimer_ = 0; holdDir_ = 0; holdDirY_ = 0; holdFrames_ = 0; blockFrames_ = 0; comboStep_ = 0; planned_ = nullptr;
+    thinkTimer_ = 0; holdDir_ = 0; holdDirY_ = 0; holdSide_ = 0; holdFrames_ = 0; blockFrames_ = 0; comboStep_ = 0; planned_ = nullptr;
 }
 
 const Move* FightAI::findNormal(const Character& c, int level, Stance stance, bool standOn) const {
@@ -72,10 +72,8 @@ SimInput FightAI::think(const FightSim& sim, int meIdx) {
         return in;
     }
 
-    float dx = opp.pos.x - me.pos.x;
-    float dist = std::fabs(dx);
-    int toward = dx > 0 ? 1 : -1;
-    auto relToAbs = [&](int rel) { return rel * toward; };
+    Vec3 toOpp = opp.pos - me.pos; toOpp.y = 0;
+    float dist = toOpp.length();
 
     float reactChance = difficulty_ == 0 ? 0.25f : (difficulty_ == 1 ? 0.5f : 0.8f);
 
@@ -83,25 +81,34 @@ SimInput FightAI::think(const FightSim& sim, int meIdx) {
     bool oppThreat = opp.attacking() && opp.move && opp.move->kind != MoveKind::Taunt && dist < 3.0f && opp.moveFrame < opp.move->startup + opp.move->active;
     bool oppProjectileThreat = false;
     for (const Projectile& p : sim.projectiles())
-        if (p.owner != meIdx && (p.pos.x - me.pos.x) * p.vx < 0 && std::fabs(p.pos.x - me.pos.x) < 3.0f) oppProjectileThreat = true;
+        if (p.owner != meIdx) {
+            Vec3 rp = me.pos - p.pos; rp.y = 0;
+            float along = dot(rp, p.dir);
+            Vec3 side = rp - p.dir * along;
+            if (along > 0 && along < 3.0f && side.length() < 1.0f) oppProjectileThreat = true;
+        }
 
     if ((oppThreat || oppProjectileThreat) && blockFrames_ <= 0 && me.canAct()) {
+        if (oppProjectileThreat && !oppThreat && rng_.chance(reactChance * 0.5f)) {
+            in.pressed |= BTN_DASH; in.moveS = rng_.chance(0.5f) ? 1.0f : -1.0f;
+            return in;
+        }
         if (rng_.chance(reactChance)) {
             bool low = false;
             if (opp.move) for (const HitWindow& w : opp.move->hits) if (w.low) low = true;
             if (opp.move && opp.move->commandThrow) {
                 // escape the throw: backdash or jump
-                if (rng_.chance(0.5f)) { in.pressed |= BTN_DASH; in.dirX = relToAbs(-1); }
+                if (rng_.chance(0.5f)) { in.pressed |= BTN_DASH; in.moveF = -1; }
                 else in.dirY = 1;
                 return in;
             }
             if (opp.move && opp.move->rush && rng_.chance(0.3f)) {
                 // sidestep the rush (stylish evade)
-                in.pressed |= BTN_DASH; in.dirY = rng_.chance(0.5f) ? 1 : -1;
+                in.pressed |= BTN_DASH; in.moveS = rng_.chance(0.5f) ? 1.0f : -1.0f;
                 return in;
             }
             if (opp.move && (opp.move->kind == MoveKind::HHA || opp.move->kind == MoveKind::GHA) && rng_.chance(0.4f)) {
-                in.pressed |= BTN_DASH; in.dirY = 1;
+                in.pressed |= BTN_DASH; in.moveS = rng_.chance(0.5f) ? 1.0f : -1.0f;
                 return in;
             }
             blockFrames_ = 14 + rng_.range(0, 14);
@@ -110,10 +117,10 @@ SimInput FightAI::think(const FightSim& sim, int meIdx) {
     }
     if (blockFrames_ > 0) {
         blockFrames_--;
-        in.dirX = relToAbs(-1);
+        in.moveF = -1;
         in.dirY = blockLow_ ? -1 : 0;
         // Stylish evade out of blockstun sometimes
-        if ((me.state == FState::Block || me.state == FState::CrouchBlock) && rng_.chance(0.03f * difficulty_)) { in.pressed |= BTN_DASH; in.dirY = 1; }
+        if ((me.state == FState::Block || me.state == FState::CrouchBlock) && rng_.chance(0.03f * difficulty_)) { in.pressed |= BTN_DASH; in.moveS = rng_.chance(0.5f) ? 1.0f : -1.0f; }
         return in;
     }
 
@@ -163,7 +170,7 @@ SimInput FightAI::think(const FightSim& sim, int meIdx) {
     // ---- opponent knocked down: wait, taunt or position
     if (opp.isDown()) {
         if (me.canAct() && rng_.chance(0.01f) && dist > 1.5f) { in.pressed |= BTN_TAUNT; return in; }
-        if (dist > 2.0f) in.dirX = relToAbs(1);
+        if (dist > 2.0f) in.moveF = 1;
         return in;
     }
 
@@ -180,7 +187,8 @@ SimInput FightAI::think(const FightSim& sim, int meIdx) {
     // ---- neutral decisions, re-evaluated every few frames
     if (holdFrames_ > 0) {
         holdFrames_--;
-        in.dirX = holdDir_ != 0 ? relToAbs(holdDir_) : 0;
+        in.moveF = (float)holdDir_;
+        in.moveS = holdSide_;
         in.dirY = holdDirY_;
         if (planned_ && me.canAct()) { in.requestMove = planned_; planned_ = nullptr; holdFrames_ = 0; }
         return in;
@@ -193,23 +201,24 @@ SimInput FightAI::think(const FightSim& sim, int meIdx) {
     if (dist > 4.5f) {
         if ((hasProjectile || hasLowProjectile) && r < 0.35f) {
             in.requestMove = findSpecial(c, hasProjectile ? Motion::QCF : Motion::QCB, rng_.range(0, 2), me.styleOn);
-        } else if (r < 0.55f) { in.pressed |= BTN_DASH; in.dirX = relToAbs(1); }
-        else { holdDir_ = 1; holdDirY_ = 0; holdFrames_ = 12 + rng_.range(0, 18); in.dirX = relToAbs(1); }
+        } else if (r < 0.55f) { in.pressed |= BTN_DASH; in.moveF = 1; }
+        else { holdDir_ = 1; holdDirY_ = 0; holdSide_ = rng_.chance(0.3f) ? (rng_.chance(0.5f) ? 0.6f : -0.6f) : 0.0f; holdFrames_ = 12 + rng_.range(0, 18); in.moveF = 1; }
     } else if (dist > 2.3f) {
-        if (r < 0.35f) { holdDir_ = 1; holdDirY_ = 0; holdFrames_ = 8 + rng_.range(0, 12); in.dirX = relToAbs(1); }
-        else if (r < 0.5f) { in.dirY = 1; in.dirX = relToAbs(1); }           // jump in
-        else if (r < 0.62f) { in.pressed |= BTN_DASH; in.dirX = relToAbs(1); }
+        if (r < 0.28f) { holdDir_ = 1; holdDirY_ = 0; holdSide_ = 0; holdFrames_ = 8 + rng_.range(0, 12); in.moveF = 1; }
+        else if (r < 0.40f) { holdDir_ = 0; holdDirY_ = 0; holdSide_ = rng_.chance(0.5f) ? 1.0f : -1.0f; holdFrames_ = 10 + rng_.range(0, 20); in.moveS = holdSide_; }   // circle
+        else if (r < 0.52f) { in.dirY = 1; in.moveF = 1; }           // jump in
+        else if (r < 0.62f) { in.pressed |= BTN_DASH; in.moveF = 1; }
         else if (r < 0.8f) { in.requestMove = pickAttack(me, opp, dist); }
-        else if (r < 0.88f) { holdDir_ = -1; holdDirY_ = 0; holdFrames_ = 6 + rng_.range(0, 10); in.dirX = relToAbs(-1); }
-        else { holdDir_ = 0; holdDirY_ = 0; holdFrames_ = 4 + rng_.range(0, 8); }
+        else if (r < 0.88f) { holdDir_ = -1; holdDirY_ = 0; holdSide_ = 0; holdFrames_ = 6 + rng_.range(0, 10); in.moveF = -1; }
+        else { holdDir_ = 0; holdDirY_ = 0; holdSide_ = 0; holdFrames_ = 4 + rng_.range(0, 8); }
     } else {
         float aggression = 0.45f + 0.15f * difficulty_;
         if (r < aggression) { in.requestMove = pickAttack(me, opp, dist); }
-        else if (r < aggression + 0.12f) { holdDir_ = -1; holdDirY_ = 0; holdFrames_ = 6 + rng_.range(0, 10); in.dirX = relToAbs(-1); }
-        else if (r < aggression + 0.2f) { in.pressed |= BTN_DASH; in.dirY = rng_.chance(0.5f) ? 1 : -1; }   // sidestep
-        else if (r < aggression + 0.28f) { in.dirY = 1; in.dirX = relToAbs(1); }
-        else if (r < aggression + 0.36f) { holdDir_ = 0; holdDirY_ = -1; holdFrames_ = 6 + rng_.range(0, 10); in.dirY = -1; }
-        else { holdDir_ = 1; holdDirY_ = 0; holdFrames_ = 3 + rng_.range(0, 6); in.dirX = relToAbs(1); }
+        else if (r < aggression + 0.12f) { holdDir_ = -1; holdDirY_ = 0; holdSide_ = 0; holdFrames_ = 6 + rng_.range(0, 10); in.moveF = -1; }
+        else if (r < aggression + 0.2f) { in.pressed |= BTN_DASH; in.moveS = rng_.chance(0.5f) ? 1.0f : -1.0f; }   // sidestep
+        else if (r < aggression + 0.28f) { in.dirY = 1; in.moveF = 1; }
+        else if (r < aggression + 0.36f) { holdDir_ = 0; holdDirY_ = -1; holdSide_ = 0; holdFrames_ = 6 + rng_.range(0, 10); in.dirY = -1; }
+        else { holdDir_ = 1; holdDirY_ = 0; holdSide_ = 0; holdFrames_ = 3 + rng_.range(0, 6); in.moveF = 1; }
     }
     return in;
 }

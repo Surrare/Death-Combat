@@ -19,6 +19,7 @@ private:
     Rng rng_{777};
     int thinkTimer_ = 0;
     int holdDir_ = 0, holdDirY_ = 0, holdFrames_ = 0;
+    float holdSide_ = 0;   // circling direction while holding a movement decision
     int blockFrames_ = 0;
     bool blockLow_ = false;
     int reactionDelay_ = 0;

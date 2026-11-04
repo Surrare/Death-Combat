@@ -42,11 +42,11 @@ MinGW-w64 / clang work as well: `cmake -B build -G Ninja && cmake --build build`
 
 ### Tests
 
-`DeathCombatSimTest` runs every AI matchup of the fight simulation headlessly (no window) and checks
-that matches finish and the mechanics fire:
+Run the CTest suite from the build directory to check the simulation, character rigs, font layout,
+and localization:
 
 ```bash
-./build/DeathCombatSimTest     # or: ctest --test-dir build
+ctest --test-dir build --output-on-failure
 ```
 
 ## How to play
@@ -56,26 +56,52 @@ your choice is saved with the other settings.
 
 ### Modes
 
-- **HUNT MODE** – choose a hunter, then search the corridors for the other five fighters. Beat them all.
-- **VERSUS CPU** – a single match against the computer.
-- **VERSUS 2P** – two players on one machine (keyboard + keyboard, or gamepads).
+- **HUNT MODE** – choose a hunter and a hunting ground, then search it for the other five fighters. Beat them all.
+  Each opponent fights you in their own home arena.
+- **VERSUS CPU** – a single match against the computer, in the arena of your choice.
+- **VERSUS 2P** – two players on one machine (keyboard + keyboard, or gamepads). When the two of you get too far
+  apart the screen splits so each player keeps their fighter in view; it opens and closes gradually.
 
 ### Controls
 
 | Action | Keyboard (P1) | Keyboard (P2) | Gamepad |
 |---|---|---|---|
-| Move / jump / crouch | W A S D | Arrows | Left stick / D-pad |
+| Move (fights: W / S circle the opponent) | W A S D | Arrows | Left stick / D-pad |
+| Jump | Space | Right Shift / Numpad 8 | A |
+| Crouch | Left Ctrl or C | Right Ctrl / Numpad 7 | LT |
 | Light attack | J | Numpad 1 | X |
 | Medium attack | K | Numpad 2 | Y |
 | Heavy attack | L | Numpad 3 | B |
-| Style (Stand / Mode on-off) | I | Numpad 4 | A |
-| Dash / evade | U, Shift or Space | Numpad 5 / 0 | RB / RT |
-| Taunt | O | Numpad 6 | LB |
+| Style (Stand / Mode on-off) | I | Numpad 4 | LB |
+| Dash / evade | U or Shift | Numpad 5 / 0 | RB / RT |
+| Taunt | O | Numpad 6 | Right stick press |
 | Confirm / engage / pause | Enter or E | Numpad Enter | Start |
 | Back / pause | Esc | | Back |
 | Hunt: look | Mouse (Q / R to turn) | | Right stick |
 | Hunt: run | Shift | | RB |
 | Screenshot | F12 | | |
+
+Player 1's keys (including Jump and Crouch) can be rebound in **Settings**.
+
+### Free movement and the camera
+
+Fighters walk freely around a round arena and always stay turned toward each other. Movement is relative to the
+camera, and the camera stays side-on to the two fighters (like Tekken or Soul Calibur), so **left / right still means
+toward / away** – blocking, F / B specials and motion inputs work exactly as in a 2D fighter – while **up / down walks
+around the opponent**. Attacks travel in the direction you face, so stepping to the side really dodges them.
+The camera turns and zooms smoothly to keep both fighters framed and never goes behind the arena walls.
+Against the CPU, if the opponent leaves the screen an arrow at the edge points at them.
+
+### Maps
+
+| Arena | | Hunting ground | |
+|---|---|---|---|
+| Crimson Colosseum | torch-lit brick hall with banners | Catacombs | tight brick corridors |
+| Moonlit Shrine | stone courtyard, lanterns, falling blossoms | Moonlit Garden | open-sky hedge maze with fireflies |
+| Ember Forge | rock island in a moat of molten iron | Ember Foundry | iron tunnels with furnace vents |
+| Glass Cathedral | stained glass and a marble floor | | |
+
+Pick one on the stage screen after choosing fighters (or **Random**); the preview shows the place live.
 
 ### The hunt
 
@@ -85,7 +111,10 @@ your choice is saved with the other settings.
 - Walk into an opponent, or press Enter / an attack button next to them, to start the fight.
 - Win and you return to the halls; the remaining opponents scatter and get tougher. Lose and you can retry.
 
-### Fight mechanics (ASB style)
+The dark, crimson menus and in-fight HUD frame the matches; each character keeps a distinct moveset
+and playstyle despite the shared health baseline.
+
+### Fight mechanics
 
 - **Normals:** Light, Medium, Heavy, standing / crouching / in the air. Chains go L → M → H.
 - **Easy Beat:** tap Light repeatedly for an automatic L → M → H → special combo.
@@ -93,11 +122,11 @@ your choice is saved with the other settings.
 - **Easy Heat attacks:** hold toward and press Light + Medium for an HHA, or Light + Medium + Heavy for a GHA; classic quarter-circle inputs still work too.
 - **Throw:** L + M close to the opponent. Both throwing at once = throw tech.
 - **Dash / backdash:** Dash button with forward / back, or double-tap. Backdash is briefly invincible.
-- **Sidestep (Stylish Evade):** Dash + up / down steps around attacks, also out of block stun.
+- **Sidestep (Stylish Evade):** Dash + sideways (W / S) hops around attacks with brief invincibility, also out of block stun.
 - **Blocking:** hold back. Low attacks must be crouch-blocked, overheads must be blocked standing.
 - **Heart Heat Gauge (HHG):** fills when hitting and being hit, up to 3 bars. It persists between rounds.
-  - **Heart Heat Attack (HHA):** D, DF, F + two attack buttons. 1 bar, invincible start-up.
-  - **Great Heat Attack (GHA):** D, DF, F + three attack buttons. 2 bars, huge damage.
+  - **Heart Heat Attack (HHA):** toward + Light + Medium, or D, DF, F + two attack buttons. 1 bar, invincible start-up.
+  - **Great Heat Attack (GHA):** toward + Light + Medium + Heavy, or D, DF, F + three attack buttons. 2 bars, huge damage.
   - **Flash Cancel:** press L + M + H during any move to cancel it. 1 bar.
   - Finish a round with an HHA or GHA for a **Dramatic Finish**.
 - **Styles:**
@@ -125,8 +154,9 @@ your choice is saved with the other settings.
 ```
 src/core        math, embedded TrueType/SDF fonts, localization, PNG writer
 src/gfx         shaders, procedural meshes, forward renderer (shadow map, point lights, fog, particles, 2D HUD)
-src/game        input, roster & move data, fight simulation (60 Hz fixed step), fight AI,
-                procedural humanoid rig & animation, maze generator, hunt phase, app / scenes / HUD
+src/game        input, roster & move data, fight simulation (60 Hz fixed step, free movement on a round arena),
+                fight AI, procedural humanoid rig & animation, arenas, themed maze generator, hunt phase,
+                app / scenes / follow camera / split screen / HUD
 tests           headless simulation test
 third_party     GLAD OpenGL loader
 ```
@@ -146,4 +176,7 @@ DeathCombat --demo-hunt             straight into the hunt
 DeathCombat --shot out.png 5        save a screenshot after 5 seconds and quit
 DeathCombat --seed 42               deterministic maze / effects
 DeathCombat --demo-select --char 3  character select showing fighter #3 (also picks the fighter for --demo-fight / --demo-hunt)
+DeathCombat --demo-fight --arena 2  AI vs AI fight in arena #2 (0..3); with --demo-hunt it picks the hunting ground (0..2)
+DeathCombat --demo-arenas           arena select screen        (--demo-grounds: hunting ground select)
+DeathCombat --demo-split            versus match where both players back away and return: split screen check
 ```

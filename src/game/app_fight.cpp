@@ -10,7 +10,6 @@ namespace dc {
 namespace {
 const Color WHITE(1, 1, 1), GOLD(1.0f, 0.82f, 0.3f), RED(0.95f, 0.2f, 0.2f), DIM(0.55f, 0.55f, 0.6f);
 constexpr float ARENA_SURFACE_Y = 0.01f;
-constexpr float ARENA_FLOOR_THICKNESS = 0.02f;
 std::string upper(std::string s) { for (char& c : s) c = (char)toupper((unsigned char)c); return s; }
 std::string displayName(const std::string& n) {
     if (n.size() > 2 && n[n.size() - 2] == ' ' && (n.back() == 'L' || n.back() == 'M' || n.back() == 'H')) return upper(n.substr(0, n.size() - 2));
@@ -18,86 +17,11 @@ std::string displayName(const std::string& n) {
 }
 }
 
-void App::buildArena() {
-    MeshBuilder b;
-    b.addPlane(Vec3(0, 0, 0), 44, 30, 22, Vec3(0.30f, 0.28f, 0.30f), Vec3(0.24f, 0.22f, 0.25f));
-    // raised rim marking the fighting line
-    b.addBox(Vec3(0, ARENA_SURFACE_Y - ARENA_FLOOR_THICKNESS * 0.5f, 0),
-             Vec3(19.0f, ARENA_FLOOR_THICKNESS, 6.0f), Vec3(0.34f, 0.3f, 0.3f));
-    arenaFloor_.upload(b);
-
-    b.clear();
-    Vec3 wallCol(0.36f, 0.32f, 0.34f);
-    b.addBox(Vec3(0, 3.5f, -9.0f), Vec3(44, 7, 1), wallCol);          // back wall
-    b.addBox(Vec3(-16, 3.5f, 0), Vec3(1, 7, 30), wallCol);           // sides
-    b.addBox(Vec3(16, 3.5f, 0), Vec3(1, 7, 30), wallCol);
-    b.addBox(Vec3(0, 7.0f, -4.5f), Vec3(44, 0.6f, 10), wallCol * 0.8f); // ceiling beam
-    arenaWalls_.upload(b);
-
-    b.clear();
-    for (int i = -4; i <= 4; ++i) {
-        float x = i * 4.0f;
-        b.addBox(Vec3(x, 3.0f, -8.2f), Vec3(0.8f, 6.0f, 0.8f), Vec3(0.45f, 0.42f, 0.44f));
-        b.addBox(Vec3(x, 0.25f, -8.2f), Vec3(1.2f, 0.5f, 1.2f), Vec3(0.3f, 0.28f, 0.3f));
-        b.addBox(Vec3(x, 5.9f, -8.2f), Vec3(1.2f, 0.4f, 1.2f), Vec3(0.3f, 0.28f, 0.3f));
-    }
-    // braziers on both sides
-    for (int s = -1; s <= 1; s += 2) {
-        b.addCylinder(Vec3(s * 11.0f, 0, -5.5f), 0.5f, 1.3f, 10, Vec3(0.2f, 0.18f, 0.16f));
-        b.addCylinder(Vec3(s * 11.0f, 1.3f, -5.5f), 0.7f, 0.3f, 10, Vec3(0.3f, 0.25f, 0.2f));
-    }
-    // seating steps at the front edge (towards the camera)
-    for (int k = 0; k < 3; ++k) b.addBox(Vec3(0, 0.2f + k * 0.4f, 9.5f + k * 1.2f), Vec3(44, 0.4f, 1.2f), Vec3(0.22f, 0.2f, 0.22f));
-    arenaProps_.upload(b);
-
-    // ring emblem on the fighting floor: gold outer ring, crimson inner ring, radial ticks
-    b.clear();
-    auto ring = [&](float r0, float r1, float y, Vec3 col, int seg, int skipEvery = 0) {
-        for (int i = 0; i < seg; ++i) {
-            if (skipEvery && i % skipEvery == 0) continue;
-            float a0 = (float)i / seg * 2 * PI, a1 = (float)(i + 1) / seg * 2 * PI;
-            Vec3 p0(std::cos(a0) * r0, y, std::sin(a0) * r0), p1(std::cos(a0) * r1, y, std::sin(a0) * r1);
-            Vec3 p2(std::cos(a1) * r1, y, std::sin(a1) * r1), p3(std::cos(a1) * r0, y, std::sin(a1) * r0);
-            b.addQuad(p0, p3, p2, p1, col);   // wound so the normal points up
-        }
-    };
-    const float ey = ARENA_SURFACE_Y + 0.006f;
-    ring(3.58f, 3.66f, ey, Vec3(0.62f, 0.45f, 0.16f), 72);
-    ring(3.22f, 3.26f, ey, Vec3(0.5f, 0.08f, 0.11f), 72);
-    ring(1.15f, 1.2f, ey, Vec3(0.62f, 0.45f, 0.16f), 48);
-    for (int k = 0; k < 24; ++k) {   // ticks between the two big rings
-        float a = (float)k / 24 * 2 * PI;
-        Vec3 c(std::cos(a) * 3.4f, ey, std::sin(a) * 3.4f), t(-std::sin(a), 0, std::cos(a)), r(std::cos(a), 0, std::sin(a));
-        b.addQuad(c - r * 0.16f - t * 0.025f, c + r * 0.16f - t * 0.025f, c + r * 0.16f + t * 0.025f, c - r * 0.16f + t * 0.025f, Vec3(0.62f, 0.45f, 0.16f));
-    }
-    b.addBox(Vec3(0, ey, 0), Vec3(13.0f, 0.004f, 0.035f), Vec3(0.3f, 0.06f, 0.08f));   // the fighting line
-    arenaEmblem_.upload(b);
-
-    // cloth banners hanging between the pillars
-    b.clear();
-    for (int i = -3; i <= 3; ++i) {
-        float x = i * 4.0f + (i % 2 ? 0.0f : 0.0f) + 2.0f * 0.0f;
-        if (i == 0) continue;
-        x = (i < 0 ? i * 4.0f + 2.0f : i * 4.0f - 2.0f);
-        Vec3 cloth = (i & 1) ? Vec3(0.30f, 0.04f, 0.07f) : Vec3(0.10f, 0.06f, 0.22f);
-        b.addBox(Vec3(x, 4.6f, -8.35f), Vec3(1.5f, 3.4f, 0.05f), cloth);
-        b.addBox(Vec3(x, 6.35f, -8.3f), Vec3(1.8f, 0.12f, 0.12f), Vec3(0.75f, 0.58f, 0.2f));      // rod
-        b.addBox(Vec3(x, 2.95f, -8.32f), Vec3(1.5f, 0.1f, 0.07f), Vec3(0.85f, 0.65f, 0.22f));     // hem
-        for (int t = 0; t < 5; ++t) b.addBox(Vec3(x - 0.6f + t * 0.3f, 2.75f, -8.32f), Vec3(0.06f, 0.3f, 0.04f), Vec3(0.85f, 0.65f, 0.22f)); // tassels
-        // diamond emblem made of two stacked rotated boxes
-        MeshBuilder d;
-        d.addBox(Vec3(0, 0, 0), Vec3(0.5f, 0.5f, 0.04f), Vec3(0.88f, 0.68f, 0.24f));
-        b.append(d, Mat4::translate(Vec3(x, 4.7f, -8.3f)) * Mat4::rotateZ(PI * 0.25f));
-        MeshBuilder d2;
-        d2.addBox(Vec3(0, 0, 0), Vec3(0.26f, 0.26f, 0.05f), cloth);
-        b.append(d2, Mat4::translate(Vec3(x, 4.7f, -8.29f)) * Mat4::rotateZ(PI * 0.25f));
-    }
-    arenaBanners_.upload(b);
-}
-
-void App::startFight(int charA, int charB, FightMode mode, int difficulty) {
+void App::startFight(int charA, int charB, FightMode mode, int difficulty, int arena) {
     const auto& ros = roster();
     fightMode_ = mode;
+    arenaId_ = arena >= 0 ? arena % ARENA_COUNT : fxRng_.range(0, ARENA_COUNT - 1);
+    sim_.setArena(arenaInfo(arenaId_).shape);
     sim_.init(&ros[charA], &ros[charB], 2);
     p1Ai_ = mode == FightMode::Demo;
     p2Ai_ = mode != FightMode::Versus;
@@ -105,9 +29,123 @@ void App::startFight(int charA, int charB, FightMode mode, int difficulty) {
     simAccum_ = 0; paused_ = false; pauseIndex_ = 0; showMoveList_ = false; resultIndex_ = 0; resultTimer_ = 0;
     particles_.clear(); floats_.clear(); banners_.clear();
     fightCamInit_ = false; standPosInit_ = false; fightTime_ = 0; slowmo_ = 1.0f;
+    fightCamYaw_ = 0; splitAmount_ = 0;
+    for (int i = 0; i < 2; ++i) displayYaw_[i] = sim_.fighter(i).yaw();
     scene_ = Scene::Fight;
     input_.setMouseCaptured(false);
     processEvents();
+}
+
+// Movement on screen is camera-relative; the simulation wants it relative to the fighter (toward the opponent / sideways).
+SimInput App::padToSim(const PadState& p, int who) const {
+    SimInput s;
+    const Fighter& f = sim_.fighter(who);
+    const Vec3 camF(-std::sin(fightCamYaw_), 0, -std::cos(fightCamYaw_));   // the camera looks this way along the floor
+    const Vec3 camR(-camF.z, 0, camF.x);
+    Vec3 w = camR * p.axisX + camF * p.axisY;
+    float l = w.length();
+    if (l > 1.0f) w = w / l;
+    s.moveF = dot(w, f.fwd);
+    s.moveS = dot(w, f.right());
+    s.dirY = (p.held & BTN_CROUCH) ? -1 : ((p.held & BTN_JUMP) ? 1 : 0);
+    s.held = p.held; s.pressed = p.pressed;
+    return s;
+}
+
+namespace {
+Vec3 flatV(Vec3 v) { v.y = 0; return v; }
+// Pull the eye back inside the arena's camera circle along the view ray, raising it a little to keep the framing.
+void clampEye(Camera& c, float radius) {
+    Vec3 t = flatV(c.target), d = flatV(c.eye - c.target);
+    float dd = dot(d, d);
+    if (dd < 1e-6f || flatV(c.eye).length() <= radius) return;
+    float td = dot(t, d), tt = dot(t, t) - radius * radius;
+    float disc = td * td - dd * tt;
+    if (disc < 0) return;
+    float s = clampf((-td + std::sqrt(disc)) / dd, 0.25f, 1.0f);
+    c.eye = c.target + (c.eye - c.target) * s + Vec3(0, (1.0f - s) * 2.2f, 0);
+}
+}
+
+// Side-on follow camera. The camera rotates to stay perpendicular to the line between the fighters, so on screen
+// they are always left / right of each other and "toward / away" keeps its 2D fighting-game meaning.
+// Versus: past the zoom limit the two views separate (Voronoi split screen), seamlessly and in both directions.
+void App::updateFightCamera() {
+    const Fighter& a = sim_.fighter(0);
+    const Fighter& b = sim_.fighter(1);
+    const float dt = frameDt_;
+    Vec3 pa = flatV(a.pos), pb = flatV(b.pos);
+    Vec3 axis = pb - pa;
+    float sep = axis.length();
+    if (sep > 0.3f && !sim_.clash().active) {
+        Vec3 n = Vec3(-axis.z, 0, axis.x) / sep;
+        Vec3 cur(std::sin(fightCamYaw_), 0, std::cos(fightCamYaw_));
+        if (dot(n, cur) < 0) n = -n;   // stay on the side we are already on: no sudden half turns
+        float want = std::atan2(n.x, n.z);
+        float rate = 2.6f * clampf((sep - 0.6f) / 1.6f, 0.0f, 1.0f);   // hold still while they are on top of each other
+        fightCamYaw_ += wrapAngle(want - fightCamYaw_) * (1.0f - std::exp(-rate * dt));
+    }
+    const float ZMAX = 9.0f, R = ZMAX * 0.5f;
+    float highY = std::max(a.pos.y, b.pos.y), midY = (a.pos.y + b.pos.y) * 0.5f;
+    float zoom = clampf(std::max(sep, highY * 2.2f), 2.4f, ZMAX);
+    Vec3 mid = (pa + pb) * 0.5f;
+    const bool versus = fightMode_ == FightMode::Versus;
+    Vec3 focus = mid;
+    // one human player: past the zoom limit keep player 1 framed; an arrow points at the opponent
+    if (!versus && fightMode_ != FightMode::Demo && sep > 2 * R) focus = pa + normalize(mid - pa) * R;
+
+    const Vec3 camDir(std::sin(fightCamYaw_), 0, std::cos(fightCamYaw_));
+    Camera want;
+    want.target = focus + Vec3(0, 1.05f + midY * 0.45f + highY * 0.2f + zoom * 0.1f, 0);
+    want.eye = want.target + camDir * (4.9f + zoom * 0.62f) + Vec3(0, 0.75f + zoom * 0.1f, 0);
+    want.fovDeg = 42.0f;
+    if (sim_.phase() == Phase::Intro) {
+        float t = (float)sim_.phaseTimer() / 150.0f;
+        float orbit = std::sin(t * 2.0f) * 0.55f;
+        Vec3 d(std::sin(fightCamYaw_ + orbit), 0, std::cos(fightCamYaw_ + orbit));
+        want.eye = want.target + d * (5.5f + (1.0f - t) * 2.0f) + Vec3(0, 1.2f - t * 0.5f, 0);
+    }
+    const float camR = arenaInfo(arenaId_).cameraRadius;
+    clampEye(want, camR);
+    if (!fightCamInit_) { fightCam_ = want; fightCamInit_ = true; }
+    else {
+        // 0.15 per frame at 60 FPS, converted so smoothing speed does not depend on frame rate
+        float k = 1.0f - std::pow(1.0f - 0.15f, dt * 60.0f);
+        fightCam_.eye = lerp(fightCam_.eye, want.eye, k);
+        fightCam_.target = lerp(fightCam_.target, want.target, k);
+        fightCam_.fovDeg = lerp(fightCam_.fovDeg, want.fovDeg, k);
+    }
+    fightCam_.znear = 0.3f;
+
+    // Voronoi split: each player's camera is the shared camera shifted so its player stays where they were
+    // at the moment the split began. Below the threshold the shifts are zero and both views are identical.
+    viewCam_[0] = viewCam_[1] = fightCam_;
+    splitActive_ = false;
+    if (versus && sep > 2 * R) {
+        Vec3 shift[2] = {pa + normalize(mid - pa) * R - mid, pb + normalize(mid - pb) * R - mid};
+        for (int i = 0; i < 2; ++i) {
+            viewCam_[i].eye += shift[i]; viewCam_[i].target += shift[i];
+            clampEye(viewCam_[i], camR + R);
+        }
+        // split line: perpendicular to where player 2 is seen from player 1 in the shared view (screen pixels, y down)
+        const float aspect = (float)std::max(width_, 1) / (float)std::max(height_, 1);
+        const Mat4 pv = Mat4::perspective(radians(fightCam_.fovDeg), aspect, fightCam_.znear, fightCam_.zfar) *
+                        Mat4::lookAt(fightCam_.eye, fightCam_.target, Vec3(0, 1, 0));
+        auto screen = [&](Vec3 p, Vec2& o) {
+            Vec4 c = pv * Vec4(p, 1.0f);
+            if (c.w <= 1e-3f) return false;
+            o = Vec2(c.x / c.w * 0.5f * width_, -c.y / c.w * 0.5f * height_);
+            return true;
+        };
+        Vec2 sa, sb;
+        if (screen(a.pos + Vec3(0, 1, 0), sa) && screen(b.pos + Vec3(0, 1, 0), sb)) {
+            Vec2 n = sb - sa;
+            if (n.length() > 1.0f) splitNormal_ = n * (1.0f / n.length());
+        }
+        splitActive_ = true;
+    }
+    float wantSplit = splitActive_ ? clampf((sep - 2 * R) / 1.8f, 0.0f, 1.0f) : 0.0f;
+    splitAmount_ = lerp(splitAmount_, wantSplit, 1.0f - std::exp(-8.0f * dt));
 }
 
 void App::spawnSparks(Vec3 pos, int n, Color a, Color b, float speed, float size, float life, Blend blend, float gravity) {
@@ -277,8 +315,15 @@ void App::updateFight(float dt) {
     const float STEP = 1.0f / 60.0f;
     int steps = 0;
     while (simAccum_ >= STEP && steps < 4) {
-        SimInput a = p1Ai_ ? ai_[0].think(sim_, 0) : padToSim(p1);
-        SimInput b = p2Ai_ ? ai_[1].think(sim_, 1) : padToSim(p2);
+        SimInput a = p1Ai_ ? ai_[0].think(sim_, 0) : padToSim(p1, 0);
+        SimInput b = p2Ai_ ? ai_[1].think(sim_, 1) : padToSim(p2, 1);
+        if (opts_.demo == 6 && sim_.phase() == Phase::Fight) {
+            // split screen check: back away from each other, circle a little, then come back together
+            float t = fightTime_;
+            a = SimInput(); b = SimInput();
+            a.moveF = b.moveF = t < 7.0f ? -1.0f : (t < 9.0f ? 0.0f : 1.0f);
+            a.moveS = b.moveS = (t > 4.0f && t < 7.0f) ? 0.6f : 0.0f;
+        }
         sim_.step(a, b);
         processEvents();
         simAccum_ -= STEP; steps++;
@@ -290,7 +335,7 @@ void App::updateFight(float dt) {
     if (matchOver) {
         resultTimer_ += dt;
         if (fightMode_ == FightMode::Demo) {
-            if (resultTimer_ > 3.0f) { int a = fxRng_.range(0, 5), b = fxRng_.range(0, 4); if (b >= a) b++; startFight(a, b, FightMode::Demo, 2); }
+            if (resultTimer_ > 3.0f) { int a = fxRng_.range(0, 5), b = fxRng_.range(0, 4); if (b >= a) b++; startFight(a, b, FightMode::Demo, 2, -1); }
             return;
         }
         if (resultTimer_ < 1.0f) return;
@@ -317,7 +362,7 @@ void App::updateFight(float dt) {
                 clicked = input_.leftClicked();
             }
             if (m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT) || clicked) {
-                if (resultIndex_ == 0) startFight(huntPlayerChar_, hunt_.opponents()[huntEngaged_].charId, FightMode::Hunt, huntDefeatedCount_ < 2 ? 0 : (huntDefeatedCount_ < 4 ? 1 : 2));
+                if (resultIndex_ == 0) startFight(huntPlayerChar_, hunt_.opponents()[huntEngaged_].charId, FightMode::Hunt, huntDefeatedCount_ < 2 ? 0 : (huntDefeatedCount_ < 4 ? 1 : 2), arenaId_);
                 else { scene_ = Scene::Title; }
             }
             return;
@@ -332,7 +377,7 @@ void App::updateFight(float dt) {
             clicked = input_.leftClicked();
         }
         if (m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT) || clicked) {
-            if (resultIndex_ == 0) startFight(sim_.fighter(0).ch - &roster()[0], sim_.fighter(1).ch - &roster()[0], fightMode_, 1);
+            if (resultIndex_ == 0) startFight(sim_.fighter(0).ch - &roster()[0], sim_.fighter(1).ch - &roster()[0], fightMode_, 1, arenaId_);
             else if (resultIndex_ == 1) { scene_ = Scene::Select; selectFor_ = 0; }
             else scene_ = Scene::Title;
         }
@@ -344,93 +389,43 @@ void App::renderFight() {
     const Fighter& b = sim_.fighter(1);
     const Character& ca = *a.ch; const Character& cb = *b.ch;
 
-    // ---- camera
-    float midX = clampf((a.pos.x + b.pos.x) * 0.5f, -6.3f, 6.3f);
-    float dist = std::fabs(a.pos.x - b.pos.x);
-    float highY = std::max(a.pos.y, b.pos.y);
-    float zoom = clampf(std::max(dist, highY * 2.2f), 2.4f, 9.0f);
-    float midY = (a.pos.y + b.pos.y) * 0.5f;
-    Camera want;
-    want.target = Vec3(midX, 1.05f + midY * 0.45f + highY * 0.2f + zoom * 0.1f, (a.pos.z + b.pos.z) * 0.25f);
-    want.eye = want.target + Vec3(0, 0.75f + zoom * 0.1f, 4.9f + zoom * 0.62f);
-    want.fovDeg = 42.0f;
-    if (sim_.phase() == Phase::Intro) {
-        float t = (float)sim_.phaseTimer() / 150.0f;
-        want.eye = want.target + Vec3(std::sin(t * 2.0f) * 3.0f, 1.2f - t * 0.5f, 5.5f + (1.0f - t) * 2.0f);
-    }
-    if (!fightCamInit_) { fightCam_ = want; fightCamInit_ = true; }
-    else {
-        // 0.15 per frame at 60 FPS, converted so smoothing speed does not depend on frame rate
-        float k = 1.0f - std::pow(1.0f - 0.15f, frameDt_ * 60.0f);
-        fightCam_.eye = lerp(fightCam_.eye, want.eye, k);
-        fightCam_.target = lerp(fightCam_.target, want.target, k);
-        fightCam_.fovDeg = lerp(fightCam_.fovDeg, want.fovDeg, k);
-    }
-    Camera cam = fightCam_;
-    cam.znear = 0.5f;   // more depth precision for the far floor; nothing renders closer than this
+    // ---- camera (with screen shake applied to both views)
+    updateFightCamera();
+    Vec3 shakeOff;
     float sh = sim_.shake();
     if (sh > 0) {
-        Vec3 off(fxRng_.uniform(-1, 1) * sh * 0.18f, fxRng_.uniform(-1, 1) * sh * 0.14f, 0);
-        cam.eye += off; cam.target += off;
+        const Vec3 camR(std::cos(fightCamYaw_), 0, -std::sin(fightCamYaw_));
+        shakeOff = camR * (fxRng_.uniform(-1, 1) * sh * 0.18f) + Vec3(0, fxRng_.uniform(-1, 1) * sh * 0.14f, 0);
     }
+    Camera camA = viewCam_[0], camB = viewCam_[1];
+    camA.eye += shakeOff; camA.target += shakeOff; camB.eye += shakeOff; camB.target += shakeOff;
 
-    Color fog(0.05f, 0.04f, 0.06f);
-    renderer_.beginFrame(cam, fog);
-    renderer_.setDirectionalLight(Vec3(-0.35f, -1.0f, -0.45f), Vec3(1.0f, 0.95f, 0.88f) * 0.9f, 0.32f);
-    renderer_.setShadowFocus(Vec3(midX, 0, 0), 11.0f);
-    renderer_.setFog(Vec3(0.05f, 0.04f, 0.06f), 0.0015f);
-    renderer_.addPointLight(Vec3(-6, 3.5f, 1.5f), ca.styleColor.rgb() * 1.1f, 12);
-    renderer_.addPointLight(Vec3(6, 3.5f, 1.5f), cb.styleColor.rgb() * 1.1f, 12);
-    renderer_.addPointLight(Vec3(midX, 3.0f, 4.2f), Vec3(1.0f, 0.93f, 0.82f) * 0.95f, 14);   // front key light
-    renderer_.addPointLight(Vec3(-11, 1.9f, -5.5f), Vec3(1.0f, 0.55f, 0.2f) * (1.0f + 0.06f * std::sin(time_ * 3.0f)), 9);
-    renderer_.addPointLight(Vec3(11, 1.9f, -5.5f), Vec3(1.0f, 0.55f, 0.2f) * (1.0f + 0.06f * std::cos(time_ * 2.3f)), 9);
-    if (hudFlash_ > 0) renderer_.addPointLight(Vec3(midX, 2.5f, 1), Vec3(1, 1, 1) * hudFlash_ * 0.5f, 10);
-
-    renderer_.draw(arenaFloor_, Mat4::identity(), Color(1, 1, 1), 0, 1);
-    renderer_.draw(arenaWalls_, Mat4::identity(), Color(1, 1, 1), 0, 2);
-    renderer_.draw(arenaProps_, Mat4::identity(), Color(1, 1, 1), 0, 3);
-    renderer_.draw(arenaBanners_, Mat4::identity(), Color(1, 1, 1), 0.04f, 0, false);
-    renderer_.draw(arenaEmblem_, Mat4::identity(), Color(1, 1, 1), 0.5f, 0, false);
-    // soft shafts of light from the ceiling, built from stacked glows
-    for (int k = -2; k <= 2; ++k) {
-        Vec3 top(k * 5.0f, 7.0f, -4.0f), bot(k * 4.2f, 0.0f, -0.5f);
-        for (int s = 0; s < 14; ++s) {
-            float t = (float)s / 13.0f;
-            renderer_.drawBillboard(lerp(top, bot, t), 1.6f + 2.6f * t, Color(1.0f, 0.88f, 0.7f, 0.018f + 0.012f * (1.0f - t)), Blend::Additive, 0.0f);
-        }
-    }
-    // drifting dust motes catch the light
-    if (fxRng_.chance(std::min(1.0f, frameDt_ * 18.0f))) {
-        Particle m; m.pos = Vec3(fxRng_.uniform(-12, 12), fxRng_.uniform(0.2f, 5.5f), fxRng_.uniform(-6, 3));
-        m.vel = Vec3(fxRng_.uniform(-0.1f, 0.1f), fxRng_.uniform(0.02f, 0.18f), fxRng_.uniform(-0.05f, 0.05f));
-        m.life = m.maxLife = fxRng_.uniform(3.0f, 6.0f); m.size = 0.035f; m.col = Color(1.0f, 0.9f, 0.7f, 0.45f);
-        particles_.push_back(m);
-    }
-    // pillar accents in the opponent's colour
-    for (int i = -4; i <= 4; ++i)
-        renderer_.draw(rig_.unitBox(), Mat4::translate(Vec3(i * 4.0f, 3.0f, -7.75f)) * Mat4::scale(Vec3(0.3f, 4.5f, 0.06f)), (i % 2 ? cb.styleColor : ca.styleColor) * 0.9f, 0.9f, 0, false);
-    // brazier flames
-    for (int s = -1; s <= 1; s += 2) {
-        Vec3 fp(s * 11.0f, 1.7f, -5.5f);
-        renderer_.drawBillboard(fp + Vec3(0, 0.15f * std::sin(time_ * 12 + s), 0), 1.4f, Color(1.0f, 0.55f, 0.15f, 0.6f), Blend::Additive, time_ * 3);
-        renderer_.drawBillboard(fp, 0.7f, Color(1.0f, 0.9f, 0.5f, 0.9f), Blend::Additive, -time_ * 2);
-    }
-    // stage boundary glow
-    for (int s = -1; s <= 1; s += 2) {
-        Vec3 wp(s * (FightSim::STAGE_HALF + 0.5f), 1.2f, 0);
-        renderer_.draw(rig_.unitBox(), Mat4::translate(wp) * Mat4::scale(Vec3(0.05f, 2.4f, 4.0f)), Color(0.6f, 0.7f, 1.0f, 0.12f), 1.0f, 0, false);
-    }
+    const Arena& arena = arenas_[arenaId_];
+    renderer_.beginFrame(camA, arena.info().clear);
+    if (splitActive_) renderer_.setSecondView(camB, splitNormal_);
+    Vec3 midP = flatV(a.pos + b.pos) * 0.5f;
+    float sepP = flatV(b.pos - a.pos).length();
+    renderer_.setShadowFocus(midP, std::max(11.0f, sepP * 0.5f + 5.0f));
+    arena.render(renderer_, rig_.unitBox(), time_, ca.styleColor, cb.styleColor);
+    // each fighter carries a little of their colour; a key light rides with the camera
+    renderer_.addPointLight(a.pos + Vec3(0, 3.0f, 0), ca.styleColor.rgb() * 0.8f, 6.5f);
+    renderer_.addPointLight(b.pos + Vec3(0, 3.0f, 0), cb.styleColor.rgb() * 0.8f, 6.5f);
+    renderer_.addPointLight(fightCam_.eye + Vec3(0, 1.5f, 0), Vec3(1.0f, 0.93f, 0.82f) * 0.85f, 16);
+    if (hudFlash_ > 0) renderer_.addPointLight(midP + Vec3(0, 2.5f, 0), Vec3(1, 1, 1) * hudFlash_ * 0.5f, 10);
 
     // ---- fighters
     const Fighter* fs[2] = {&a, &b};
     for (int i = 0; i < 2; ++i) {
         const Fighter& f = *fs[i];
         const Character& c = *f.ch;
-        float yaw = f.facing * radians(70.0f);
+        // the simulation snaps facing; the model turns quickly but smoothly
+        displayYaw_[i] += wrapAngle(f.yaw() - displayYaw_[i]) * (1.0f - std::exp(-18.0f * frameDt_));
+        float yaw = displayYaw_[i];
+        const Vec3 fwd = f.fwd, right = f.right();
         Pose p = poseForFighter(f, fightTime_ + i * 0.37f);
         float hs = (float)f.hitstop;
         Vec3 pos = f.pos;
-        if (hs > 0 && f.inHitstun()) pos.x += std::sin(fightTime_ * 90.0f) * 0.03f;
+        if (hs > 0 && f.inHitstun()) pos += right * (std::sin(fightTime_ * 90.0f) * 0.03f);
         float flash = f.flash * 0.8f;
         if (f.state == FState::StyleBreak) flash = 0.25f + 0.25f * std::sin(fightTime_ * 20);
         bool modeOn = c.style == StyleType::Mode && f.styleOn;
@@ -446,8 +441,9 @@ void App::renderFight() {
         // Stand
         if (c.style == StyleType::Stand && f.styleOn) {
             float blend = f.standAttackBlend;
-            Vec3 behind(pos.x - f.facing * 0.85f, 0.3f + 0.08f * std::sin(fightTime_ * 2.5f + i), pos.z + 0.45f);
-            Vec3 front(pos.x + f.facing * 0.95f, pos.y + 0.05f, pos.z);
+            Vec3 behind = pos - fwd * 0.85f - right * 0.4f;
+            behind.y = 0.3f + 0.08f * std::sin(fightTime_ * 2.5f + i);
+            Vec3 front = pos + fwd * 0.95f + Vec3(0, 0.05f, 0);
             Vec3 target = lerp(behind, front, blend);
             if (!standPosInit_) { standPos_[0] = standPos_[1] = target; }
             standPos_[i] = lerp(standPos_[i], target, 1.0f - std::pow(1.0f - 0.35f, frameDt_ * 60.0f));
@@ -475,7 +471,7 @@ void App::renderFight() {
         // blocking shield flash
         if (f.state == FState::Block || f.state == FState::CrouchBlock) {
             float k = 1.0f - (float)f.timer / (float)std::max(1, f.stateLen);
-            renderer_.drawBillboard(pos + Vec3(f.facing * 0.5f, 1.0f, 0.1f), 1.0f, Color(0.5f, 0.75f, 1.0f, 0.35f * k), Blend::Additive, fightTime_ * 4);
+            renderer_.drawBillboard(pos + fwd * 0.5f + Vec3(0, 1.0f, 0), 1.0f, Color(0.5f, 0.75f, 1.0f, 0.35f * k), Blend::Additive, fightTime_ * 4);
         }
         if (f.invulStrikes > 0 && (f.state == FState::Sidestep || f.state == FState::Backdash)) {
             renderer_.drawBillboard(pos + Vec3(0, 1.0f, 0), 1.6f, Color(0.8f, 0.9f, 1.0f, 0.2f), Blend::Additive, fightTime_ * 6);
@@ -489,7 +485,7 @@ void App::renderFight() {
         renderer_.draw(projectileMesh_, m, mix(p.color, WHITE, 0.3f), 1.0f, 0, false);
         renderer_.drawBillboard(p.pos, 1.4f, p.color.withAlpha(0.5f), Blend::Additive, p.spin);
         Particle t; t.pos = p.pos + Vec3(fxRng_.uniform(-0.1f, 0.1f), fxRng_.uniform(-0.1f, 0.1f), fxRng_.uniform(-0.1f, 0.1f));
-        t.vel = Vec3(-p.vx * 8.0f, fxRng_.uniform(-0.5f, 0.5f), 0); t.life = t.maxLife = 0.35f; t.size = 0.18f; t.col = p.color.withAlpha(0.8f);
+        t.vel = p.dir * (-p.speed * 8.0f) + Vec3(0, fxRng_.uniform(-0.5f, 0.5f), 0); t.life = t.maxLife = 0.35f; t.size = 0.18f; t.col = p.color.withAlpha(0.8f);
         particles_.push_back(t);
     }
     // ---- particles
@@ -526,11 +522,40 @@ void App::drawFightHud() {
     // floating texts (world space)
     for (const FloatText& f : floats_) {
         float sx, sy;
-        if (!project(f.pos, sx, sy)) continue;
+        if (!renderer_.projectToScreen(f.pos, sx, sy)) continue;
         float k = clampf(f.life / f.maxLife, 0, 1);
         float al = k < 0.3f ? k / 0.3f : 1.0f;
         renderer_.textCentered(sx + 2, sy + 2, f.text, f.scale, Color(0, 0, 0, 0.6f * al));
         renderer_.textCentered(sx, sy, f.text, f.scale, f.col.withAlpha(al));
+    }
+
+    // split screen divider fades in as the views separate
+    if (splitAmount_ > 0.01f) {
+        Vec2 t(-splitNormal_.y, splitNormal_.x);
+        float L = W + H;
+        float x0 = cx - t.x * L, y0 = H * 0.5f - t.y * L, x1 = cx + t.x * L, y1 = H * 0.5f + t.y * L;
+        renderer_.line(x0, y0, x1, y1, 7.0f, Color(0, 0, 0, 0.75f * splitAmount_));
+        renderer_.line(x0, y0, x1, y1, 2.5f, mix(a.ch->styleColor, b.ch->styleColor, 0.5f).withAlpha(0.9f * splitAmount_));
+    }
+    // one human player: an arrow at the screen edge points at an opponent who left the view
+    if (fightMode_ == FightMode::VsCpu || fightMode_ == FightMode::Hunt) {
+        float sx, sy;
+        bool on = renderer_.projectToScreen(b.pos + Vec3(0, 1.1f, 0), sx, sy);
+        const float m = 46.0f;
+        if (!on || sx < m || sx > W - m || sy < 130.0f || sy > H - 90.0f) {
+            // direction from the screen centre, computed in camera space so it also works behind the camera
+            Vec3 d = b.pos - fightCam_.eye;
+            Vec3 camF = normalize(fightCam_.target - fightCam_.eye), camRt = normalize(cross(camF, Vec3(0, 1, 0)));
+            Vec2 dir(dot(d, camRt), -dot(d, cross(camRt, camF)) * 0.4f);
+            float l = dir.length();
+            dir = l > 1e-4f ? dir * (1.0f / l) : Vec2(1, 0);
+            float ex = clampf(cx + dir.x * W, m, W - m), ey = clampf(H * 0.5f + dir.y * H, 130.0f, H - 90.0f);
+            float pulse = 0.75f + 0.25f * std::sin(time_ * 6.0f);
+            Vec2 nrm(-dir.y, dir.x);
+            renderer_.triangle(ex + dir.x * 18, ey + dir.y * 18, ex - dir.x * 10 + nrm.x * 14, ey - dir.y * 10 + nrm.y * 14,
+                               ex - dir.x * 10 - nrm.x * 14, ey - dir.y * 10 - nrm.y * 14, b.ch->styleColor.withAlpha(pulse));
+            renderer_.textCentered(ex - dir.x * 34, ey - dir.y * 34 - 8, b.ch->name, 1.6f, b.ch->styleColor.withAlpha(pulse));
+        }
     }
 
     // health bars
@@ -701,7 +726,8 @@ void App::drawMoveList() {
     float x = 60, y = 40;
     renderer_.text(x, y, c.name + "  -  " + c.styleName, 3, c.styleColor);
     std::vector<std::string> lines = {
-        "MOVE  WASD / ARROWS       LIGHT J   MEDIUM K   HEAVY L",
+        "MOVE FREELY  WASD     JUMP  SPACE     CROUCH  CTRL     W / S  CIRCLE THE OPPONENT",
+        "LIGHT J   MEDIUM K   HEAVY L     HOLD BACK TO BLOCK",
         "TAP LIGHT REPEATEDLY: EASY BEAT CHAIN  (L > M > H > SPECIAL)",
         "F + LIGHT / MEDIUM: FORWARD SPECIAL     B + LIGHT / MEDIUM: BACK SPECIAL",
         "F + HEAVY: RISING SPECIAL     CLASSIC MOTIONS STILL WORK",

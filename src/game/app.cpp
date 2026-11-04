@@ -42,7 +42,7 @@ bool App::init(GLFWwindow* window, const AppOptions& opts) {
     applyVideoSettings();
     audio_.init();
     fxRng_ = Rng(opts.seed ? opts.seed : (uint64_t)glfwGetTime() * 1000 + 7);
-    buildArena();
+    for (int i = 0; i < ARENA_COUNT; ++i) arenas_[i].build(i);
     {
         MeshBuilder b;
         b.addPlane(Vec3(0, 0, 0), 40, 40, 20, Vec3(0.2f, 0.18f, 0.22f), Vec3(0.16f, 0.14f, 0.18f));
@@ -53,10 +53,15 @@ bool App::init(GLFWwindow* window, const AppOptions& opts) {
     }
     const int ch = std::clamp(opts.character, 0, (int)roster().size() - 1);
     selCursor_[0] = ch;
-    if (opts.demo == 1) { startFight(ch, (ch + 1) % (int)roster().size(), FightMode::Demo, 2); }
-    else if (opts.demo == 2) { startHunt(ch); }
+    if (opts.demo == 1) { startFight(ch, (ch + 1) % (int)roster().size(), FightMode::Demo, 2, opts.arena); }
+    else if (opts.demo == 2) { startHunt(ch, std::max(0, opts.arena)); }
     else if (opts.demo == 4) { openSettings(Scene::Title); }
     else if (opts.demo == 3) { scene_ = Scene::Select; pendingMode_ = FightMode::Hunt; selectFor_ = 0; }
+    else if (opts.demo == 5 || opts.demo == 7) {
+        pendingMode_ = opts.demo == 7 ? FightMode::Hunt : FightMode::VsCpu; selChosen_[0] = ch; selChosen_[1] = (ch + 1) % (int)roster().size();
+        scene_ = Scene::StageSelect; stageCursor_ = std::max(0, opts.arena);
+    }
+    else if (opts.demo == 6) { startFight(ch, (ch + 1) % (int)roster().size(), FightMode::Versus, 1, opts.arena); }
     return true;
 }
 
@@ -65,22 +70,6 @@ void App::takeScreenshot(const std::string& path) {
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glReadPixels(0, 0, width_, height_, GL_RGB, GL_UNSIGNED_BYTE, px.data());
     if (writePng(path.c_str(), width_, height_, px.data())) std::printf("screenshot saved: %s\n", path.c_str());
-}
-
-SimInput App::padToSim(const PadState& p) const {
-    SimInput s;
-    s.dirX = p.dirX; s.dirY = p.dirY;
-    s.held = p.held; s.pressed = p.pressed;
-    return s;
-}
-
-bool App::project(const Vec3& p, float& sx, float& sy) const {
-    Vec4 clip = renderer_.projMatrix() * (renderer_.viewMatrix() * Vec4(p, 1.0f));
-    if (clip.w <= 0.001f) return false;
-    float nx = clip.x / clip.w, ny = clip.y / clip.w;
-    sx = (nx * 0.5f + 0.5f) * width_;
-    sy = (1.0f - (ny * 0.5f + 0.5f)) * height_;
-    return true;
 }
 
 void App::addBanner(const std::string& t, Color c, float life, float scale, float yFrac) {
@@ -121,6 +110,7 @@ void App::frame(float dt, int w, int h) {
     switch (scene_) {
     case Scene::Title: updateTitle(dt); renderTitle(); break;
     case Scene::Select: updateSelect(dt); renderSelect(); break;
+    case Scene::StageSelect: updateStageSelect(dt); renderStageSelect(); break;
     case Scene::Hunt: updateHunt(dt); renderHunt(); break;
     case Scene::Fight: updateFight(dt); renderFight(); break;
     case Scene::Settings: updateSettings(dt); renderSettings(); break;
@@ -150,7 +140,7 @@ void App::frame(float dt, int w, int h) {
 // Menus are on screen (as opposed to hunting / fighting), so navigation keys should click.
 bool App::menuSoundsActive() const {
     switch (scene_) {
-    case Scene::Title: case Scene::Select: case Scene::Settings: return true;
+    case Scene::Title: case Scene::Select: case Scene::StageSelect: case Scene::Settings: return true;
     case Scene::Hunt: return huntPaused_ || huntComplete_;
     case Scene::Fight: return fightMode_ != FightMode::Demo && (paused_ || sim_.phase() == Phase::MatchOver);
     }
@@ -235,7 +225,7 @@ void App::renderTitle() {
         renderer_.textCentered(cx, y, MENU_ITEMS[i], 3, sel ? GOLD : WHITE);
     }
     renderer_.textCentered(cx, panelY + panelH - 42, "UP / DOWN  CHOOSE      ENTER  CONFIRM", 1.5f, DIM);
-    renderer_.textRight(width_ - 24, height_ - 22, "WASD / ARROWS MOVE     J / K / L ATTACK     I STYLE     U DASH", 1.45f, DIM);
+    renderer_.textRight(width_ - 24, height_ - 22, "WASD MOVE   SPACE JUMP   CTRL CROUCH   J / K / L ATTACK   I STYLE   U DASH", 1.45f, DIM);
     renderer_.text(24, height_ - 22, "F / B + LIGHT  SPECIAL     F + HEAVY  RISING", 1.45f, GOLD);
     renderer_.endFrame();
 }
@@ -265,15 +255,17 @@ void App::updateSelect(float dt) {
     }
     if (m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT) || clicked) {
         selChosen_[who] = selCursor_[who];
-        if (pendingMode_ == FightMode::Hunt) { startHunt(selChosen_[0]); return; }
+        auto toStages = [&] { scene_ = Scene::StageSelect; stageCursor_ = 0; stageSpin_ = 0; stagePreviewGround_ = -1; };
+        if (pendingMode_ == FightMode::Hunt) { toStages(); return; }
         if (pendingMode_ == FightMode::VsCpu) {
             int cpu = fxRng_.range(0, n - 2);
             if (cpu >= selChosen_[0]) cpu++;
-            startFight(selChosen_[0], cpu, FightMode::VsCpu, 1);
+            selChosen_[1] = cpu;
+            toStages();
             return;
         }
         if (who == 0) { selectFor_ = 1; selCursor_[1] = (selCursor_[0] + 1) % n; }
-        else startFight(selChosen_[0], selChosen_[1], FightMode::Versus, 1);
+        else toStages();
     }
 }
 
@@ -384,14 +376,138 @@ void App::renderSelect() {
     renderer_.endFrame();
 }
 
+// -------------------------------------------------------------- stage select --
+namespace {
+// Stage list geometry, shared by update (mouse hit-testing) and render so the two never disagree.
+struct StageLayout {
+    float panelX, panelY, panelW, panelH, itemX, itemW, itemY0;
+    static constexpr float ITEM_H = 44, ITEM_STEP = 52;
+    float itemY(int i) const { return itemY0 + i * ITEM_STEP; }
+};
+StageLayout stageLayout(int width, int height) {
+    StageLayout l;
+    l.panelX = 28; l.panelY = 96; l.panelW = std::min(440.0f, width * 0.38f); l.panelH = height - 150.0f;
+    l.itemX = l.panelX + 18; l.itemW = l.panelW - 36; l.itemY0 = l.panelY + 50;
+    return l;
+}
+}
+
+void App::updateStageSelect(float dt) {
+    stageSpin_ += dt;
+    const bool forHunt = pendingMode_ == FightMode::Hunt;
+    const int count = forHunt ? MAZE_THEME_COUNT : ARENA_COUNT, n = count + 1;   // last entry: random
+    const PadState& m = input_.menu();
+    if (m.justPressed(BTN_DOWN)) stageCursor_ = (stageCursor_ + 1) % n;
+    if (m.justPressed(BTN_UP)) stageCursor_ = (stageCursor_ + n - 1) % n;
+    bool clicked = false;
+    const StageLayout L = stageLayout(width_, height_);
+    for (int i = 0; i < n; ++i) {
+        if (!input_.mouseIn(L.itemX, L.itemY(i), L.itemW, StageLayout::ITEM_H)) continue;
+        if (input_.mouseMoved() || input_.leftClicked()) stageCursor_ = i;
+        clicked = input_.leftClicked();
+    }
+    if (m.justPressed(BTN_BACK) || input_.rightClicked()) { scene_ = Scene::Select; selectFor_ = 0; return; }
+    if (m.justPressed(BTN_START) || m.justPressed(BTN_LIGHT) || clicked) {
+        const int pick = stageCursor_ < count ? stageCursor_ : fxRng_.range(0, count - 1);
+        if (forHunt) startHunt(selChosen_[0], pick);
+        else startFight(selChosen_[0], selChosen_[1], pendingMode_, 1, pick);
+    }
+}
+
+void App::renderStageSelect() {
+    const bool forHunt = pendingMode_ == FightMode::Hunt;
+    const int count = forHunt ? MAZE_THEME_COUNT : ARENA_COUNT, n = count + 1;
+    const bool random = stageCursor_ >= count;
+    const int shown = random ? (int)(stageSpin_ / 1.6f) % count : stageCursor_;   // "random" flicks through them
+
+    // ---- live preview behind the menu
+    if (forHunt) {
+        if (stagePreviewGround_ != shown) {
+            std::vector<int> others;
+            for (int i = 0; i < (int)roster().size(); ++i) if (i != selChosen_[0]) others.push_back(i);
+            hunt_.init(selChosen_[0], others, 4242, shown);
+            stagePreviewGround_ = shown;
+        }
+        const MazeTheme& T = mazeTheme(shown);
+        const Vec3 c = hunt_.mazeCentre();
+        const float span = T.size * Maze::CELL, a = stageSpin_ * 0.12f;
+        Camera cam;
+        cam.target = c + Vec3(span * 0.12f, 0, 0);
+        cam.eye = c + Vec3(std::sin(a) * span * 0.5f, span * 0.6f, std::cos(a) * span * 0.5f);
+        cam.fovDeg = 48; cam.zfar = 300;
+        renderer_.beginFrame(cam, T.sky);
+        hunt_.render(renderer_, rig_, time_);
+        // the overview is far away: thin the fog and lift the light so the layout reads
+        renderer_.setFog(T.fog, T.fogDensity * 0.06f);
+        renderer_.setDirectionalLight(T.sunDir, T.sunColor * 1.8f, std::min(0.6f, T.ambient * 1.9f));
+        renderer_.setShadowFocus(c, span * 0.6f);
+    } else {
+        const Arena& ar = arenas_[shown];
+        const float a = stageSpin_ * 0.18f;
+        Camera cam;
+        cam.target = Vec3(0, 1.3f, 0);
+        cam.eye = Vec3(std::sin(a) * 12.5f, 4.2f, std::cos(a) * 12.5f);
+        cam.fovDeg = 50; cam.zfar = 300;
+        renderer_.beginFrame(cam, ar.info().clear);
+        renderer_.setShadowFocus(Vec3(), 12);
+        const Character& c0 = roster()[selChosen_[0]];
+        const Character& c1 = roster()[selChosen_[1]];
+        ar.render(renderer_, rig_.unitBox(), time_, c0.styleColor, c1.styleColor);
+        renderer_.addPointLight(cam.eye + Vec3(0, 1.5f, 0), Vec3(1.0f, 0.93f, 0.82f) * 0.8f, 18);
+        const float gap = ar.info().shape.spawnGap * 0.5f;
+        for (int i = 0; i < 2; ++i)   // the two fighters waiting at their marks
+            rig_.draw(renderer_, idlePose(time_ + i * 0.4f), Vec3(i ? gap : -gap, 0, 0), i ? -PI * 0.5f : PI * 0.5f, i ? c1 : c0,
+                      1.0f, 1.0f, 0, false, true, 0.01f);
+    }
+
+    // ---- menu
+    const StageLayout L = stageLayout(width_, height_);
+    renderer_.textCentered(width_ * 0.5f, 30, forHunt ? "CHOOSE YOUR HUNTING GROUND" : "CHOOSE THE ARENA", 3.5f, GOLD);
+    renderer_.rect(L.panelX, L.panelY, L.panelW, L.panelH, Color(0.015f, 0.012f, 0.02f, 0.84f));
+    renderer_.rectOutline(L.panelX, L.panelY, L.panelW, L.panelH, 1, Color(0.7f, 0.12f, 0.16f, 0.8f));
+    renderer_.rect(L.panelX, L.panelY, L.panelW, 3, GOLD);
+    renderer_.text(L.panelX + 18, L.panelY + 16, forHunt ? "HUNTING GROUNDS" : "ARENAS", 1.5f, GOLD);
+    for (int i = 0; i < n; ++i) {
+        bool sel = i == stageCursor_;
+        const char* name = i < count ? (forHunt ? mazeTheme(i).name : arenaInfo(i).name) : "RANDOM";
+        float y = L.itemY(i);
+        if (sel) {
+            renderer_.rect(L.itemX, y, L.itemW, StageLayout::ITEM_H, Color(0.7f, 0.08f, 0.12f, 0.48f));
+            renderer_.rect(L.itemX, y, 4, StageLayout::ITEM_H, GOLD);
+            renderer_.rectOutline(L.itemX, y, L.itemW, StageLayout::ITEM_H, 1, Color(1, 0.45f, 0.2f, 0.65f));
+        }
+        renderer_.text(L.itemX + 16, y + 11, name, 2.4f, sel ? GOLD : WHITE);
+    }
+    // description, wrapped to the panel
+    const std::string blurb = localizeText(random ? "LET FATE DECIDE." : (forHunt ? mazeTheme(shown).blurb : arenaInfo(shown).blurb), settings_.language);
+    std::vector<std::string> lines; std::string line;
+    std::istringstream words(blurb);
+    for (std::string word; words >> word;) {
+        std::string candidate = line.empty() ? word : line + " " + word;
+        if (!line.empty() && renderer_.textWidth(candidate, 1.6f) > L.panelW - 44) { lines.push_back(line); line = word; }
+        else line = candidate;
+    }
+    if (!line.empty()) lines.push_back(line);
+    if (random) lines.insert(lines.begin(), localizeText(forHunt ? mazeTheme(shown).name : arenaInfo(shown).name, settings_.language));
+    drawPanelText(L.panelX + 22, L.itemY(n) + 18, lines, 1.6f, DIM, 1.4f);
+    if (!forHunt) {
+        const std::string vs = roster()[selChosen_[0]].name + "  VS  " + roster()[selChosen_[1]].name;
+        renderer_.textRight(width_ - 32, height_ - 86, vs, 3.0f, WHITE);
+    } else {
+        renderer_.textRight(width_ - 32, height_ - 86, roster()[selChosen_[0]].name, 3.0f, roster()[selChosen_[0]].styleColor);
+    }
+    renderer_.textCentered(width_ * 0.5f, height_ - 36, "ARROWS / MOUSE  SELECT     ENTER / CLICK  CONFIRM     ESC  BACK", 1.6f, DIM);
+    renderer_.endFrame();
+}
+
 // ---------------------------------------------------------------------- hunt --
-void App::startHunt(int playerChar) {
+void App::startHunt(int playerChar, int ground) {
     huntPlayerChar_ = playerChar;
     huntOrder_.clear();
     const auto& ros = roster();
     for (int i = 0; i < (int)ros.size(); ++i) if (i != playerChar) huntOrder_.push_back(i);
     uint64_t seed = opts_.seed ? opts_.seed : (uint64_t)(glfwGetTime() * 1000.0) + 17;
-    hunt_.init(playerChar, huntOrder_, seed);
+    hunt_.init(playerChar, huntOrder_, seed, ground);
     huntEngaged_ = -1; huntEngageTimer_ = 0; huntBannerTimer_ = 6.0f; huntPaused_ = false; huntComplete_ = false;
     huntDefeatedCount_ = 0; huntCompleteTimer_ = 0;
     scene_ = Scene::Hunt;
@@ -436,7 +552,8 @@ void App::updateHunt(float dt) {
         hunt_.update(dt * 0.15f, PadState(), false);
         if (huntEngageTimer_ > 2.2f) {
             int difficulty = huntDefeatedCount_ < 2 ? 0 : (huntDefeatedCount_ < 4 ? 1 : 2);
-            startFight(huntPlayerChar_, hunt_.opponents()[huntEngaged_].charId, FightMode::Hunt, difficulty);
+            const int opp = hunt_.opponents()[huntEngaged_].charId;
+            startFight(huntPlayerChar_, opp, FightMode::Hunt, difficulty, homeArena(opp));   // they fight you on home ground
         }
         return;
     }
@@ -461,7 +578,7 @@ void App::renderHunt() {
         cam.target = lerp(cam.target, o.pos + Vec3(0, 1.3f, 0), t);
         cam.fovDeg = lerp(58.0f, 40.0f, t);
     }
-    renderer_.beginFrame(cam, Color(0.02f, 0.015f, 0.03f));
+    renderer_.beginFrame(cam, hunt_.maze().theme().sky);
     hunt_.render(renderer_, rig_, hunt_.worldTime());
 
     const auto& ros = roster();

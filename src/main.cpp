@@ -13,9 +13,13 @@ static void glfwErrorCallback(int code, const char* desc) {
 //   --demo-fight        AI vs AI fight (for testing)
 //   --demo-hunt         jump straight into the hunt
 //   --demo-select       character select screen
+//   --demo-arenas       arena select (with --char / --arena)
+//   --demo-grounds      hunting ground select (with --char / --arena)
+//   --demo-split        versus match where both players back away, then return (split screen check)
 //   --shot <file> <s>   save a PNG screenshot after <s> seconds and quit
 //   --seed <n>          deterministic seed for maze / effects
 //   --char <n>          fighter index shown by --demo-select / --demo-hunt (0..5)
+//   --arena <n>         arena for --demo-fight (0..3) or hunting ground for --demo-hunt (0..2)
 int main(int argc, char** argv) {
     dc::AppOptions opts;
     for (int i = 1; i < argc; ++i) {
@@ -24,7 +28,11 @@ int main(int argc, char** argv) {
         else if (a == "--demo-hunt") opts.demo = 2;
         else if (a == "--demo-select") opts.demo = 3;
         else if (a == "--demo-settings") opts.demo = 4;
+        else if (a == "--demo-arenas") opts.demo = 5;
+        else if (a == "--demo-split") opts.demo = 6;
+        else if (a == "--demo-grounds") opts.demo = 7;
         else if (a == "--shot" && i + 2 < argc) { opts.screenshotPath = argv[i + 1]; opts.screenshotTime = (float)std::atof(argv[i + 2]); i += 2; }
+        else if (a == "--arena" && i + 1 < argc) { opts.arena = std::atoi(argv[i + 1]); i += 1; }
         else if (a == "--char" && i + 1 < argc) { opts.character = std::atoi(argv[i + 1]); i += 1; }
         else if (a == "--seed" && i + 1 < argc) { opts.seed = (uint64_t)std::atoll(argv[i + 1]); i += 1; }
     }

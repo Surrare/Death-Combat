@@ -12,7 +12,7 @@ using namespace dc;
 int main() {
     const auto& ros = roster();
     int failures = 0;
-    auto simpleMoveWorks = [&](const Character& character, Motion motion, int dirX, int dirY,
+    auto simpleMoveWorks = [&](const Character& character, Motion motion, float moveF, int dirY,
                                uint32_t button, MoveKind kind, float startingHeat) {
         FightSim sim;
         sim.init(&character, &ros[(static_cast<size_t>(&character - ros.data()) + 1) % ros.size()], 2);
@@ -20,7 +20,7 @@ int main() {
         SimInput neutral;
         for (int i = 0; i < 150; ++i) sim.step(neutral, neutral);
         SimInput input;
-        input.dirX = dirX;
+        input.moveF = moveF;
         input.dirY = dirY;
         input.pressed = button;
         sim.step(input, neutral);
@@ -56,6 +56,37 @@ int main() {
         }
     }
 
+    // ---- free movement on the arena floor
+    {
+        FightSim sim;
+        sim.init(&ros[0], &ros[1], 2);
+        SimInput neutral;
+        for (int i = 0; i < 150; ++i) sim.step(neutral, neutral);
+        const float startGap = distance(sim.fighter(0).pos, sim.fighter(1).pos);
+        SimInput circle; circle.moveS = 1;
+        for (int i = 0; i < 120; ++i) sim.step(circle, neutral);
+        const Fighter& f = sim.fighter(0); const Fighter& o = sim.fighter(1);
+        Vec3 to = o.pos - f.pos; to.y = 0;
+        if (std::fabs(f.pos.z) < 1.0f) { std::printf("circling did not leave the start line (z=%f)\n", f.pos.z); failures++; }
+        if (dot(normalize(to), f.fwd) < 0.98f) { std::printf("fighter does not stay locked on while circling\n"); failures++; }
+        if (std::fabs(to.length() - startGap) > 1.2f) { std::printf("circling drifted: gap %f -> %f\n", startGap, to.length()); failures++; }
+
+        // dash + sideways = sidestep: lateral hop with strike invulnerability
+        for (int i = 0; i < 30; ++i) sim.step(neutral, neutral);
+        Vec3 before = sim.fighter(0).pos; Vec3 right = sim.fighter(0).right();
+        SimInput step; step.moveS = 1; step.pressed = BTN_DASH;
+        sim.step(step, neutral);
+        bool invul = sim.fighter(0).invulStrikes > 0 && sim.fighter(0).state == FState::Sidestep;
+        for (int i = 0; i < 25; ++i) sim.step(neutral, neutral);
+        float lateral = dot(sim.fighter(0).pos - before, right);
+        if (!invul || lateral < 0.6f) { std::printf("sidestep failed (invul %d, lateral %f)\n", (int)invul, lateral); failures++; }
+
+        // walking into the edge keeps the fighter inside the arena
+        SimInput back; back.moveF = -1;
+        for (int i = 0; i < 600; ++i) sim.step(back, neutral);
+        if (!sim.insideArena(sim.fighter(0).pos, 0.001f)) { std::printf("walked out of the arena\n"); failures++; }
+    }
+
     std::map<std::string, int> eventCounts;
     int totalHits = 0, matches = 0, projectilesSeen = 0, maxCombo = 0, clashes = 0;
     for (int a = 0; a < (int)ros.size(); ++a)
@@ -79,7 +110,8 @@ int main() {
                     const Fighter& f = sim.fighter(i);
                     maxCombo = std::max(maxCombo, f.comboHits);
                     if (std::isnan(f.pos.x) || std::isnan(f.pos.y) || std::isnan(f.hp)) { std::printf("NaN in match %d vs %d\n", a, b); failures++; break; }
-                    if (std::fabs(f.pos.x) > FightSim::STAGE_HALF + 0.01f) { std::printf("out of stage: %d vs %d x=%f\n", a, b, f.pos.x); failures++; }
+                    if (!sim.insideArena(f.pos, 0.01f)) { std::printf("out of arena: %d vs %d (%f, %f)\n", a, b, f.pos.x, f.pos.z); failures++; }
+                    if (std::isnan(f.fwd.x) || std::fabs(f.fwd.length() - 1.0f) > 0.01f) { std::printf("bad facing in %d vs %d\n", a, b); failures++; }
                     if (f.pos.y < -0.01f) { std::printf("below floor\n"); failures++; }
                 }
                 frames++;

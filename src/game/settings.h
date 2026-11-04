@@ -6,7 +6,8 @@
 namespace dc {
 
 // Rebindable player 1 actions (arrows stay player 2 / menu navigation, Enter and Esc stay fixed).
-enum class Action { Up, Down, Left, Right, Light, Medium, Heavy, Style, Dash, Taunt, LookLeft, LookRight, Count };
+// New actions are appended so saved key indices stay valid.
+enum class Action { Up, Down, Left, Right, Light, Medium, Heavy, Style, Dash, Taunt, LookLeft, LookRight, Jump, Crouch, Count };
 constexpr int ACTION_COUNT = (int)Action::Count;
 constexpr int BIND_SLOTS = 2;
 

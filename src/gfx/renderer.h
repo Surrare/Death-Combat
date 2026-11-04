@@ -54,6 +54,13 @@ public:
     void clearPointLights() { pointLights_.clear(); }
     void addPointLight(const Vec3& pos, const Vec3& color, float radius) { pointLights_.push_back({pos, color, radius}); }
 
+    // Split screen: a second camera with the same orientation renders the pixels on the far side of a line
+    // through the screen centre, perpendicular to splitNormal (screen pixels, y down). Reset by beginFrame.
+    void setSecondView(const Camera& cam, const Vec2& splitNormal);
+    bool hasSecondView() const { return split_; }
+    // World point to screen pixels, choosing whichever view shows that point. False if behind / not visible.
+    bool projectToScreen(const Vec3& p, float& sx, float& sy) const;
+
     // 3D submissions
     void draw(const Mesh& mesh, const Mat4& model, const Color& color = Color(), float emissive = 0.0f, int pattern = 0, bool castShadow = true);
     void drawUnlitTriangle(const Vec3& a, const Vec3& b, const Vec3& c, const Color& col, Blend blend);
@@ -63,6 +70,8 @@ public:
     // 2D submissions (pixel coordinates, origin top-left)
     void rect(float x, float y, float w, float h, const Color& col);
     void rectOutline(float x, float y, float w, float h, float t, const Color& col);
+    void triangle(float x0, float y0, float x1, float y1, float x2, float y2, const Color& col);
+    void line(float x0, float y0, float x1, float y1, float thickness, const Color& col);
     void text(float x, float y, const std::string& s, float scale, const Color& col);
     void textCentered(float cx, float y, const std::string& s, float scale, const Color& col);
     void textRight(float rx, float y, const std::string& s, float scale, const Color& col);
@@ -84,7 +93,8 @@ private:
 
     bool buildFontAtlas();
     void renderShadowPass();
-    void renderScenePass();
+    void renderScenePass(bool clear);
+    void renderSecondView();
     void renderUnlit(std::vector<UnlitVertex>& verts, Blend blend);
     void renderUi();
     // post-processing: scene is rendered to an HDR MSAA target, then bloom + outlines + grading are applied
@@ -109,7 +119,11 @@ private:
     std::vector<UnlitVertex> unlitAlpha_, unlitAdd_;
     std::vector<UiVertex> ui_;
 
-    Shader lit_, depth_, unlit_, ui2d_, bright_, blur_, composite_;
+    Shader lit_, depth_, unlit_, ui2d_, bright_, blur_, composite_, mask_;
+    bool split_ = false;
+    Camera camB_;
+    Mat4 viewB_, projB_;
+    Vec2 splitN_{1, 0};
     GLuint msaaFbo_ = 0, msaaColor_ = 0, msaaDepth_ = 0, resolveFbo_ = 0, sceneTex_ = 0, depthTex_ = 0, postVao_ = 0;
     GLuint bloomFbo_[2] = {0, 0}, bloomTex_[2] = {0, 0};
     int targetW_ = 0, targetH_ = 0;

@@ -43,6 +43,8 @@ void Input::poll(float dt) {
     if (bound(Action::Style)) held[0] |= BTN_STYLE;
     if (bound(Action::Dash)) held[0] |= BTN_DASH;
     if (bound(Action::Taunt)) held[0] |= BTN_TAUNT;
+    if (bound(Action::Jump)) held[0] |= BTN_JUMP;
+    if (bound(Action::Crouch)) held[0] |= BTN_CROUCH;
     if (key(GLFW_KEY_ENTER)) held[0] |= BTN_START;
     if (key(GLFW_KEY_ESCAPE)) held[0] |= BTN_BACK;
     if (bound(Action::LookLeft)) lx[0] -= rate;
@@ -68,6 +70,8 @@ void Input::poll(float dt) {
     if (key(GLFW_KEY_KP_5) || key(GLFW_KEY_KP_0)) held[1] |= BTN_DASH;
     if (key(GLFW_KEY_KP_6)) held[1] |= BTN_TAUNT;
     if (key(GLFW_KEY_KP_ENTER)) held[1] |= BTN_START;
+    if (key(GLFW_KEY_RIGHT_SHIFT) || key(GLFW_KEY_KP_8)) held[1] |= BTN_JUMP;
+    if (key(GLFW_KEY_RIGHT_CONTROL) || key(GLFW_KEY_KP_7)) held[1] |= BTN_CROUCH;
 
     // ---- mouse look for player 1
     double mx, my;
@@ -102,9 +106,10 @@ void Input::poll(float dt) {
         if (b(GLFW_GAMEPAD_BUTTON_X)) held[p] |= BTN_LIGHT;
         if (b(GLFW_GAMEPAD_BUTTON_Y)) held[p] |= BTN_MEDIUM;
         if (b(GLFW_GAMEPAD_BUTTON_B)) held[p] |= BTN_HEAVY;
-        if (b(GLFW_GAMEPAD_BUTTON_A)) held[p] |= BTN_STYLE;
+        if (b(GLFW_GAMEPAD_BUTTON_A)) held[p] |= BTN_JUMP;
         if (b(GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER)) held[p] |= BTN_DASH;
-        if (b(GLFW_GAMEPAD_BUTTON_LEFT_BUMPER)) held[p] |= BTN_TAUNT;
+        if (b(GLFW_GAMEPAD_BUTTON_LEFT_BUMPER)) held[p] |= BTN_STYLE;
+        if (b(GLFW_GAMEPAD_BUTTON_RIGHT_THUMB)) held[p] |= BTN_TAUNT;
         if (b(GLFW_GAMEPAD_BUTTON_START)) held[p] |= BTN_START;
         if (b(GLFW_GAMEPAD_BUTTON_BACK)) held[p] |= BTN_BACK;
         if (b(GLFW_GAMEPAD_BUTTON_DPAD_UP)) held[p] |= BTN_UP;
@@ -121,6 +126,7 @@ void Input::poll(float dt) {
         lx[p] += deadzone(gs.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]) * 3.0f * rate;
         ly[p] += deadzone(gs.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]) * 3.0f * rate;
         if (gs.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] > 0.5f) held[p] |= BTN_DASH;
+        if (gs.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] > 0.5f) held[p] |= BTN_CROUCH;
     }
 
     for (int p = 0; p < 2; ++p) {

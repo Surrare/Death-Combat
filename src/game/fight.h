@@ -16,8 +16,16 @@ enum class FState {
 
 enum class Phase { Intro, Fight, KO, RoundOver, MatchOver };
 
+// Fighters move freely on a round arena floor and stay locked on to each other.
+struct ArenaShape {
+    float radius = 9.0f;      // fighters stay inside this circle (centre at the origin)
+    float spawnGap = 4.4f;    // distance between the fighters when a round starts
+};
+
 struct SimInput {
-    int dirX = 0, dirY = 0;       // absolute screen directions (+x right, +y up)
+    // movement relative to the fighter: +moveF toward the opponent, +moveS to the fighter's right (-1..1)
+    float moveF = 0, moveS = 0;
+    int dirY = 0;                 // +1 jump, -1 crouch
     uint32_t held = 0, pressed = 0;
     const Move* requestMove = nullptr;   // AI shortcut: perform this move if legal (skips motion parsing)
 };
@@ -32,7 +40,8 @@ struct FightEvent {
 
 struct Projectile {
     Vec3 pos;
-    float vx = 0;
+    Vec3 dir{1, 0, 0};          // unit travel direction on the ground plane
+    float speed = 0.2f;         // per frame
     int owner = 0;
     int life = 0;
     HitWindow hit;
@@ -44,9 +53,10 @@ struct Projectile {
 struct Fighter {
     const Character* ch = nullptr;
     int index = 0;
-    Vec3 pos;                   // x along the fight line, y up, z lateral
-    float vx = 0, vy = 0;       // knockback / jump velocity
-    int facing = 1;
+    Vec3 pos;                   // world position on the arena floor, y up
+    Vec3 vel;                   // ground velocity (x / z) from knockback, dashes and jumps
+    float vy = 0;               // vertical velocity
+    Vec3 fwd{1, 0, 0};          // facing direction on the ground plane (unit)
     FState state = FState::Idle;
     int timer = 0;              // frames in current state
     int stateLen = 0;           // length of timed states
@@ -70,12 +80,12 @@ struct Fighter {
     int comboShow = 0;          // frames to keep the combo counter visible
     bool inCombo = false;
     int invulStrikes = 0, invulThrows = 0;
-    float sideTarget = 0;
+    float sideDir = 0;          // last sidestep direction, +1 = to the fighter's right (presentation)
     int roundsWon = 0;
     int proxGuard = 0;
 
     // input processing
-    int dirHistory[32] = {};    // numpad notation relative to facing
+    int dirHistory[32] = {};    // numpad notation: forward/back relative to the opponent, up = jump, down = crouch
     int histHead = 0;
     uint32_t pendingButtons = 0;
     int pendingAge = 0;
@@ -92,6 +102,8 @@ struct Fighter {
     std::string lastMoveName;
 
     bool grounded() const { return pos.y <= 0.0001f; }
+    Vec3 right() const { return Vec3(-fwd.z, 0, fwd.x); }   // fighter's right hand side
+    float yaw() const { return std::atan2(fwd.x, fwd.z); }   // rig convention: 0 = facing +z
     bool attacking() const { return state == FState::Attack; }
     bool inHitstun() const { return state == FState::Hit || state == FState::CrouchHit || state == FState::AirHit || state == FState::Knockdown || state == FState::Thrown || state == FState::StyleBreak; }
     bool canAct() const { return state == FState::Idle || state == FState::Walk || state == FState::Crouch; }
@@ -108,8 +120,12 @@ struct ClashState {
 
 class FightSim {
 public:
-    static constexpr float STAGE_HALF = 8.5f;
     static constexpr int ROUND_SECONDS = 99;
+    static constexpr float FIGHTER_RADIUS = 0.4f;
+
+    void setArena(const ArenaShape& a) { arena_ = a; }   // call before init()
+    const ArenaShape& arena() const { return arena_; }
+    bool insideArena(const Vec3& p, float margin = 0.0f) const { return p.x * p.x + p.z * p.z <= (arena_.radius + margin) * (arena_.radius + margin); }
 
     void init(const Character* a, const Character* b, int roundsToWin = 2);
     void step(const SimInput& inA, const SimInput& inB);
@@ -145,9 +161,12 @@ private:
     void applyPhysics(Fighter& f);
     void resolveHits();
     void resolveProjectiles();
-    bool checkHit(Fighter& att, Fighter& def, const HitWindow& w, const Move* move, Vec3 hitboxWorld, Vec3 size, bool fromProjectile);
-    void applyHit(Fighter& att, Fighter& def, const HitWindow& w, const Move* move, Vec3 at, bool fromProjectile);
-    void applyBlock(Fighter& att, Fighter& def, const HitWindow& w, const Move* move, Vec3 at);
+    // hitbox: centre in world space, oriented along dir (size.x along dir, size.z sideways)
+    bool checkHit(Fighter& att, Fighter& def, const HitWindow& w, const Move* move, Vec3 hitboxWorld, Vec3 dir, Vec3 size, bool fromProjectile);
+    void applyHit(Fighter& att, Fighter& def, const HitWindow& w, const Move* move, Vec3 at, Vec3 pushDir, bool fromProjectile);
+    void applyBlock(Fighter& att, Fighter& def, const HitWindow& w, Vec3 at, Vec3 pushDir, bool fromProjectile);
+    Vec3 clampArena(Vec3 p, float r) const;
+    bool atWall(const Fighter& f) const { return !insideArena(f.pos, -FIGHTER_RADIUS - 0.05f); }
     void pushboxes();
     void startClash();
     void updateClash(const SimInput& inA, const SimInput& inB);
@@ -168,6 +187,7 @@ private:
     ClashState clash_;
     std::vector<Projectile> projectiles_;
     std::vector<FightEvent> events_;
+    ArenaShape arena_;
     Rng rng_{12345};
 };
 

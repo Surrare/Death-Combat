@@ -11,11 +11,12 @@ const float WALK_SPEED = 4.2f;
 const float RUN_SPEED = 7.4f;
 }
 
-void Hunt::init(int playerChar, const std::vector<int>& opponentChars, uint64_t seed) {
+void Hunt::init(int playerChar, const std::vector<int>& opponentChars, uint64_t seed, int ground) {
     rng_ = Rng(seed);
     playerChar_ = playerChar;
-    int w = 11, h = 11;
-    maze_.generate(w, h, seed);
+    ground_ = ((ground % MAZE_THEME_COUNT) + MAZE_THEME_COUNT) % MAZE_THEME_COUNT;
+    const int w = mazeTheme(ground_).size, h = w;
+    maze_.generate(w, h, seed, ground_);
     MeshBuilder fb, wb, cb, pb;
     maze_.buildMesh(fb, wb, cb, pb);
     floor_.upload(fb); walls_.upload(wb); ceiling_.upload(cb); props_.upload(pb);
@@ -56,6 +57,10 @@ void Hunt::init(int playerChar, const std::vector<int>& opponentChars, uint64_t 
     time_ = 0; senseLevel_ = 0; heartPulse_ = 0; heartTimer_ = 0; senseDir_ = -1; engageCandidate_ = -1;
     updateSense();
     updateCamera(0.0f, PadState());
+}
+
+Vec3 Hunt::mazeCentre() const {
+    return Vec3((maze_.width() - 1) * Maze::CELL * 0.5f, 0, (maze_.height() - 1) * Maze::CELL * 0.5f);
 }
 
 int Hunt::remaining() const {
@@ -188,7 +193,7 @@ void Hunt::updateCamera(float dt, const PadState& pad) {
     int steps = (int)(len / 0.1f) + 1;
     for (int i = 1; i <= steps; ++i) {
         Vec3 p = target + d * ((float)i / steps);
-        if (maze_.pointInWall(p, 0.3f) || p.y > Maze::HEIGHT - 0.3f) { eye = target + d * ((float)(i - 1) / steps); break; }
+        if (maze_.pointInWall(p, 0.3f) || p.y > maze_.wallHeight() - 0.3f) { eye = target + d * ((float)(i - 1) / steps); break; }
         eye = p;
     }
     if (dt > 0) {
@@ -258,16 +263,18 @@ int Hunt::update(float dt, const PadState& pad, bool engageAllowed) {
 
 void Hunt::render(Renderer& r, RigRenderer& rig, float time) {
     const auto& ros = roster();
-    r.setDirectionalLight(Vec3(-0.35f, -1.0f, -0.25f), Vec3(0.30f, 0.28f, 0.34f), 0.22f);
+    const MazeTheme& T = maze_.theme();
+    r.setDirectionalLight(T.sunDir, T.sunColor, T.ambient);
     r.setShadowFocus(playerPos_, 14.0f);
-    r.setFog(Vec3(0.02f, 0.015f, 0.03f), 0.0032f);
+    r.setFog(T.fog, T.fogDensity);
+    r.setRimColor(T.rim);
 
     // nearest lights only (16 max)
     struct L { float d; Vec3 p; Vec3 c; float rad; };
     std::vector<L> lights;
     for (const Vec3& t : maze_.torches()) {
         float flick = 0.94f + 0.06f * std::sin(time * 3.0f + t.x * 3.1f + t.z * 1.7f);
-        lights.push_back({distance(t, playerPos_), t, Vec3(1.0f, 0.55f, 0.22f) * flick, 7.5f});
+        lights.push_back({distance(t, playerPos_), t, T.lightColor * flick, T.lightStyle == 2 ? 6.5f : 7.5f});
     }
     for (const HuntOpponent& o : opps_) {
         if (o.defeated) continue;
@@ -287,14 +294,52 @@ void Hunt::render(Renderer& r, RigRenderer& rig, float time) {
         r.addPointLight(lights[i].p, lights[i].c * fade, lights[i].rad);
     }
 
-    r.draw(floor_, Mat4::identity(), Color(1, 1, 1), 0, 1);
-    r.draw(walls_, Mat4::identity(), Color(1, 1, 1), 0, 2);
-    r.draw(ceiling_, Mat4::identity(), Color(1, 1, 1), 0, 3, false);
+    r.draw(floor_, Mat4::identity(), Color(1, 1, 1), 0, T.floorPattern);
+    r.draw(walls_, Mat4::identity(), Color(1, 1, 1), 0, T.wallPattern);
+    if (T.ceiling) r.draw(ceiling_, Mat4::identity(), Color(1, 1, 1), 0, 3, false);
     r.draw(props_, Mat4::identity(), Color(1, 1, 1), 0, 0);
+    const Color lc(T.lightColor.x, T.lightColor.y, T.lightColor.z);
     for (const Vec3& t : maze_.torches()) {
         float flick = 0.8f + 0.2f * std::sin(time * 11.0f + t.x * 2.0f);
-        r.drawBillboard(t + Vec3(0, 0.15f, 0), 0.5f * flick, Color(1.0f, 0.6f, 0.2f, 0.7f), Blend::Additive, time * 2.0f);
-        r.drawBillboard(t + Vec3(0, 0.2f, 0), 0.25f, Color(1.0f, 0.9f, 0.6f, 0.9f), Blend::Additive);
+        if (T.lightStyle == 0) {
+            r.drawBillboard(t + Vec3(0, 0.15f, 0), 0.5f * flick, Color(1.0f, 0.6f, 0.2f, 0.7f), Blend::Additive, time * 2.0f);
+            r.drawBillboard(t + Vec3(0, 0.2f, 0), 0.25f, Color(1.0f, 0.9f, 0.6f, 0.9f), Blend::Additive);
+        } else if (T.lightStyle == 1) {
+            r.drawBillboard(t, 1.1f, lc.withAlpha(0.35f), Blend::Additive);
+            r.drawBillboard(t, 0.35f, Color(1.0f, 0.95f, 0.8f, 0.9f), Blend::Additive);
+        } else {
+            r.drawBillboard(t, 1.4f * flick, lc.withAlpha(0.4f), Blend::Additive, time);
+            r.drawBillboard(t + Vec3(0, 0.6f, 0), 1.2f, lc.withAlpha(0.12f), Blend::Additive, -time);
+        }
+    }
+    // ambient effects around the player (stateless: positions are hashed from the index and time)
+    auto h1 = [](int i, int salt) {
+        uint32_t h = (uint32_t)i * 374761393u + (uint32_t)salt * 668265263u;
+        h = (h ^ (h >> 13)) * 1274126177u;
+        return (float)((h ^ (h >> 16)) & 0xFFFFFF) / 16777216.0f;
+    };
+    if (T.fx == 1) {
+        for (int i = 0; i < 70; ++i) {   // fireflies drifting over the paths
+            Vec3 base(std::floor(playerPos_.x / 12.0f) * 12.0f, 0, std::floor(playerPos_.z / 12.0f) * 12.0f);
+            Vec3 p = base + Vec3((h1(i, 1) - 0.5f) * 30.0f + std::sin(time * 0.5f + i) * 0.8f, 0.6f + h1(i, 2) * 2.2f + 0.3f * std::sin(time * 1.3f + i),
+                                 (h1(i, 3) - 0.5f) * 30.0f + std::cos(time * 0.4f + i * 1.7f) * 0.8f);
+            float blink = std::max(0.0f, std::sin(time * (1.5f + h1(i, 4) * 2.0f) + i * 2.3f));
+            r.drawBillboard(p, 0.12f, Color(0.75f, 1.0f, 0.45f, 0.9f * blink), Blend::Additive);
+        }
+        for (int i = 0; i < 120; ++i) {  // stars above the hedges
+            float a = h1(i, 5) * 2 * PI, el = 0.25f + h1(i, 6) * 1.2f;
+            Vec3 d(std::cos(el) * std::sin(a), std::sin(el), std::cos(el) * std::cos(a));
+            r.drawBillboard(playerPos_ + d * 80.0f, 0.45f + h1(i, 7) * 0.5f, Color(0.9f, 0.92f, 1.0f, 0.4f + 0.4f * std::sin(time * 2.0f + i)), Blend::Additive);
+        }
+        Vec3 moon = playerPos_ + normalize(Vec3(-0.5f, 0.55f, -0.7f)) * 85.0f;
+        r.drawBillboard(moon, 60.0f, Color(0.5f, 0.6f, 1.0f, 0.1f), Blend::Additive);
+        r.drawBillboard(moon, 14.0f, Color(0.95f, 0.95f, 1.0f, 0.95f), Blend::Additive);
+    } else if (T.fx == 2) {
+        for (int i = 0; i < 80; ++i) {   // embers drifting up from the vents
+            float y = std::fmod(h1(i, 8) * T.height + time * (0.4f + 0.5f * h1(i, 9)), T.height);
+            Vec3 p = playerPos_ + Vec3((h1(i, 10) - 0.5f) * 18.0f + std::sin(time + i) * 0.3f, y, (h1(i, 11) - 0.5f) * 18.0f);
+            r.drawBillboard(p, 0.06f, Color(1.0f, 0.55f, 0.2f, 0.85f * (1.0f - y / T.height)), Blend::Additive);
+        }
     }
 
     // player
