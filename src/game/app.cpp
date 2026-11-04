@@ -38,6 +38,9 @@ bool App::init(GLFWwindow* window, const AppOptions& opts) {
     if (!renderer_.init()) return false;
     if (!rig_.init()) return false;
     settings_.load();
+    if (opts_.renderDebugModeSet)
+        settings_.renderMode = static_cast<int>(opts_.renderDebugMode);
+    renderer_.setDebugMode(static_cast<RenderDebugMode>(settings_.renderMode));
     input_.attach(window, &settings_);
     applyVideoSettings();
     audio_.init();
@@ -90,6 +93,7 @@ void App::drawPanelText(float x, float y, const std::vector<std::string>& lines,
 void App::frame(float dt, int w, int h) {
     width_ = w; height_ = h;
     renderer_.resize(w, h);
+    renderer_.setDebugMode(static_cast<RenderDebugMode>(settings_.renderMode));
     renderer_.setLanguage(settings_.language);
     input_.poll(dt);
     time_ += dt;

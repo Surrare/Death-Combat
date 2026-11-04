@@ -19,6 +19,7 @@ struct Settings {
     bool fullscreen = false;
     bool vsync = true;
     Language language = Language::English;
+    int renderMode = 0;                     // RenderDebugMode value: full, direct, no bloom/outline/shadows
     int mouseSens = 5;                      // 1..10, 5 = default
     int keys[ACTION_COUNT][BIND_SLOTS];     // GLFW key codes, 0 = unbound
 

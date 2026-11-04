@@ -25,6 +25,8 @@ struct AppOptions {
     uint64_t seed = 0;
     int character = 0;            // --char N: fighter shown by the demo screens
     int arena = -1;               // --arena N: arena / hunting ground for the demo screens (-1 random / default)
+    RenderDebugMode renderDebugMode = RenderDebugMode::Full;
+    bool renderDebugModeSet = false;
 };
 
 struct Particle {

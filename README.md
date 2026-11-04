@@ -57,6 +57,18 @@ and localization:
 ctest --test-dir build --output-on-failure
 ```
 
+### Renderer diagnostics
+
+To isolate graphics issues, launch a fight with one renderer stage disabled:
+
+```bash
+./build/DeathCombat --demo-fight --arena 0 --render-debug direct
+```
+
+The same modes are available under **Settings → Render Debug Mode** and are saved with your
+other settings. `--render-debug` accepts `full`, `direct` (bypass post-processing), `no-bloom`,
+`no-outline`, or `no-shadows`; when provided, it sets the initial mode for that launch.
+
 ## How to play
 
 The interface is available in English, Russian, and Kazakh. Change **Language** in **Settings**;

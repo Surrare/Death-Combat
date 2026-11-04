@@ -35,12 +35,19 @@ struct Camera {
 };
 
 enum class Blend { Alpha, Additive };
+enum class RenderDebugMode { Full, Direct, NoBloom, NoOutline, NoShadows };
 
 class Renderer {
 public:
+    Renderer() = default;
+    ~Renderer();
+    Renderer(const Renderer&) = delete;
+    Renderer& operator=(const Renderer&) = delete;
+
     bool init();
-    void resize(int width, int height) { width_ = width; height_ = height; }
+    void resize(int width, int height) { width_ = width > 0 ? width : 1; height_ = height > 0 ? height : 1; }
     void setLanguage(Language language) { language_ = language; }
+    void setDebugMode(RenderDebugMode mode) { debugMode_ = mode; }
     int width() const { return width_; }
     int height() const { return height_; }
 
@@ -90,6 +97,11 @@ public:
 private:
     struct UnlitVertex { Vec3 pos; Color col; float u, v; };
     struct UiVertex { float x, y, u, v; Color col; };
+    struct PostTargets {
+        GLuint msaaFbo = 0, msaaColor = 0, msaaDepth = 0;
+        GLuint resolveFbo = 0, sceneTex = 0, depthTex = 0;
+        GLuint bloomFbo[2] = {0, 0}, bloomTex[2] = {0, 0};
+    };
 
     bool buildFontAtlas();
     void renderShadowPass();
@@ -100,6 +112,7 @@ private:
     // post-processing: scene is rendered to an HDR MSAA target, then bloom + outlines + grading are applied
     void createTargets(int w, int h);
     void destroyTargets();
+    void destroyTargets(PostTargets& targets);
     void renderPost();
 
     int width_ = 1280, height_ = 720;
@@ -124,19 +137,21 @@ private:
     Camera camB_;
     Mat4 viewB_, projB_;
     Vec2 splitN_{1, 0};
-    GLuint msaaFbo_ = 0, msaaColor_ = 0, msaaDepth_ = 0, resolveFbo_ = 0, sceneTex_ = 0, depthTex_ = 0, postVao_ = 0;
-    GLuint bloomFbo_[2] = {0, 0}, bloomTex_[2] = {0, 0};
+    GLuint postVao_ = 0;
     int targetW_ = 0, targetH_ = 0;
     bool postOk_ = false;
     float outlineStrength_ = 0.7f;
     Vec3 rimColor_{0.45f, 0.6f, 1.0f};
     GLuint shadowFbo_ = 0, shadowTex_ = 0;
+    bool shadowOk_ = false;
     int shadowSize_ = 2048;
     GLuint unlitVao_ = 0, unlitVbo_ = 0;
     GLuint uiVao_ = 0, uiVbo_ = 0;
     GLuint fontTex_ = 0;
     FontAtlas font_;
     Language language_ = Language::English;
+    RenderDebugMode debugMode_ = RenderDebugMode::Full;
+    PostTargets targets_;
 };
 
 } // namespace dc

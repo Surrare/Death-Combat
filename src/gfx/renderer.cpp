@@ -235,7 +235,7 @@ void main(){
     }
 
     // bloom
-    col += texture(uBloom, vUV).rgb * uBloomStrength;
+    if (uBloomStrength > 0.0) col += texture(uBloom, vUV).rgb * uBloomStrength;
 
     // soft shoulder: leave the palette alone below 0.8, roll highlights off smoothly instead of clipping
     const float knee = 0.8;
@@ -256,6 +256,18 @@ void main(){
 })";
 
 // ------------------------------------------------------------------- init ----
+Renderer::~Renderer() {
+    destroyTargets();
+    if (postVao_) glDeleteVertexArrays(1, &postVao_);
+    if (shadowFbo_) glDeleteFramebuffers(1, &shadowFbo_);
+    if (shadowTex_) glDeleteTextures(1, &shadowTex_);
+    if (unlitVao_) glDeleteVertexArrays(1, &unlitVao_);
+    if (unlitVbo_) glDeleteBuffers(1, &unlitVbo_);
+    if (uiVao_) glDeleteVertexArrays(1, &uiVao_);
+    if (uiVbo_) glDeleteBuffers(1, &uiVbo_);
+    if (fontTex_) glDeleteTextures(1, &fontTex_);
+}
+
 bool Renderer::init() {
     if (!lit_.compile(LIT_VS, LIT_FS, "lit")) return false;
     if (!depth_.compile(DEPTH_VS, DEPTH_FS, "depth")) return false;
@@ -285,7 +297,8 @@ bool Renderer::init() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTex_, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    shadowOk_ = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    if (!shadowOk_)
         std::fprintf(stderr, "[renderer] shadow framebuffer incomplete\n");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -518,7 +531,7 @@ void Renderer::renderScenePass(bool clear) {
     lit_.set("uFogColor", fogColor_);
     lit_.set("uFogDensity", fogDensity_);
     lit_.set("uRimColor", rimColor_);
-    lit_.set("uShadowEnabled", 1);
+    lit_.set("uShadowEnabled", shadowOk_ && debugMode_ != RenderDebugMode::NoShadows ? 1 : 0);
     int n = std::min((int)pointLights_.size(), 16);
     lit_.set("uNumLights", n);
     if (n > 0) {
@@ -595,42 +608,46 @@ void Renderer::renderUi() {
     glEnable(GL_DEPTH_TEST);
 }
 
-void Renderer::destroyTargets() {
-    if (msaaFbo_) glDeleteFramebuffers(1, &msaaFbo_);
-    if (resolveFbo_) glDeleteFramebuffers(1, &resolveFbo_);
-    if (msaaColor_) glDeleteRenderbuffers(1, &msaaColor_);
-    if (msaaDepth_) glDeleteRenderbuffers(1, &msaaDepth_);
-    if (sceneTex_) glDeleteTextures(1, &sceneTex_);
-    if (depthTex_) glDeleteTextures(1, &depthTex_);
+void Renderer::destroyTargets(PostTargets& targets) {
+    if (targets.msaaFbo) glDeleteFramebuffers(1, &targets.msaaFbo);
+    if (targets.resolveFbo) glDeleteFramebuffers(1, &targets.resolveFbo);
+    if (targets.msaaColor) glDeleteRenderbuffers(1, &targets.msaaColor);
+    if (targets.msaaDepth) glDeleteRenderbuffers(1, &targets.msaaDepth);
+    if (targets.sceneTex) glDeleteTextures(1, &targets.sceneTex);
+    if (targets.depthTex) glDeleteTextures(1, &targets.depthTex);
     for (int i = 0; i < 2; ++i) {
-        if (bloomFbo_[i]) glDeleteFramebuffers(1, &bloomFbo_[i]);
-        if (bloomTex_[i]) glDeleteTextures(1, &bloomTex_[i]);
-        bloomFbo_[i] = bloomTex_[i] = 0;
+        if (targets.bloomFbo[i]) glDeleteFramebuffers(1, &targets.bloomFbo[i]);
+        if (targets.bloomTex[i]) glDeleteTextures(1, &targets.bloomTex[i]);
     }
-    msaaFbo_ = resolveFbo_ = msaaColor_ = msaaDepth_ = sceneTex_ = depthTex_ = 0;
+    targets = PostTargets{};
+}
+
+void Renderer::destroyTargets() {
+    destroyTargets(targets_);
     postOk_ = false;
 }
 
 void Renderer::createTargets(int w, int h) {
     destroyTargets();
-    targetW_ = w; targetH_ = h;
+    targetW_ = w;
+    targetH_ = h;
+    if (w <= 0 || h <= 0) {
+        std::fprintf(stderr, "[renderer] invalid post-processing size %dx%d\n", w, h);
+        return;
+    }
+
+    PostTargets next;
     GLint maxSamples = 1;
     glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
     const int samples = std::max(1, std::min(4, (int)maxSamples));
 
-    glGenFramebuffers(1, &msaaFbo_);
-    glGenRenderbuffers(1, &msaaColor_);
-    glGenRenderbuffers(1, &msaaDepth_);
-    glBindRenderbuffer(GL_RENDERBUFFER, msaaColor_);
-    glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGBA16F, w, h);
-    glBindRenderbuffer(GL_RENDERBUFFER, msaaDepth_);
-    glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH24_STENCIL8, w, h);
-    glBindFramebuffer(GL_FRAMEBUFFER, msaaFbo_);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, msaaColor_);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, msaaDepth_);
-    bool ok = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
-
-    auto makeTex = [&](GLuint& tex, GLenum internal, GLenum format, GLenum type, int tw, int th) {
+    auto framebufferComplete = [](const char* name) {
+        const GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status == GL_FRAMEBUFFER_COMPLETE) return true;
+        std::fprintf(stderr, "[renderer] %s framebuffer incomplete (0x%04x)\n", name, status);
+        return false;
+    };
+    auto makeTex = [](GLuint& tex, GLenum internal, GLenum format, GLenum type, int tw, int th) {
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
         glTexImage2D(GL_TEXTURE_2D, 0, internal, tw, th, 0, format, type, nullptr);
@@ -639,31 +656,47 @@ void Renderer::createTargets(int w, int h) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     };
-    makeTex(sceneTex_, GL_RGBA16F, GL_RGBA, GL_FLOAT, w, h);
-    makeTex(depthTex_, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, w, h);   // stencil drives the split screen
-    glBindTexture(GL_TEXTURE_2D, depthTex_);
+
+    glGenFramebuffers(1, &next.msaaFbo);
+    glGenRenderbuffers(1, &next.msaaColor);
+    glGenRenderbuffers(1, &next.msaaDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, next.msaaColor);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGBA16F, w, h);
+    glBindRenderbuffer(GL_RENDERBUFFER, next.msaaDepth);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH24_STENCIL8, w, h);
+    glBindFramebuffer(GL_FRAMEBUFFER, next.msaaFbo);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, next.msaaColor);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, next.msaaDepth);
+    bool ok = framebufferComplete("multisample");
+
+    makeTex(next.sceneTex, GL_RGBA16F, GL_RGBA, GL_FLOAT, w, h);
+    makeTex(next.depthTex, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, w, h);
+    glBindTexture(GL_TEXTURE_2D, next.depthTex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glGenFramebuffers(1, &resolveFbo_);
-    glBindFramebuffer(GL_FRAMEBUFFER, resolveFbo_);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneTex_, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthTex_, 0);
-    ok = ok && glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    glGenFramebuffers(1, &next.resolveFbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, next.resolveFbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, next.sceneTex, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, next.depthTex, 0);
+    ok = framebufferComplete("resolve") && ok;
 
     const int bw = std::max(1, w / 2), bh = std::max(1, h / 2);
     for (int i = 0; i < 2; ++i) {
-        makeTex(bloomTex_[i], GL_RGBA16F, GL_RGBA, GL_FLOAT, bw, bh);
-        glGenFramebuffers(1, &bloomFbo_[i]);
-        glBindFramebuffer(GL_FRAMEBUFFER, bloomFbo_[i]);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, bloomTex_[i], 0);
-        ok = ok && glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+        makeTex(next.bloomTex[i], GL_RGBA16F, GL_RGBA, GL_FLOAT, bw, bh);
+        glGenFramebuffers(1, &next.bloomFbo[i]);
+        glBindFramebuffer(GL_FRAMEBUFFER, next.bloomFbo[i]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, next.bloomTex[i], 0);
+        ok = framebufferComplete(i == 0 ? "bloom A" : "bloom B") && ok;
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
     postOk_ = ok;
-    if (!ok) {
-        std::fprintf(stderr, "[renderer] post-processing targets unavailable, drawing directly\n");
-        destroyTargets();
-        targetW_ = w; targetH_ = h;   // do not retry every frame
+    if (ok) {
+        targets_ = next;
+    } else {
+        destroyTargets(next);
+        std::fprintf(stderr, "[renderer] post-processing disabled; rendering directly\n");
     }
 }
 
@@ -674,8 +707,8 @@ void Renderer::renderPost() {
     glDepthMask(GL_TRUE);
 
     // resolve MSAA colour + depth into textures
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, msaaFbo_);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, resolveFbo_);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, targets_.msaaFbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, targets_.resolveFbo);
     glBlitFramebuffer(0, 0, width_, height_, 0, 0, width_, height_, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
     glBindVertexArray(postVao_);
@@ -684,36 +717,43 @@ void Renderer::renderPost() {
 
     // bright pass -> half resolution, then two separable blur rounds (the second widens the glow)
     glViewport(0, 0, bw, bh);
-    glBindFramebuffer(GL_FRAMEBUFFER, bloomFbo_[0]);
-    bright_.use();
-    bindTex(0, sceneTex_); bright_.set("uTex", 0); bright_.set("uThreshold", 0.72f);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    blur_.use();
-    blur_.set("uTex", 0);
-    for (int round = 0; round < 2; ++round) {
-        const float spread = round == 0 ? 1.0f : 2.2f;
-        glBindFramebuffer(GL_FRAMEBUFFER, bloomFbo_[1]);
-        bindTex(0, bloomTex_[0]);
-        blur_.set("uDir", Vec2(spread / (float)bw, 0));
+    const bool bloomEnabled = debugMode_ != RenderDebugMode::NoBloom;
+    if (bloomEnabled) {
+        glBindFramebuffer(GL_FRAMEBUFFER, targets_.bloomFbo[0]);
+        bright_.use();
+        bindTex(0, targets_.sceneTex); bright_.set("uTex", 0); bright_.set("uThreshold", 0.72f);
         glDrawArrays(GL_TRIANGLES, 0, 3);
-        glBindFramebuffer(GL_FRAMEBUFFER, bloomFbo_[0]);
-        bindTex(0, bloomTex_[1]);
-        blur_.set("uDir", Vec2(0, spread / (float)bh));
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        blur_.use();
+        blur_.set("uTex", 0);
+        for (int round = 0; round < 2; ++round) {
+            const float spread = round == 0 ? 1.0f : 2.2f;
+            glBindFramebuffer(GL_FRAMEBUFFER, targets_.bloomFbo[1]);
+            bindTex(0, targets_.bloomTex[0]);
+            blur_.set("uDir", Vec2(spread / (float)bw, 0));
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+            glBindFramebuffer(GL_FRAMEBUFFER, targets_.bloomFbo[0]);
+            bindTex(0, targets_.bloomTex[1]);
+            blur_.set("uDir", Vec2(0, spread / (float)bh));
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+        }
     }
 
     // composite to the window
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width_, height_);
     composite_.use();
-    bindTex(0, sceneTex_); composite_.set("uScene", 0);
-    bindTex(1, bloomTex_[0]); composite_.set("uBloom", 1);
-    bindTex(2, depthTex_); composite_.set("uDepth", 2);
+    bindTex(0, targets_.sceneTex); composite_.set("uScene", 0);
+    if (bloomEnabled) {
+        bindTex(1, targets_.bloomTex[0]);
+        composite_.set("uBloomStrength", 0.55f);
+    } else {
+        composite_.set("uBloomStrength", 0.0f);
+    }
+    bindTex(2, targets_.depthTex); composite_.set("uDepth", 2);
     composite_.set("uTexel", Vec2(1.0f / (float)width_, 1.0f / (float)height_));
     composite_.set("uNear", cam_.znear);
     composite_.set("uFar", cam_.zfar);
-    composite_.set("uBloomStrength", 0.55f);
-    composite_.set("uOutline", outlineStrength_);
+    composite_.set("uOutline", debugMode_ == RenderDebugMode::NoOutline ? 0.0f : outlineStrength_);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glBindVertexArray(0);
     glActiveTexture(GL_TEXTURE0);
@@ -756,13 +796,19 @@ void Renderer::renderSecondView() {
 
 void Renderer::endFrame() {
     if (targetW_ >= 0 && (targetW_ != width_ || targetH_ != height_)) createTargets(width_, height_);
-    renderShadowPass();
-    if (postOk_) glBindFramebuffer(GL_FRAMEBUFFER, msaaFbo_);
+    const bool usePost = postOk_ && debugMode_ != RenderDebugMode::Direct;
+    const bool useShadows = shadowOk_ && debugMode_ != RenderDebugMode::NoShadows;
+    if (useShadows) renderShadowPass();
+    glBindFramebuffer(GL_FRAMEBUFFER, usePost ? targets_.msaaFbo : 0);
+    if (!useShadows) {
+        lit_.use();
+        lit_.set("uLightVP", Mat4::identity());
+    }
     renderScenePass(true);
     renderUnlit(unlitAlpha_, Blend::Alpha);
     renderUnlit(unlitAdd_, Blend::Additive);
     if (split_) renderSecondView();
-    if (postOk_) renderPost();
+    if (usePost) renderPost();
     renderUi();
 }
 
