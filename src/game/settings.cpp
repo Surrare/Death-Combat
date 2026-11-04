@@ -101,7 +101,8 @@ bool Settings::save() const {
     std::ofstream f(path());
     if (!f) return false;
     f << "master=" << master << "\nmusic=" << music << "\nsfx=" << sfx << "\n";
-    f << "fullscreen=" << (fullscreen ? 1 : 0) << "\nvsync=" << (vsync ? 1 : 0) << "\nmouse=" << mouseSens << "\n";
+    f << "fullscreen=" << (fullscreen ? 1 : 0) << "\nvsync=" << (vsync ? 1 : 0)
+      << "\nlanguage=" << static_cast<int>(language) << "\nmouse=" << mouseSens << "\n";
     for (int a = 0; a < ACTION_COUNT; ++a)
         f << "key" << a << "=" << keys[a][0] << "," << keys[a][1] << "\n";
     return (bool)f;
@@ -121,6 +122,7 @@ bool Settings::load() {
         else if (k == "sfx") sfx = std::clamp(n, 0, 10);
         else if (k == "fullscreen") fullscreen = n != 0;
         else if (k == "vsync") vsync = n != 0;
+        else if (k == "language") language = static_cast<Language>(std::clamp(n, 0, 2));
         else if (k == "mouse") mouseSens = std::clamp(n, 1, 10);
         else if (k.rfind("key", 0) == 0) {
             int a = std::atoi(k.c_str() + 3);

@@ -23,11 +23,15 @@ public:
     float lineHeight(float capHeight, FontFace face) const;
     const std::vector<unsigned char>& pixels() const { return pixels_; }
     static constexpr int WIDTH = 1024;
-    static constexpr int HEIGHT = 1024;
+    static constexpr int HEIGHT = 2048;
 
 private:
-    static constexpr int FIRST = 32, COUNT = 95;
+    static constexpr int ASCII_FIRST = 32, ASCII_COUNT = 95;
+    static constexpr int CYRILLIC_COUNT = 64 + 2 + 18;
+    static constexpr int COUNT = ASCII_COUNT + CYRILLIC_COUNT;
     static constexpr float CAP_HEIGHT = 48.0f;
+    static unsigned int codepointForIndex(int index);
+    static int indexForCodepoint(unsigned int codepoint);
     struct Glyph {
         float advance = 0;
         int x = 0, y = 0, width = 0, height = 0, offsetX = 0, offsetY = 0;

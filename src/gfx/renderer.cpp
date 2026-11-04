@@ -300,7 +300,8 @@ void Renderer::rectOutline(float x, float y, float w, float h, float t, const Co
 }
 
 void Renderer::text(float x, float y, const std::string& s, float scale, const Color& col) {
-    const TextLayout layout = font_.layout(s, scale * TEXT_CAP_HEIGHT, textFace(scale));
+    const std::string translated = localizeText(s, language_);
+    const TextLayout layout = font_.layout(translated, scale * TEXT_CAP_HEIGHT, textFace(scale));
     for (const GlyphQuad& g : layout.quads) {
         UiVertex v0{x + g.x0, y + g.y0, g.u0, g.v0, col}, v1{x + g.x1, y + g.y0, g.u1, g.v0, col},
                  v2{x + g.x1, y + g.y1, g.u1, g.v1, col}, v3{x + g.x0, y + g.y1, g.u0, g.v1, col};
@@ -310,7 +311,7 @@ void Renderer::text(float x, float y, const std::string& s, float scale, const C
 }
 
 float Renderer::textWidth(const std::string& s, float scale) const {
-    return font_.layout(s, scale * TEXT_CAP_HEIGHT, textFace(scale)).width;
+    return font_.layout(localizeText(s, language_), scale * TEXT_CAP_HEIGHT, textFace(scale)).width;
 }
 
 float Renderer::textLineHeight(float scale) const {

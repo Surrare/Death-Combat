@@ -8,7 +8,7 @@ namespace dc {
 namespace {
 const Color WHITE(1, 1, 1), GOLD(1.0f, 0.82f, 0.3f), RED(0.95f, 0.2f, 0.2f), DIM(0.55f, 0.55f, 0.6f), CYAN(0.4f, 0.9f, 1.0f);
 
-enum Row { ROW_MASTER, ROW_MUSIC, ROW_SFX, ROW_FULLSCREEN, ROW_VSYNC, ROW_MOUSE, ROW_KEYS, ROW_RESET = ROW_KEYS + ACTION_COUNT, ROW_BACK, ROW_COUNT };
+enum Row { ROW_MASTER, ROW_MUSIC, ROW_SFX, ROW_FULLSCREEN, ROW_VSYNC, ROW_LANGUAGE, ROW_MOUSE, ROW_KEYS, ROW_RESET = ROW_KEYS + ACTION_COUNT, ROW_BACK, ROW_COUNT };
 }
 
 // shared by update (mouse hit-testing) and render so the two never disagree
@@ -100,6 +100,10 @@ void App::updateSettings(float dt) {
     else if (r == ROW_MOUSE) slider(settings_.mouseSens, 1, 10);
     else if (r == ROW_FULLSCREEN && (dx || confirm)) { settings_.fullscreen = !settings_.fullscreen; applyVideoSettings(); }
     else if (r == ROW_VSYNC && (dx || confirm)) { settings_.vsync = !settings_.vsync; applyVideoSettings(); }
+    else if (r == ROW_LANGUAGE && (dx || confirm)) {
+        int language = static_cast<int>(settings_.language);
+        settings_.language = static_cast<Language>((language + (dx < 0 ? 2 : 1)) % 3);
+    }
     else if (r >= ROW_KEYS && r < ROW_RESET) {
         if (dx) settingsSlot_ = std::clamp(settingsSlot_ + dx, 0, BIND_SLOTS - 1);
         if (confirm) settingsCapturing_ = true;
@@ -138,6 +142,7 @@ void App::renderSettings() {
         else if (r == ROW_SFX) { label = "EFFECTS VOLUME"; sliderValue = settings_.sfx; }
         else if (r == ROW_FULLSCREEN) { label = "FULLSCREEN"; value = settings_.fullscreen ? "<  ON  >" : "<  OFF  >"; }
         else if (r == ROW_VSYNC) { label = "VSYNC"; value = settings_.vsync ? "<  ON  >" : "<  OFF  >"; }
+        else if (r == ROW_LANGUAGE) { label = "LANGUAGE"; value = languageName(settings_.language); }
         else if (r == ROW_MOUSE) { label = "MOUSE SENSITIVITY"; sliderValue = settings_.mouseSens; }
         else if (r == ROW_RESET) { label = "RESET CONTROLS TO DEFAULT"; }
         else if (r == ROW_BACK) { label = "BACK"; }

@@ -6,6 +6,7 @@
 #include <string>
 #include "core/math.h"
 #include "core/font.h"
+#include "core/localization.h"
 #include "gfx/shader.h"
 #include "gfx/mesh.h"
 
@@ -39,6 +40,7 @@ class Renderer {
 public:
     bool init();
     void resize(int width, int height) { width_ = width; height_ = height; }
+    void setLanguage(Language language) { language_ = language; }
     int width() const { return width_; }
     int height() const { return height_; }
 
@@ -108,6 +110,7 @@ private:
     GLuint uiVao_ = 0, uiVbo_ = 0;
     GLuint fontTex_ = 0;
     FontAtlas font_;
+    Language language_ = Language::English;
 };
 
 } // namespace dc

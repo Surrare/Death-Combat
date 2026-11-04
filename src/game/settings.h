@@ -1,5 +1,6 @@
 // Persistent user settings: audio levels, video options, mouse sensitivity and player 1 key bindings.
 #pragma once
+#include "core/localization.h"
 #include <string>
 
 namespace dc {
@@ -16,6 +17,7 @@ struct Settings {
     int master = 10, music = 8, sfx = 10;   // 0..10
     bool fullscreen = false;
     bool vsync = true;
+    Language language = Language::English;
     int mouseSens = 5;                      // 1..10, 5 = default
     int keys[ACTION_COUNT][BIND_SLOTS];     // GLFW key codes, 0 = unbound
 

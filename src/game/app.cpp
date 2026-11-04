@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <filesystem>
+#include <sstream>
 
 namespace dc {
 
@@ -80,6 +81,7 @@ void App::drawPanelText(float x, float y, const std::vector<std::string>& lines,
 void App::frame(float dt, int w, int h) {
     width_ = w; height_ = h;
     renderer_.resize(w, h);
+    renderer_.setLanguage(settings_.language);
     input_.poll();
     time_ += dt;
 
@@ -297,9 +299,16 @@ void App::renderSelect() {
     renderer_.text(px, py + 150, "HP " + std::to_string((int)c.hp), 2, DIM);
     // lore, wrapped
     std::vector<std::string> lines; std::string cur_line;
-    for (size_t i = 0; i < c.lore.size(); ++i) {
-        cur_line += c.lore[i];
-        if (cur_line.size() > 34 && c.lore[i] == ' ') { lines.push_back(cur_line); cur_line.clear(); }
+    const std::string lore = localizeText(c.lore, settings_.language);
+    std::istringstream words(lore);
+    for (std::string word; words >> word;) {
+        std::string candidate = cur_line.empty() ? word : cur_line + " " + word;
+        if (!cur_line.empty() && renderer_.textWidth(candidate, 1.6f) > 360.0f) {
+            lines.push_back(cur_line);
+            cur_line = word;
+        } else {
+            cur_line = candidate;
+        }
     }
     if (!cur_line.empty()) lines.push_back(cur_line);
     drawPanelText(px, py + 190, lines, 1.6f, DIM, 1.4f);

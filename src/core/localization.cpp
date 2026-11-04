@@ -1,0 +1,266 @@
+#include "core/localization.h"
+#include <algorithm>
+#include <array>
+#include <string>
+#include <unordered_map>
+
+namespace dc {
+namespace {
+using Table = std::unordered_map<std::string_view, std::string_view>;
+
+const Table& russian() {
+    static const Table table = {
+        {"HUNT MODE", "РЕЖИМ ОХОТЫ"}, {"VERSUS CPU", "ПРОТИВ КОМПЬЮТЕРА"},
+        {"VERSUS 2P", "ИГРА НА ДВОИХ"}, {"SETTINGS", "НАСТРОЙКИ"}, {"QUIT", "ВЫХОД"},
+        {"SEEK YOUR OPPONENT.  STAND AND FIGHT.", "НАЙДИ ПРОТИВНИКА. ВЫЗОВИ ЕГО НА БОЙ."},
+        {"UP / DOWN  CHOOSE      ENTER  CONFIRM      (OR USE THE MOUSE)", "ВВЕРХ / ВНИЗ - ВЫБОР    ENTER - ПОДТВЕРДИТЬ"},
+        {"MOVE", "ДВИЖЕНИЕ"}, {"LIGHT", "ЛЁГКАЯ"}, {"MEDIUM", "СРЕДНЯЯ"}, {"HEAVY", "ТЯЖЁЛАЯ"},
+        {"STAND / MODE", "СТЕНД / РЕЖИМ"}, {"DASH / EVADE", "РЫВОК / УКЛОНЕНИЕ"}, {"TAUNT", "ПРОВОКАЦИЯ"},
+        {"MENUS", "МЕНЮ"}, {"PAUSE", "ПАУЗА"}, {"SCREENSHOT", "СКРИНШОТ"},
+        {"GAMEPAD:", "ГЕЙМПАД:"}, {"OPENGL 3.3  /  LINUX + WINDOWS", "OPENGL 3.3  /  LINUX + WINDOWS"},
+        {"DEFEATED", "ПОБЕЖДЁН"}, {"CHOOSE YOUR HUNTER", "ВЫБЕРИ ОХОТНИКА"},
+        {"PLAYER 1  SELECT", "ИГРОК 1 - ВЫБОР"}, {"PLAYER 2  SELECT", "ИГРОК 2 - ВЫБОР"},
+        {"STYLE: STAND", "СТИЛЬ: СТЕНД"}, {"STYLE: MODE", "СТИЛЬ: РЕЖИМ"},
+        {"SPECIAL MOVES", "СПЕЦИАЛЬНЫЕ ПРИЁМЫ"},
+        {"ARROWS / MOUSE  CHOOSE FIGHTER     ENTER / CLICK  CONFIRM     ESC / RIGHT CLICK  BACK",
+         "СТРЕЛКИ / МЫШЬ - ВЫБОР    ENTER / КЛИК - ВЫБРАТЬ    ESC - НАЗАД"},
+        {"DEATH SENSE", "ЧУТЬЁ СМЕРТИ"}, {"AHEAD", "ВПЕРЕДИ"}, {"BEHIND", "ПОЗАДИ"},
+        {"RIGHT", "СПРАВА"}, {"LEFT", "СЛЕВА"}, {"TRAIL: ", "СЛЕД: "},
+        {"YOU ARE BEING HUNTED", "ЗА ТОБОЙ ОХОТЯТСЯ"}, {"TARGETS", "ЦЕЛИ"}, {"DOWN", "ПОВЕРЖЕН"},
+        {"WASD / ARROWS MOVE   MOUSE LOOK   SHIFT RUN   ENTER ENGAGE   ESC PAUSE",
+         "WASD / СТРЕЛКИ - ДВИЖЕНИЕ   МЫШЬ - ОБЗОР   SHIFT - БЕГ   ENTER - БОЙ   ESC - ПАУЗА"},
+        {"THE HUNT BEGINS", "ОХОТА НАЧИНАЕТСЯ"},
+        {"OPPONENTS HIDE IN THESE HALLS. FIND THEM.", "ПРОТИВНИКИ СКРЫВАЮТСЯ В КОРИДОРАХ. НАЙДИ ИХ."},
+        {"FOLLOW YOUR DEATH SENSE. WALK INTO THEM TO FIGHT.", "СЛЕДУЙ ЗА ЧУТЬЁМ. ПОДОЙДИ К НИМ, ЧТОБЫ НАЧАТЬ БОЙ."},
+        {"ENGAGE ", "ВСТУПИТЬ В БОЙ: "}, {"[ENTER / ATTACK]", "[ENTER / АТАКА]"},
+        {"OPPONENT FOUND", "ПРОТИВНИК НАЙДЕН"}, {"PAUSED", "ПАУЗА"}, {"RESUME", "ПРОДОЛЖИТЬ"},
+        {"QUIT TO TITLE", "В ГЛАВНОЕ МЕНЮ"}, {"UP / DOWN / MOUSE  CHOOSE     ENTER / CLICK  CONFIRM     ESC  RESUME",
+         "ВВЕРХ / ВНИЗ - ВЫБОР    ENTER / КЛИК - ПОДТВЕРДИТЬ    ESC - ПРОДОЛЖИТЬ"},
+        {"HUNT COMPLETE", "ОХОТА ЗАВЕРШЕНА"}, {"PRESS ENTER OR CLICK", "НАЖМИ ENTER ИЛИ КЛИКНИ"},
+        {"STANDS ALONE IN THE HALLS", "ОСТАЛСЯ ОДИН В ЭТИХ КОРИДОРАХ"},
+        {"ROUND", "РАУНД"}, {"WINS", "ПОБЕЖДАЕТ"}, {"IS NEAR", "РЯДОМ"},
+        {"RETRY THE FIGHT", "ПОВТОРИТЬ БОЙ"}, {"GIVE UP", "СДАТЬСЯ"}, {"REMATCH", "РЕВАНШ"},
+        {"CHARACTER SELECT", "ВЫБОР ПЕРСОНАЖА"}, {"TITLE", "ГЛАВНОЕ МЕНЮ"},
+        {"RETURNING TO THE HALLS...", "ВОЗВРАЩЕНИЕ В КОРИДОРЫ..."},
+        {"YOU WERE FOUND WANTING", "ТЫ ПРОИГРАЛ"}, {"MOVE LIST", "СПИСОК ПРИЁМОВ"},
+        {"UP / DOWN / MOUSE  CHOOSE     ENTER / CLICK  CONFIRM     ESC  RESUME",
+         "ВВЕРХ / ВНИЗ - ВЫБОР    ENTER / КЛИК - ПОДТВЕРДИТЬ    ESC - ПРОДОЛЖИТЬ"},
+        {"ENTER / ESC / CLICK  BACK", "ENTER / ESC / КЛИК - НАЗАД"},
+        {"HEAT", "ЖАР"}, {"HITS", "УДАРА"}, {"DMG", "УРОНА"},
+        {"GREAT HEAT ATTACK", "МОЩНАЯ АТАКА ЖАРА"}, {"HEART HEAT ATTACK", "АТАКА ЖАРА"},
+        {"RUSH MODE", "РЕЖИМ НАТИСКА"}, {"MASH ATTACK!", "ЖМИ АТАКУ!"},
+        {"FLASH CANCEL", "МГНОВЕННАЯ ОТМЕНА"}, {"THROW TECH", "СБРОС БРОСКА"},
+        {"FIGHT", "БОЙ"}, {"FINAL ROUND", "РЕШАЮЩИЙ РАУНД"}, {"TIME OVER", "ВРЕМЯ ВЫШЛО"},
+        {"DOUBLE K.O.", "ДВОЙНОЙ НОКАУТ"}, {"K.O.", "НОКАУТ"},
+        {"The Crimson Tempo", "Багровый ритм"}, {"The Night Glass", "Ночное стекло"},
+        {"The Iron Choir", "Железный хор"}, {"The Silk Echo", "Шёлковое эхо"},
+        {"The Gale", "Шторм"}, {"The Ember", "Уголёк"},
+        {"BLOOD TEMPO", "КРОВАВЫЙ РИТМ"}, {"NIGHT GLASS", "НОЧНОЕ СТЕКЛО"},
+        {"IRON CHOIR", "ЖЕЛЕЗНЫЙ ХОР"}, {"SILK ECHO", "ШЁЛКОВОЕ ЭХО"},
+        {"GALE MODE", "РЕЖИМ ШТОРМА"}, {"EMBER MODE", "РЕЖИМ УГЛЕЙ"},
+        {"A brawler whose Stand beats in time with his heart. Close the distance and never stop punching.",
+         "Боец, чей стенд бьётся в такт его сердцу. Сократи дистанцию и не прекращай атаковать."},
+        {"A calm tactician who shatters her Stand into glass shards. Keep away and punish every approach.",
+         "Хладнокровный тактик, превращающий стенд в осколки стекла. Держи дистанцию и наказывай за сближение."},
+        {"A giant of a man whose Stand sings like a cathedral bell. Slow, armored and devastating up close.",
+         "Гигант, чей стенд звучит как колокол собора. Медленный, бронированный и сокрушительный вблизи."},
+        {"A dancer whose Stand weaves a thousand threads. Fast, slippery and relentless in the air.",
+         "Танцовщица, чей стенд сплетает тысячи нитей. Быстрая, ловкая и неудержимая в воздухе."},
+        {"A martial artist without a Stand. Gale Mode spends his gauge for blinding speed.",
+         "Мастер боевых искусств без стенда. Режим шторма тратит заряд ради ослепительной скорости."},
+        {"A blacksmith who burns his own stamina as fuel. Ember Mode turns every blow into a hammer strike.",
+         "Кузнец, сжигающий выносливость как топливо. Режим углей превращает каждый удар в удар молота."},
+        {"MASTER VOLUME", "ОБЩАЯ ГРОМКОСТЬ"}, {"MUSIC VOLUME", "ГРОМКОСТЬ МУЗЫКИ"},
+        {"EFFECTS VOLUME", "ГРОМКОСТЬ ЭФФЕКТОВ"}, {"FULLSCREEN", "ПОЛНЫЙ ЭКРАН"},
+        {"VSYNC", "V-SYNC"}, {"MOUSE SENSITIVITY", "ЧУВСТВИТЕЛЬНОСТЬ МЫШИ"},
+        {"<  ON  >", "<  ВКЛ  >"}, {"<  OFF  >", "<  ВЫКЛ  >"}, {"NONE", "НЕТ"},
+        {"LANGUAGE", "ЯЗЫК"}, {"CONTROLS   (KEYBOARD, PLAYER 1)", "УПРАВЛЕНИЕ (КЛАВИАТУРА, ИГРОК 1)"},
+        {"RESET CONTROLS TO DEFAULT", "СБРОСИТЬ УПРАВЛЕНИЕ"}, {"BACK", "НАЗАД"},
+        {"PRESS A KEY...", "НАЖМИ КЛАВИШУ..."},         {"PRESS THE NEW KEY     ESC  CANCEL", "НАЖМИ НОВУЮ КЛАВИШУ    ESC - ОТМЕНА"},
+        {"UP / DOWN  SELECT     LEFT / RIGHT  CHANGE     ENTER  REBIND / TOGGLE     BACKSPACE  CLEAR KEY     ESC  BACK",
+         "ВВЕРХ / ВНИЗ - ВЫБОР    ВЛЕВО / ВПРАВО - ИЗМЕНИТЬ    ENTER - НАЗНАЧИТЬ    ESC - НАЗАД"},
+        {"MOVE UP", "ДВИЖЕНИЕ ВВЕРХ"}, {"MOVE DOWN", "ДВИЖЕНИЕ ВНИЗ"},
+        {"MOVE LEFT", "ДВИЖЕНИЕ ВЛЕВО"}, {"MOVE RIGHT", "ДВИЖЕНИЕ ВПРАВО"},
+        {"LIGHT ATTACK", "ЛЁГКАЯ АТАКА"}, {"MEDIUM ATTACK", "СРЕДНЯЯ АТАКА"},
+        {"HEAVY ATTACK", "ТЯЖЁЛАЯ АТАКА"}, {"STAND / MODE", "СТЕНД / РЕЖИМ"},
+        {"DASH / EVADE", "РЫВОК / УКЛОНЕНИЕ"}, {"LOOK LEFT", "СМОТРЕТЬ ВЛЕВО"},
+        {"LOOK RIGHT", "СМОТРЕТЬ ВПРАВО"}, {"MODE EXHAUSTED", "РЕЖИМ ИСЧЕРПАН"},
+        {"STAND BREAK", "СЛОМ СТЕНДА"}, {"STAND ON", "СТЕНД ВКЛЮЧЁН"},
+        {"STAND OFF", "СТЕНД ВЫКЛЮЧЕН"}, {"MODE OFF", "РЕЖИМ ВЫКЛЮЧЕН"},
+        {"ARMOR", "БРОНЯ"}, {"TAUNT!", "ПРОВОКАЦИЯ!"},
+        {"SYSTEM                                        (F = TOWARD OPPONENT, B = AWAY)",
+         "СИСТЕМА                                        (F = К ПРОТИВНИКУ, B = ОТ ПРОТИВНИКА)"},
+        {"LIGHT J   MEDIUM K   HEAVY L        CHAIN  L > M > H    EASY BEAT: TAP J REPEATEDLY",
+         "ЛЁГКАЯ J   СРЕДНЯЯ K   ТЯЖЁЛАЯ L        ЦЕПОЧКА  L > M > H    ЛЁГКОЕ КОМБО: ЖМИ J"},
+        {"THROW  J+K                          TAUNT  O  (DRAINS HEAT OF A DOWNED FOE)",
+         "БРОСОК  J+K                          ПРОВОКАЦИЯ  O  (ОТНИМАЕТ ЖАР У ЛЕЖАЧЕГО ВРАГА)"},
+        {"DASH   U + F / B  OR DOUBLE TAP     SIDESTEP (STYLISH EVADE)  U + W / S",
+         "РЫВОК   U + F / B  ИЛИ ДВОЙНОЕ НАЖАТИЕ     ШАГ В СТОРОНУ  U + W / S"},
+        {"STAND / MODE ON-OFF  I              STAND ON: LONGER NORMALS, STAND TAKES HITS",
+         "СТЕНД / РЕЖИМ  I              СТЕНД УСИЛИВАЕТ УДАРЫ, НО ТЕРЯЕТ ЗАРЯД"},
+        {"FLASH CANCEL  J+K+L DURING A MOVE   COSTS 1 HEAT BAR",
+         "ОТМЕНА ПРИЁМА  J+K+L   ТРАТИТ 1 ШКАЛУ ЖАРА"},
+        {"HHA  D,DF,F + TWO ATTACKS  (1 BAR)  GHA  D,DF,F + THREE ATTACKS  (2 BARS)",
+         "HHA  D,DF,F + 2 АТАКИ  (1 ШКАЛА)  GHA  D,DF,F + 3 АТАКИ  (2 ШКАЛЫ)"},
+        {"RUSH MODE: WHEN RUSH ATTACKS COLLIDE, MASH ATTACK TO WIN THE CLASH",
+         "НАТИСК: ЕСЛИ АТАКИ СТОЛКНУЛИСЬ, ЖМИ АТАКУ, ЧТОБЫ ПОБЕДИТЬ"},
+        {"(PROJECTILE)", "(СНАРЯД)"}, {"(COMMAND THROW)", "(КОМАНДНЫЙ БРОСОК)"},
+        {"(RUSH)", "(НАТИСК)"}, {"(ARMOR)", "(БРОНЯ)"}
+    };
+    return table;
+}
+
+const Table& kazakh() {
+    static const Table table = {
+        {"HUNT MODE", "АҢШЫЛЫҚ РЕЖІМІ"}, {"VERSUS CPU", "КОМПЬЮТЕРГЕ ҚАРСЫ"},
+        {"VERSUS 2P", "2 ОЙЫНШЫҒА ҚАРСЫ"}, {"SETTINGS", "БАПТАУЛАР"}, {"QUIT", "ШЫҒУ"},
+        {"SEEK YOUR OPPONENT.  STAND AND FIGHT.", "ҚАРСЫЛАСЫҢДЫ ТАП. ШЫҚ ЖӘНЕ ШАЙҚАС."},
+        {"UP / DOWN  CHOOSE      ENTER  CONFIRM      (OR USE THE MOUSE)", "ЖОҒАРЫ / ТӨМЕН - ТАҢДАУ    ENTER - РАСТАУ"},
+        {"MOVE", "ҚОЗҒАЛУ"}, {"LIGHT", "ЖЕҢІЛ"}, {"MEDIUM", "ОРТАША"}, {"HEAVY", "АУЫР"},
+        {"STAND / MODE", "СТЕНД / РЕЖИМ"}, {"DASH / EVADE", "ЗЫМЫРАУ / ЖАЛТАРУ"}, {"TAUNT", "МАЗАҚТАУ"},
+        {"MENUS", "МӘЗІР"}, {"PAUSE", "ҮЗІЛІС"}, {"SCREENSHOT", "СКРИНШОТ"},
+        {"GAMEPAD:", "ГЕЙМПАД:"}, {"OPENGL 3.3  /  LINUX + WINDOWS", "OPENGL 3.3  /  LINUX + WINDOWS"},
+        {"DEFEATED", "ЖЕҢІЛДІ"}, {"CHOOSE YOUR HUNTER", "АҢШЫҢДЫ ТАҢДА"},
+        {"PLAYER 1  SELECT", "1-ОЙЫНШЫНЫ ТАҢДАУ"}, {"PLAYER 2  SELECT", "2-ОЙЫНШЫНЫ ТАҢДАУ"},
+        {"STYLE: STAND", "СТИЛЬ: СТЕНД"}, {"STYLE: MODE", "СТИЛЬ: РЕЖИМ"},
+        {"SPECIAL MOVES", "АРНАЙЫ ӘДІСТЕР"},
+        {"ARROWS / MOUSE  CHOOSE FIGHTER     ENTER / CLICK  CONFIRM     ESC / RIGHT CLICK  BACK",
+         "БАҒЫТТАУЫШ / ТІЛТІРЕУІШ - ТАҢДАУ    ENTER / БАСУ - РАСТАУ    ESC - АРТҚА"},
+        {"DEATH SENSE", "ӨЛІМДІ СЕЗУ"}, {"AHEAD", "АЛДЫҢДА"}, {"BEHIND", "АРТЫҢДА"},
+        {"RIGHT", "ОҢ ЖАҚТА"}, {"LEFT", "СОЛ ЖАҚТА"}, {"TRAIL: ", "ІЗ: "},
+        {"YOU ARE BEING HUNTED", "СЕНІ АҢДУДА"}, {"TARGETS", "НЫСАНАЛАР"}, {"DOWN", "ЖЕҢІЛДІ"},
+        {"WASD / ARROWS MOVE   MOUSE LOOK   SHIFT RUN   ENTER ENGAGE   ESC PAUSE",
+         "WASD / БАҒЫТТАУЫШ - ҚОЗҒАЛУ   ТІЛТІРЕУІШ - ҚАРАУ   SHIFT - ЖҮГІРУ   ENTER - ШАЙҚАС   ESC - ҮЗІЛІС"},
+        {"THE HUNT BEGINS", "АҢШЫЛЫҚ БАСТАЛДЫ"},
+        {"OPPONENTS HIDE IN THESE HALLS. FIND THEM.", "ҚАРСЫЛАСТАР ДӘЛІЗДЕРДЕ ЖАСЫРЫНДЫ. ОЛАРДЫ ТАП."},
+        {"FOLLOW YOUR DEATH SENSE. WALK INTO THEM TO FIGHT.", "ӨЛІМДІ СЕЗУ БОЙЫНША ЖҮР. ШАЙҚАСУ ҮШІН ЖАҚЫНДА."},
+        {"ENGAGE ", "ШАЙҚАСУ: "}, {"[ENTER / ATTACK]", "[ENTER / ШАБУЫЛ]"},
+        {"OPPONENT FOUND", "ҚАРСЫЛАС ТАБЫЛДЫ"}, {"PAUSED", "ҮЗІЛІС"}, {"RESUME", "ЖАЛҒАСТЫРУ"},
+        {"QUIT TO TITLE", "БАСТЫ МӘЗІРГЕ ҚАЙТУ"}, {"UP / DOWN / MOUSE  CHOOSE     ENTER / CLICK  CONFIRM     ESC  RESUME",
+         "ЖОҒАРЫ / ТӨМЕН - ТАҢДАУ    ENTER / БАСУ - РАСТАУ    ESC - ЖАЛҒАСТЫРУ"},
+        {"HUNT COMPLETE", "АҢШЫЛЫҚ АЯҚТАЛДЫ"}, {"PRESS ENTER OR CLICK", "ENTER БАС НЕМЕСЕ БАСЫП ЖІБЕР"},
+        {"STANDS ALONE IN THE HALLS", "ДӘЛІЗДЕ ЖАЛҒЫЗ ҚАЛДЫ"},
+        {"ROUND", "РАУНД"}, {"WINS", "ЖЕҢДІ"}, {"IS NEAR", "ЖАҚЫНДА"},
+        {"RETRY THE FIGHT", "ШАЙҚАСТЫ ҚАЙТАЛАУ"}, {"GIVE UP", "БЕРІЛУ"}, {"REMATCH", "ҚАЙТА ШАЙҚАСУ"},
+        {"CHARACTER SELECT", "КЕЙІПКЕР ТАҢДАУ"}, {"TITLE", "БАСТЫ МӘЗІР"},
+        {"RETURNING TO THE HALLS...", "ДӘЛІЗГЕ ҚАЙТУ..."},
+        {"YOU WERE FOUND WANTING", "СЕН ЖЕҢІЛДІҢ"}, {"MOVE LIST", "ӘДІСТЕР ТІЗІМІ"},
+        {"UP / DOWN / MOUSE  CHOOSE     ENTER / CLICK  CONFIRM     ESC  RESUME",
+         "ЖОҒАРЫ / ТӨМЕН - ТАҢДАУ    ENTER / БАСУ - РАСТАУ    ESC - ЖАЛҒАСТЫРУ"},
+        {"ENTER / ESC / CLICK  BACK", "ENTER / ESC / БАСУ - АРТҚА"},
+        {"HEAT", "ҚУАТ"}, {"HITS", "СОҚҚЫ"}, {"DMG", "ЗИЯН"},
+        {"GREAT HEAT ATTACK", "ҚУАТТЫ СОҚҚЫ"}, {"HEART HEAT ATTACK", "ЖҮРЕК ҚУАТЫНЫҢ СОҚҚЫСЫ"},
+        {"RUSH MODE", "ТҰТҚИЫЛ РЕЖИМІ"}, {"MASH ATTACK!", "ШАБУЫЛДЫ ТЕЗ БАС!"},
+        {"FLASH CANCEL", "ЖЫЛДАМ ТОҚТАТУ"}, {"THROW TECH", "ЛАҚТЫРУДАН ҚОРҒАНУ"},
+        {"FIGHT", "ШАЙҚАС"}, {"FINAL ROUND", "СОҢҒЫ РАУНД"}, {"TIME OVER", "УАҚЫТ БІТТІ"},
+        {"DOUBLE K.O.", "ҚОС НОКАУТ"}, {"K.O.", "НОКАУТ"},
+        {"The Crimson Tempo", "Қанды ырғақ"}, {"The Night Glass", "Түнгі шыны"},
+        {"The Iron Choir", "Темір хоры"}, {"The Silk Echo", "Жібек жаңғырығы"},
+        {"The Gale", "Дауыл"}, {"The Ember", "Шоқ"},
+        {"BLOOD TEMPO", "ҚАНДЫ ЫРҒАҚ"}, {"NIGHT GLASS", "ТҮНГІ ШЫНЫ"},
+        {"IRON CHOIR", "ТЕМІР ХОРЫ"}, {"SILK ECHO", "ЖІБЕК ЖАҢҒЫРЫҒЫ"},
+        {"GALE MODE", "ДАУЫЛ РЕЖИМІ"}, {"EMBER MODE", "ШОҚ РЕЖИМІ"},
+        {"A brawler whose Stand beats in time with his heart. Close the distance and never stop punching.",
+         "Жүрегімен бірге соғатын стенді бар төбелескер. Жақында да, соққыны тоқтатпа."},
+        {"A calm tactician who shatters her Stand into glass shards. Keep away and punish every approach.",
+         "Стендін шыны сынықтарына айналдыратын сабырлы тактик. Арақашықтық сақтап, жақындағанды жазала."},
+        {"A giant of a man whose Stand sings like a cathedral bell. Slow, armored and devastating up close.",
+         "Стенді собор қоңырауындай үн қататын алып. Баяу, сауытты және жақыннан өте қауіпті."},
+        {"A dancer whose Stand weaves a thousand threads. Fast, slippery and relentless in the air.",
+         "Стенді мың жіпті өретін биші. Жылдам, ұстатпайды және әуеде тынымсыз шабуылдайды."},
+        {"A martial artist without a Stand. Gale Mode spends his gauge for blinding speed.",
+         "Стенді жоқ жекпе-жек шебері. Дауыл режимі қуат шкаласын жұмсап, жылдамдық береді."},
+        {"A blacksmith who burns his own stamina as fuel. Ember Mode turns every blow into a hammer strike.",
+         "Өз күшін отын ететін ұстахана шебері. Шоқ режимінде әр соққы балғаның соққысындай."},
+        {"MASTER VOLUME", "ЖАЛПЫ ДЫБЫС"}, {"MUSIC VOLUME", "МУЗЫКА ДЫБЫСЫ"},
+        {"EFFECTS VOLUME", "ӘСЕР ДЫБЫСЫ"}, {"FULLSCREEN", "ТОЛЫҚ ЭКРАН"},
+        {"VSYNC", "V-SYNC"}, {"MOUSE SENSITIVITY", "ТІЛТІРЕУІШ СЕЗІМТАЛДЫҒЫ"},
+        {"<  ON  >", "<  ҚОСУ  >"}, {"<  OFF  >", "<  ӨШІРУ  >"}, {"NONE", "ЖОҚ"},
+        {"LANGUAGE", "ТІЛ"}, {"CONTROLS   (KEYBOARD, PLAYER 1)", "БАСҚАРУ (ПЕРНЕТАҚТА, 1-ОЙЫНШЫ)"},
+        {"RESET CONTROLS TO DEFAULT", "БАСҚАРУДЫ ӘДЕПКІГЕ ҚАЙТАРУ"}, {"BACK", "АРТҚА"},
+        {"PRESS A KEY...", "ПЕРНЕНІ БАС..."},         {"PRESS THE NEW KEY     ESC  CANCEL", "ЖАҢА ПЕРНЕНІ БАС    ESC - БОЛДЫРМАУ"},
+        {"UP / DOWN  SELECT     LEFT / RIGHT  CHANGE     ENTER  REBIND / TOGGLE     BACKSPACE  CLEAR KEY     ESC  BACK",
+         "ЖОҒАРЫ / ТӨМЕН - ТАҢДАУ    СОЛ / ОҢ - ӨЗГЕРТУ    ENTER - БЕКІТУ    ESC - АРТҚА"},
+        {"MOVE UP", "ЖОҒАРЫ ҚОЗҒАЛУ"}, {"MOVE DOWN", "ТӨМЕН ҚОЗҒАЛУ"},
+        {"MOVE LEFT", "СОЛҒА ҚОЗҒАЛУ"}, {"MOVE RIGHT", "ОҢҒА ҚОЗҒАЛУ"},
+        {"LIGHT ATTACK", "ЖЕҢІЛ СОҚҚЫ"}, {"MEDIUM ATTACK", "ОРТАША СОҚҚЫ"},
+        {"HEAVY ATTACK", "АУЫР СОҚҚЫ"}, {"DASH / EVADE", "ЗЫМЫРАУ / ЖАЛТАРУ"},
+        {"LOOK LEFT", "СОЛҒА ҚАРАУ"}, {"LOOK RIGHT", "ОҢҒА ҚАРАУ"},
+        {"MODE EXHAUSTED", "РЕЖИМ ҚУАТЫ БІТТІ"}, {"STAND BREAK", "СТЕНД БҰЗЫЛДЫ"},
+        {"STAND ON", "СТЕНД ҚОСУЛЫ"}, {"STAND OFF", "СТЕНД ӨШІРУЛІ"}, {"MODE OFF", "РЕЖИМ ӨШІРУЛІ"},
+        {"ARMOR", "САУЫТ"}, {"TAUNT!", "МАЗАҚТАУ!"},
+        {"SYSTEM                                        (F = TOWARD OPPONENT, B = AWAY)",
+         "ЖҮЙЕ                                        (F = ҚАРСЫЛАСҚА, B = ҚАРСЫЛАСҚА ҚАРСЫ)"},
+        {"LIGHT J   MEDIUM K   HEAVY L        CHAIN  L > M > H    EASY BEAT: TAP J REPEATEDLY",
+         "ЖЕҢІЛ J   ОРТАША K   АУЫР L        ТІЗБЕК  L > M > H    ОҢАЙ КОМБО: J ТЕЗ БАС"},
+        {"THROW  J+K                          TAUNT  O  (DRAINS HEAT OF A DOWNED FOE)",
+         "ЛАҚТЫРУ  J+K                          МАЗАҚТАУ  O  (ҚҰЛАҒАН ЖАУДЫҢ ҚУАТЫН АЛАДЫ)"},
+        {"DASH   U + F / B  OR DOUBLE TAP     SIDESTEP (STYLISH EVADE)  U + W / S",
+         "ЗЫМЫРАУ   U + F / B  НЕМЕСЕ ЕКІ РЕТ БАСУ     ЖАЛТАРУ  U + W / S"},
+        {"STAND / MODE ON-OFF  I              STAND ON: LONGER NORMALS, STAND TAKES HITS",
+         "СТЕНД / РЕЖИМ  I              СТЕНД СОҚҚЫНЫ КҮШЕЙТЕДІ, БІРАҚ ҚУАТЫН ЖОҒАЛТАДЫ"},
+        {"FLASH CANCEL  J+K+L DURING A MOVE   COSTS 1 HEAT BAR",
+         "ӘДІСТІ ТОҚТАТУ  J+K+L   1 ҚУАТ ШКАЛАСЫН ЖҰМСАЙДЫ"},
+        {"HHA  D,DF,F + TWO ATTACKS  (1 BAR)  GHA  D,DF,F + THREE ATTACKS  (2 BARS)",
+         "HHA  D,DF,F + 2 СОҚҚЫ  (1 ШКАЛА)  GHA  D,DF,F + 3 СОҚҚЫ  (2 ШКАЛА)"},
+        {"RUSH MODE: WHEN RUSH ATTACKS COLLIDE, MASH ATTACK TO WIN THE CLASH",
+         "ТҰТҚИЫЛ: СОҚҚЫЛАР ҚАҚТЫҒЫССА, ЖЕҢУ ҮШІН ШАБУЫЛДЫ ТЕЗ БАС"},
+        {"(PROJECTILE)", "(СНАБРЯД)"}, {"(COMMAND THROW)", "(БҰЙРЫҚТЫ ЛАҚТЫРУ)"},
+        {"(RUSH)", "(ТҰТҚИЫЛ)"}, {"(ARMOR)", "(САУЫТ)"}
+    };
+    return table;
+}
+}
+
+std::string localizeText(std::string_view text, Language language) {
+    if (language == Language::English) return std::string(text);
+    const Table& table = language == Language::Russian ? russian() : kazakh();
+    if (const auto it = table.find(text); it != table.end()) return std::string(it->second);
+
+    std::string result(text);
+    struct Substitution {
+        std::string_view source;
+        std::string_view russian;
+        std::string_view kazakh;
+    };
+    constexpr std::array<Substitution, 24> dynamicPhrases = {{
+        {"OPPONENTS HIDE IN THESE HALLS. FIND THEM.", "противников скрываются в коридорах. найди их.", "қарсыластар дәліздерде жасырынды. оларды тап."},
+        {"STANDS ALONE IN THE HALLS", "остался один в этих коридорах", "дәлізде жалғыз қалды"},
+        {" IS NEAR", " рядом", " жақында"},
+        {" WINS", " побеждает", " жеңді"},
+        {"ROUND ", "Раунд ", "Раунд "},
+        {"HEAT ", "Жар ", "Қуат "},
+        {" HITS", " удара", " соққы"},
+        {" DMG", " урона", " зиян"},
+        {"ENGAGE ", "ВСТУПИТЬ В БОЙ: ", "ШАЙҚАСУ: "},
+        {" [ENTER / ATTACK]", " [ENTER / АТАКА]", " [ENTER / ШАБУЫЛ]"},
+        {"DRAMATIC FINISH", "ДРАМАТИЧНЫЙ ФИНИШ", "ӘСЕРЛІ АЯҚТАУ"},
+        {"MOVE  ", "ДВИЖЕНИЕ  ", "ҚОЗҒАЛУ  "}, {"LEFT STICK", "ЛЕВЫЙ СТИК", "СОЛ СТИК"},
+        {"LIGHT ", "ЛЁГКАЯ ", "ЖЕҢІЛ "}, {"MEDIUM ", "СРЕДНЯЯ ", "ОРТАША "},
+        {"HEAVY ", "ТЯЖЁЛАЯ ", "АУЫР "}, {"STAND / MODE", "СТЕНД / РЕЖИМ", "СТЕНД / РЕЖИМ"},
+        {"DASH / EVADE", "РЫВОК / УКЛОНЕНИЕ", "ЗЫМЫРАУ / ЖАЛТАРУ"},
+        {"TAUNT", "ПРОВОКАЦИЯ", "МАЗАҚТАУ"}, {"MENUS", "МЕНЮ", "МӘЗІР"},
+        {"ARROWS / WASD", "СТРЕЛКИ / WASD", "БАҒЫТТАУЫШ / WASD"},
+        {"PAUSE", "ПАУЗА", "ҮЗІЛІС"}, {"SCREENSHOT", "СКРИНШОТ", "СКРИНШОТ"},
+        {"GAMEPAD:", "ГЕЙМПАД:", "ГЕЙМПАД:"}
+    }};
+    for (const Substitution& phrase : dynamicPhrases) {
+        const std::string_view translated = language == Language::Russian ? phrase.russian : phrase.kazakh;
+        size_t pos = 0;
+        while ((pos = result.find(phrase.source, pos)) != std::string::npos) {
+            result.replace(pos, phrase.source.size(), translated);
+            pos += translated.size();
+        }
+    }
+    return result;
+}
+
+const char* languageName(Language language) {
+    switch (language) {
+    case Language::Russian: return "РУССКИЙ";
+    case Language::Kazakh: return "ҚАЗАҚША";
+    default: return "ENGLISH";
+    }
+}
+
+} // namespace dc

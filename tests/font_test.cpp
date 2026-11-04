@@ -23,7 +23,7 @@ int main() {
         for (float size : {12.6f, 15.3f, 27.0f, 72.0f}) {
             const auto title = font.layout("DEATH COMBAT", size, face);
             const auto twice = font.layout("DEATH COMBAT", size * 2, face);
-            check(title.quads.size() == 11 - 1 && title.width > 0, "spaces advance without drawing");
+            check(title.quads.size() == 11 && title.width > 0, "spaces advance without drawing");
             check(std::fabs(twice.width - title.width * 2) < 0.001f, "measurement scales with rendered text");
             check(font.layout("WWW", size, face).width > font.layout("III", size, face).width * 1.5f, "proportional character widths");
             const auto av = font.layout("AV", size, face);
@@ -43,7 +43,9 @@ int main() {
             check(std::fabs(lines.width - font.layout("WW", size, face).width) < 0.001f, "multiline width is longest line");
             check(lines.quads.back().y0 > lines.quads.front().y0, "new line advances vertically");
             check(font.layout("", size, face).width == 0 && font.layout(" ", size, face).quads.empty(), "empty text and whitespace");
-            check(font.layout("\xd0\x96", size, face).quads.size() == 1, "unsupported UTF-8 becomes one visible fallback");
+            check(font.layout("\xd0\x96", size, face).quads.size() == 1, "Cyrillic glyph is rendered");
+            check(font.layout(u8"ӘәҒғҚқҢңӨөҰұҮүҺһІі", size, face).quads.size() == 18,
+                "Kazakh-specific Cyrillic glyphs are rendered");
             check(font.layout("\xff", size, face).quads.size() == 1, "invalid UTF-8 is safe");
         }
     }

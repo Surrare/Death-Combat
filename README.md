@@ -51,6 +51,9 @@ that matches finish and the mechanics fire:
 
 ## How to play
 
+The interface is available in English, Russian, and Kazakh. Change **Language** in **Settings**;
+your choice is saved with the other settings.
+
 ### Modes
 
 - **HUNT MODE** – choose a hunter, then search the corridors for the other five fighters. Beat them all.
@@ -118,7 +121,7 @@ that matches finish and the mechanics fire:
 ## Project layout
 
 ```
-src/core        math, embedded 5x7 font, PNG writer
+src/core        math, embedded TrueType/SDF fonts, localization, PNG writer
 src/gfx         shaders, procedural meshes, forward renderer (shadow map, point lights, fog, particles, 2D HUD)
 src/game        input, roster & move data, fight simulation (60 Hz fixed step), fight AI,
                 procedural humanoid rig & animation, maze generator, hunt phase, app / scenes / HUD

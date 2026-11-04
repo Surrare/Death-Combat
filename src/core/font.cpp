@@ -1,6 +1,8 @@
 #include "core/font.h"
 #include "font_body.h"
 #include "font_display.h"
+#include "font_cyrillic_body.h"
+#include "font_cyrillic_display.h"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -28,6 +30,40 @@ unsigned int nextCodepoint(std::string_view text, size_t& offset) {
         || value > 0x10ffff || (value >= 0xd800 && value <= 0xdfff)) return '?';
     return value;
 }
+}
+
+unsigned int FontAtlas::codepointForIndex(int index) {
+    if (index < ASCII_COUNT) return ASCII_FIRST + index;
+    index -= ASCII_COUNT;
+    if (index < 64) return 0x0410 + index;
+    index -= 64;
+    if (index == 0) return 0x0401;
+    if (index == 1) return 0x0451;
+    index -= 2;
+    constexpr unsigned int kazakh[] = {
+        0x0406, 0x0456, 0x0492, 0x0493, 0x049a, 0x049b, 0x04a2, 0x04a3, 0x04ae,
+        0x04af, 0x04b0, 0x04b1, 0x04ba, 0x04bb, 0x04d8, 0x04d9, 0x04e8, 0x04e9
+    };
+    return kazakh[index];
+}
+
+int FontAtlas::indexForCodepoint(unsigned int codepoint) {
+    if (codepoint >= ASCII_FIRST && codepoint < ASCII_FIRST + ASCII_COUNT)
+        return static_cast<int>(codepoint - ASCII_FIRST);
+    if (codepoint >= 0x0410 && codepoint <= 0x044f)
+        return ASCII_COUNT + static_cast<int>(codepoint - 0x0410);
+    if (codepoint == 0x0401) return ASCII_COUNT + 64;
+    if (codepoint == 0x0451) return ASCII_COUNT + 65;
+    constexpr unsigned int kazakh[] = {
+        0x0406, 0x0456, 0x0492, 0x0493, 0x049a, 0x049b, 0x04a2, 0x04a3, 0x04ae,
+        0x04af, 0x04b0, 0x04b1, 0x04ba, 0x04bb, 0x04d8, 0x04d9, 0x04e8, 0x04e9
+    };
+    for (int i = 0; i < static_cast<int>(std::size(kazakh)); ++i)
+        if (codepoint == kazakh[i]) return ASCII_COUNT + 66 + i;
+    return -1;
+}
+
+namespace {
 struct SdfDeleter {
     void operator()(unsigned char* pixels) const { stbtt_FreeSDF(pixels, nullptr); }
 };
@@ -38,24 +74,32 @@ bool FontAtlas::build() {
     pixels_.assign(WIDTH * HEIGHT, 0);
     int penX = 1, penY = 1, rowHeight = 0;
     const unsigned char* sources[] = {font_data::font_body, font_data::font_display};
+    const unsigned char* cyrillicSources[] = {font_data::font_cyrillic_body, font_data::font_cyrillic_display};
     for (int face = 0; face < 2; ++face) {
         stbtt_fontinfo info{};
         if (!stbtt_InitFont(&info, sources[face], 0)) return false;
+        stbtt_fontinfo cyrillicInfo{};
+        if (!stbtt_InitFont(&cyrillicInfo, cyrillicSources[face], 0)) return false;
         int x0, y0, x1, y1;
         if (!stbtt_GetCodepointBox(&info, 'H', &x0, &y0, &x1, &y1) || y1 <= y0) return false;
         const float scale = CAP_HEIGHT / static_cast<float>(y1 - y0);
+        if (!stbtt_GetCodepointBox(&cyrillicInfo, 'H', &x0, &y0, &x1, &y1) || y1 <= y0) return false;
+        const float cyrillicScale = CAP_HEIGHT / static_cast<float>(y1 - y0);
         int ascent, descent, gap;
         stbtt_GetFontVMetrics(&info, &ascent, &descent, &gap);
         lineHeights_[face] = static_cast<float>(ascent - descent + gap) * scale;
         for (int index = 0; index < COUNT; ++index) {
-            const int codepoint = FIRST + index;
+            const bool isCyrillic = index >= ASCII_COUNT;
+            stbtt_fontinfo& glyphFont = isCyrillic ? cyrillicInfo : info;
+            const float glyphScale = isCyrillic ? cyrillicScale : scale;
+            const int codepoint = static_cast<int>(codepointForIndex(index));
             Glyph glyph;
             int advance, bearing;
-            stbtt_GetCodepointHMetrics(&info, codepoint, &advance, &bearing);
-            glyph.advance = static_cast<float>(advance) * scale;
-            std::unique_ptr<unsigned char, SdfDeleter> sdf(stbtt_GetCodepointSDF(&info, scale, codepoint,
+            stbtt_GetCodepointHMetrics(&glyphFont, codepoint, &advance, &bearing);
+            glyph.advance = static_cast<float>(advance) * glyphScale;
+            std::unique_ptr<unsigned char, SdfDeleter> sdf(stbtt_GetCodepointSDF(&glyphFont, glyphScale, codepoint,
                 5, 128, 32.0f, &glyph.width, &glyph.height, &glyph.offsetX, &glyph.offsetY));
-            if (codepoint != ' ' && !sdf) return false;
+            if (!sdf && codepoint != ' ') return false;
             if (sdf) {
                 if (penX + glyph.width + 1 > WIDTH) {
                     penX = 1; penY += rowHeight + 1; rowHeight = 0;
@@ -69,8 +113,12 @@ bool FontAtlas::build() {
                 rowHeight = std::max(rowHeight, glyph.height);
             }
             glyphs_[face][index] = glyph;
-            for (int next = 0; next < COUNT; ++next)
-                kerning_[face][index * COUNT + next] = static_cast<float>(stbtt_GetCodepointKernAdvance(&info, codepoint, FIRST + next)) * scale;
+            for (int next = 0; next < COUNT; ++next) {
+                if (isCyrillic != (next >= ASCII_COUNT)) continue;
+                const int nextCodepoint = static_cast<int>(codepointForIndex(next));
+                kerning_[face][index * COUNT + next] =
+                    static_cast<float>(stbtt_GetCodepointKernAdvance(&glyphFont, codepoint, nextCodepoint)) * glyphScale;
+            }
         }
     }
     ready_ = true;
@@ -102,8 +150,8 @@ TextLayout FontAtlas::layout(std::string_view text, float capHeight, FontFace fa
             x += glyphs_[faceIndex][0].advance * factor * 4; previous = -1;
             continue;
         }
-        if (codepoint < FIRST || codepoint >= FIRST + COUNT) codepoint = '?';
-        const int index = static_cast<int>(codepoint) - FIRST;
+        int index = indexForCodepoint(codepoint);
+        if (index < 0) index = indexForCodepoint('?');
         const Glyph& glyph = glyphs_[faceIndex][index];
         if (previous >= 0) x += kerning_[faceIndex][previous * COUNT + index] * factor + tracking;
         if (glyph.width > 0 && glyph.height > 0) {
