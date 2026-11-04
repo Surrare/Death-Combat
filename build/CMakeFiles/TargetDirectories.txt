@@ -1,5 +1,10 @@
+/home/dus/Softgays/Death-Combat/build/CMakeFiles/dc_font.dir
+/home/dus/Softgays/Death-Combat/build/CMakeFiles/dc_localization.dir
 /home/dus/Softgays/Death-Combat/build/CMakeFiles/DeathCombat.dir
 /home/dus/Softgays/Death-Combat/build/CMakeFiles/DeathCombatSimTest.dir
+/home/dus/Softgays/Death-Combat/build/CMakeFiles/DeathCombatRigTest.dir
+/home/dus/Softgays/Death-Combat/build/CMakeFiles/DeathCombatFontTest.dir
+/home/dus/Softgays/Death-Combat/build/CMakeFiles/DeathCombatLocalizationTest.dir
 /home/dus/Softgays/Death-Combat/build/CMakeFiles/test.dir
 /home/dus/Softgays/Death-Combat/build/CMakeFiles/edit_cache.dir
 /home/dus/Softgays/Death-Combat/build/CMakeFiles/rebuild_cache.dir
