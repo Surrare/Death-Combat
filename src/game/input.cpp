@@ -20,7 +20,9 @@ static float deadzone(float v) {
     return (a - dz) / (1.0f - dz) * (v < 0 ? -1.0f : 1.0f);
 }
 
-void Input::poll() {
+void Input::poll(float dt) {
+    // key and stick look are rates; scale them so camera speed does not depend on frame rate (1.0 at 60 FPS)
+    const float rate = dt * 60.0f;
     auto key = [&](int k) { return glfwGetKey(window_, k) == GLFW_PRESS; };
 
     uint32_t held[2] = {0, 0};
@@ -43,8 +45,8 @@ void Input::poll() {
     if (bound(Action::Taunt)) held[0] |= BTN_TAUNT;
     if (key(GLFW_KEY_ENTER)) held[0] |= BTN_START;
     if (key(GLFW_KEY_ESCAPE)) held[0] |= BTN_BACK;
-    if (bound(Action::LookLeft)) lx[0] -= 1.0f;
-    if (bound(Action::LookRight)) lx[0] += 1.0f;
+    if (bound(Action::LookLeft)) lx[0] -= rate;
+    if (bound(Action::LookRight)) lx[0] += rate;
 
     // first newly pressed key, used by the rebinding screen
     newKey_ = 0;
@@ -116,8 +118,8 @@ void Input::poll() {
         if (sx > 0.5f) held[p] |= BTN_RIGHT;
         if (sy > 0.5f) held[p] |= BTN_UP;
         if (sy < -0.5f) held[p] |= BTN_DOWN;
-        lx[p] += deadzone(gs.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]) * 3.0f;
-        ly[p] += deadzone(gs.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]) * 3.0f;
+        lx[p] += deadzone(gs.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]) * 3.0f * rate;
+        ly[p] += deadzone(gs.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]) * 3.0f * rate;
         if (gs.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] > 0.5f) held[p] |= BTN_DASH;
     }
 

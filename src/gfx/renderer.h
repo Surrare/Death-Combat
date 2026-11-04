@@ -49,6 +49,8 @@ public:
     void setDirectionalLight(const Vec3& dir, const Vec3& color, float ambient);
     void setShadowFocus(const Vec3& center, float extent) { shadowCenter_ = center; shadowExtent_ = extent; }
     void setFog(const Vec3& color, float density) { fogColor_ = color; fogDensity_ = density; }
+    void setRimColor(const Vec3& c) { rimColor_ = c; }   // edge light on characters / props
+    void setOutline(float strength) { outlineStrength_ = strength; }   // 0 = off; screen-space ink outline
     void clearPointLights() { pointLights_.clear(); }
     void addPointLight(const Vec3& pos, const Vec3& color, float radius) { pointLights_.push_back({pos, color, radius}); }
 
@@ -85,6 +87,10 @@ private:
     void renderScenePass();
     void renderUnlit(std::vector<UnlitVertex>& verts, Blend blend);
     void renderUi();
+    // post-processing: scene is rendered to an HDR MSAA target, then bloom + outlines + grading are applied
+    void createTargets(int w, int h);
+    void destroyTargets();
+    void renderPost();
 
     int width_ = 1280, height_ = 720;
     Camera cam_;
@@ -103,7 +109,13 @@ private:
     std::vector<UnlitVertex> unlitAlpha_, unlitAdd_;
     std::vector<UiVertex> ui_;
 
-    Shader lit_, depth_, unlit_, ui2d_;
+    Shader lit_, depth_, unlit_, ui2d_, bright_, blur_, composite_;
+    GLuint msaaFbo_ = 0, msaaColor_ = 0, msaaDepth_ = 0, resolveFbo_ = 0, sceneTex_ = 0, depthTex_ = 0, postVao_ = 0;
+    GLuint bloomFbo_[2] = {0, 0}, bloomTex_[2] = {0, 0};
+    int targetW_ = 0, targetH_ = 0;
+    bool postOk_ = false;
+    float outlineStrength_ = 0.7f;
+    Vec3 rimColor_{0.45f, 0.6f, 1.0f};
     GLuint shadowFbo_ = 0, shadowTex_ = 0;
     int shadowSize_ = 2048;
     GLuint unlitVao_ = 0, unlitVbo_ = 0;

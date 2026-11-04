@@ -170,6 +170,7 @@ bool FightSim::tryStartMove(Fighter& f, Fighter& o, uint32_t group, bool fromCan
     bool air = !f.grounded();
     auto at = [&](int k) { return f.dirHistory[((f.histHead - 1 - k) % 32 + 32) % 32]; };
     int cur = at(0);
+    int rel = ((cur - 1) % 3) - 1;
     bool holdingDown = cur == 1 || cur == 2 || cur == 3;
     Stance stance = air ? Stance::Air : (holdingDown ? Stance::Crouch : Stance::Ground);
     int nAtk = popcount(group & ATTACK_MASK);
@@ -205,6 +206,9 @@ bool FightSim::tryStartMove(Fighter& f, Fighter& o, uint32_t group, bool fromCan
     });
 
     uint32_t strongest = (group & BTN_HEAVY) ? BTN_HEAVY : ((group & BTN_MEDIUM) ? BTN_MEDIUM : BTN_LIGHT);
+    const bool simpleDp = rel > 0 && strongest == BTN_HEAVY && nAtk == 1;
+    const bool simpleQcf = rel > 0 && !simpleDp;
+    const bool simpleQcb = rel < 0;
 
     for (const Move* mp : cands) {
         const Move& m = *mp;
@@ -212,16 +216,20 @@ bool FightSim::tryStartMove(Fighter& f, Fighter& o, uint32_t group, bool fromCan
         bool ok = false;
         switch (m.kind) {
             case MoveKind::GHA:
-                ok = nAtk == 3 && qcf && f.hhg >= 2000 && !air;
+                ok = nAtk == 3 && (qcf || simpleQcf) && f.hhg >= 2000 && !air;
                 break;
             case MoveKind::HHA:
-                ok = nAtk == 2 && qcf && f.hhg >= 1000 && !air;
+                ok = nAtk == 2 && (qcf || simpleQcf) && f.hhg >= 1000 && !air;
                 break;
             case MoveKind::Throw:
                 ok = nAtk == 2 && (group & BTN_LIGHT) && (group & BTN_MEDIUM) && !qcf && !air && !fromCancel;
                 break;
             case MoveKind::Special:
-                ok = (group & m.buttons) != 0 && nAtk == 1 && !air && motionDetected(f, m.motion);
+                ok = (group & m.buttons) != 0 && nAtk == 1 && !air &&
+                     (motionDetected(f, m.motion) ||
+                      (m.motion == Motion::QCF && simpleQcf) ||
+                      (m.motion == Motion::QCB && simpleQcb) ||
+                      (m.motion == Motion::DP && simpleDp));
                 if (ok && fromCancel) ok = cur_move && cur_move->kind == MoveKind::Normal && cur_move->specialCancel;
                 break;
             case MoveKind::Normal:
@@ -789,7 +797,7 @@ void FightSim::checkRoundEnd() {
         }
     }
     if (winner_ >= 0) f_[winner_].roundsWon++;
-    emit(FightEvent::KO, Vec3(0, 1.5f, 0), dramatic_ ? 2.0f : 1.0f, winner_, ko >= 0 ? (dramatic_ ? "DRAMATIC FINISH" : "K.O.") : (ko == 2 ? "DOUBLE K.O." : "TIME OVER"));
+    emit(FightEvent::KO, Vec3(0, 1.5f, 0), dramatic_ ? 2.0f : 1.0f, winner_, ko == 2 ? "DOUBLE K.O." : (ko >= 0 ? (dramatic_ ? "DRAMATIC FINISH" : "K.O.") : "TIME OVER"));
     shake_ = 1.0f;
 }
 

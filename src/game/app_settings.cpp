@@ -119,6 +119,10 @@ void App::updateSettings(float dt) {
 void App::renderSettings() {
     renderer_.beginFrame(Camera(), Color(0.02f, 0.02f, 0.03f));
     float cx = width_ * 0.5f;
+    renderer_.rect(cx - 350, 8, 700, height_ - 16, Color(0.012f, 0.01f, 0.016f, 0.96f));
+    renderer_.rectOutline(cx - 350, 8, 700, height_ - 16, 2, Color(0.7f, 0.1f, 0.14f, 0.85f));
+    renderer_.rect(cx - 350, 8, 700, 4, RED);
+    renderer_.rect(cx - 322, 69, 644, 1, Color(1.0f, 0.82f, 0.3f, 0.45f));
     renderer_.textCentered(cx, 24, "SETTINGS", 4, GOLD);
 
     const float rowH = settingsRowH(height_);
@@ -133,7 +137,12 @@ void App::renderSettings() {
         float y = settingsRowY(r, rowH);
         if (r == ROW_KEYS) renderer_.text(labelX, y - 22, "CONTROLS   (KEYBOARD, PLAYER 1)", 1.6f, CYAN);
         bool sel = r == settingsIndex_;
-        if (sel) renderer_.rect(labelX - 12, y - 4, 640, rowH - 2, Color(0.9f, 0.15f, 0.2f, 0.3f));
+        if (r != ROW_KEYS && r < ROW_RESET)
+            renderer_.rect(labelX - 12, y + rowH - 4, 640, 1, Color(0.7f, 0.7f, 0.8f, 0.09f));
+        if (sel) {
+            renderer_.rect(labelX - 12, y - 4, 640, rowH - 2, Color(0.55f, 0.04f, 0.08f, 0.45f));
+            renderer_.rect(labelX - 12, y - 4, 3, rowH - 2, GOLD);
+        }
         Color col = sel ? GOLD : WHITE;
         std::string label, value;
         int sliderValue = -1;

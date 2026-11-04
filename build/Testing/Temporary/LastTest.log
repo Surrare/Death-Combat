@@ -1,0 +1,115 @@
+Start testing: Nov 04 19:46 +05
+----------------------------------------------------------
+1/4 Testing: sim_smoke
+1/4 Test: sim_smoke
+Command: "/home/dus/Softgays/Death-Combat/build/DeathCombatSimTest"
+Directory: /home/dus/Softgays/Death-Combat/build
+"sim_smoke" start time: Nov 04 19:46 +05
+Output:
+----------------------------------------------------------
+KAIN    vs VESPER   rounds 3  winner KAIN  frames 6332
+KAIN    vs ORSOLO   rounds 2  winner KAIN  frames 3791
+KAIN    vs MIRA     rounds 3  winner MIRA  frames 5830
+KAIN    vs KAZE     rounds 2  winner KAIN  frames 3765
+KAIN    vs BRAM     rounds 2  winner KAIN  frames 3772
+VESPER  vs KAIN     rounds 2  winner KAIN  frames 4131
+VESPER  vs ORSOLO   rounds 2  winner ORSOLO  frames 4770
+VESPER  vs MIRA     rounds 3  winner VESPER  frames 6591
+VESPER  vs KAZE     rounds 2  winner VESPER  frames 4308
+VESPER  vs BRAM     rounds 3  winner VESPER  frames 6808
+ORSOLO  vs KAIN     rounds 3  winner ORSOLO  frames 6932
+ORSOLO  vs VESPER   rounds 3  winner VESPER  frames 5631
+ORSOLO  vs MIRA     rounds 2  winner ORSOLO  frames 4387
+ORSOLO  vs KAZE     rounds 3  winner KAZE  frames 5206
+ORSOLO  vs BRAM     rounds 3  winner ORSOLO  frames 5488
+MIRA    vs KAIN     rounds 3  winner KAIN  frames 7703
+MIRA    vs VESPER   rounds 3  winner VESPER  frames 6108
+MIRA    vs ORSOLO   rounds 2  winner MIRA  frames 4854
+MIRA    vs KAZE     rounds 2  winner KAZE  frames 3709
+MIRA    vs BRAM     rounds 2  winner BRAM  frames 4834
+KAZE    vs KAIN     rounds 3  winner KAIN  frames 5317
+KAZE    vs VESPER   rounds 3  winner VESPER  frames 6294
+KAZE    vs ORSOLO   rounds 2  winner ORSOLO  frames 4071
+KAZE    vs MIRA     rounds 3  winner MIRA  frames 7209
+KAZE    vs BRAM     rounds 2  winner BRAM  frames 5141
+BRAM    vs KAIN     rounds 3  winner BRAM  frames 5702
+BRAM    vs VESPER   rounds 2  winner BRAM  frames 3468
+BRAM    vs ORSOLO   rounds 3  winner BRAM  frames 5869
+BRAM    vs MIRA     rounds 2  winner MIRA  frames 4616
+BRAM    vs KAZE     rounds 2  winner BRAM  frames 4646
+
+matches 30, hits 1788, max combo 11, clashes 2, projectile-frames 1855
+  Hit          1788
+  Block        564
+  Throw        19
+  Spark        145
+  Text         427
+  Projectile   124
+  Clash        2
+  StyleBreak   27
+  FlashCancel  0
+  KO           75
+  RoundStart   45
+  MoveName     1385
+  Dust         1167
+  Land         681
+  Tech         1
+
+OK
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"sim_smoke" end time: Nov 04 19:46 +05
+"sim_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/4 Testing: rig_grounding
+2/4 Test: rig_grounding
+Command: "/home/dus/Softgays/Death-Combat/build/DeathCombatRigTest"
+Directory: /home/dus/Softgays/Death-Combat/build
+"rig_grounding" start time: Nov 04 19:46 +05
+Output:
+----------------------------------------------------------
+Rig grounding: 774642 checks, 0 failures
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Passed.
+"rig_grounding" end time: Nov 04 19:46 +05
+"rig_grounding" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/4 Testing: font_layout
+3/4 Test: font_layout
+Command: "/home/dus/Softgays/Death-Combat/build/DeathCombatFontTest"
+Directory: /home/dus/Softgays/Death-Combat/build
+"font_layout" start time: Nov 04 19:46 +05
+Output:
+----------------------------------------------------------
+Font layout: 2350 checks, 0 failures
+<end of output>
+Test time =   0.67 sec
+----------------------------------------------------------
+Test Passed.
+"font_layout" end time: Nov 04 19:46 +05
+"font_layout" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/4 Testing: localization
+4/4 Test: localization
+Command: "/home/dus/Softgays/Death-Combat/build/DeathCombatLocalizationTest"
+Directory: /home/dus/Softgays/Death-Combat/build
+"localization" start time: Nov 04 19:46 +05
+Output:
+----------------------------------------------------------
+Localization: 0 failures
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"localization" end time: Nov 04 19:46 +05
+"localization" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 04 19:46 +05

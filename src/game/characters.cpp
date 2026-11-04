@@ -234,6 +234,16 @@ Character base(const char* name, const char* title, const char* styleName, Style
     return c;
 }
 
+
+Look makeLook(HairStyle hair, StandDesign stand, uint32_t acc, float shoulders, float torso, float arms, float legs, float head,
+              Color skin, Color pants, Color boots, Color cloth) {
+    Look l;
+    l.hair = hair; l.stand = stand; l.acc = acc;
+    l.shoulders = shoulders; l.torso = torso; l.arms = arms; l.legs = legs; l.head = head;
+    l.skin = skin; l.pants = pants; l.boots = boots; l.cloth = cloth;
+    return l;
+}
+
 std::vector<Character> buildRoster() {
     std::vector<Character> r;
 
@@ -242,7 +252,9 @@ std::vector<Character> buildRoster() {
         Character c = base("KAIN", "The Crimson Tempo", "BLOOD TEMPO", StyleType::Stand,
             Color(0.55f, 0.08f, 0.10f), Color(0.95f, 0.85f, 0.60f), Color(0.08f, 0.06f, 0.08f), Color(1.0f, 0.15f, 0.2f),
             "A brawler whose Stand beats in time with his heart. Close the distance and never stop punching.");
-        c.hp = 1050;
+        c.look = makeLook(HairStyle::Spiky, StandDesign::Heart,
+            ACC_VEST | ACC_BARE_ARMS | ACC_WRAPS | ACC_HEADBAND | ACC_BELT | ACC_BOOTS, 1.10f, 1.08f, 1.12f, 1.0f, 1.0f,
+            Color(0.86f, 0.62f, 0.47f), Color(0.10f, 0.09f, 0.11f), Color(0.24f, 0.07f, 0.07f), Color(0.12f, 0.1f, 0.12f));
         addUniversal(c);
         addRush(c, "Tempo Rush", Motion::QCF, 3, 28, 0.045f, true);
         addUppercut(c, "Crimson Riser", Motion::DP, AnimKind::Uppercut, 110);
@@ -255,7 +267,10 @@ std::vector<Character> buildRoster() {
         Character c = base("VESPER", "The Night Glass", "NIGHT GLASS", StyleType::Stand,
             Color(0.18f, 0.10f, 0.32f), Color(0.80f, 0.75f, 0.95f), Color(0.85f, 0.85f, 0.95f), Color(0.65f, 0.30f, 1.0f),
             "A calm tactician who shatters her Stand into glass shards. Keep away and punish every approach.");
-        c.hp = 950; c.walkSpeed = 0.052f;
+        c.walkSpeed = 0.052f;
+        c.look = makeLook(HairStyle::LongFlow, StandDesign::Crystal,
+            ACC_COAT | ACC_SCARF | ACC_VISOR | ACC_BELT | ACC_BOOTS, 0.88f, 0.88f, 0.85f, 0.92f, 0.98f,
+            Color(0.96f, 0.84f, 0.78f), Color(0.08f, 0.06f, 0.14f), Color(0.13f, 0.09f, 0.22f), Color(0.24f, 0.13f, 0.42f));
         addUniversal(c);
         addProjectile(c, "Glass Shards", Motion::QCF, 70, false, 0.20f, true);
         addUppercut(c, "Rising Prism", Motion::DP, AnimKind::Launcher, 95);
@@ -268,7 +283,10 @@ std::vector<Character> buildRoster() {
         Character c = base("ORSOLO", "The Iron Choir", "IRON CHOIR", StyleType::Stand,
             Color(0.30f, 0.30f, 0.34f), Color(0.80f, 0.60f, 0.25f), Color(0.45f, 0.40f, 0.35f), Color(0.75f, 0.80f, 0.90f),
             "A giant of a man whose Stand sings like a cathedral bell. Slow, armored and devastating up close.");
-        c.hp = 1200; c.walkSpeed = 0.045f; c.backSpeed = 0.035f; c.height = 2.05f;
+        c.walkSpeed = 0.045f; c.backSpeed = 0.035f; c.height = 2.05f;
+        c.look = makeLook(HairStyle::Bald, StandDesign::Bell,
+            ACC_PAULDRONS | ACC_BELT | ACC_BEARD | ACC_TABARD | ACC_GAUNTLETS | ACC_BOOTS, 1.30f, 1.28f, 1.35f, 1.15f, 1.05f,
+            Color(0.74f, 0.52f, 0.40f), Color(0.17f, 0.15f, 0.15f), Color(0.12f, 0.10f, 0.08f), Color(0.62f, 0.15f, 0.18f));
         addUniversal(c);
         addCharge(c, "Choir Lariat", Motion::QCF, AnimKind::Lariat, 120, true);
         addCommandThrow(c, "Iron Embrace", Motion::QCB, 180);
@@ -281,7 +299,10 @@ std::vector<Character> buildRoster() {
         Character c = base("MIRA", "The Silk Echo", "SILK ECHO", StyleType::Stand,
             Color(0.90f, 0.45f, 0.65f), Color(1.0f, 0.95f, 0.95f), Color(0.95f, 0.60f, 0.30f), Color(1.0f, 0.55f, 0.85f),
             "A dancer whose Stand weaves a thousand threads. Fast, slippery and relentless in the air.");
-        c.hp = 900; c.walkSpeed = 0.064f; c.backSpeed = 0.05f; c.jumpVel = 0.215f;
+        c.walkSpeed = 0.064f; c.backSpeed = 0.05f; c.jumpVel = 0.215f;
+        c.look = makeLook(HairStyle::Ponytail, StandDesign::Silk,
+            ACC_BARE_ARMS | ACC_SKIRT | ACC_RIBBONS | ACC_SASH | ACC_BOOTS, 0.85f, 0.84f, 0.80f, 0.95f, 1.0f,
+            Color(0.97f, 0.80f, 0.70f), Color(0.28f, 0.12f, 0.24f), Color(0.97f, 0.92f, 0.92f), Color(1.0f, 0.95f, 0.95f));
         addUniversal(c);
         addRush(c, "Echo Needle", Motion::QCF, 4, 20, 0.05f, true, -2);
         addSlide(c, "Silk Veil", Motion::QCB, 85);
@@ -294,7 +315,10 @@ std::vector<Character> buildRoster() {
         Character c = base("KAZE", "The Gale", "GALE MODE", StyleType::Mode,
             Color(0.10f, 0.40f, 0.25f), Color(0.85f, 0.95f, 0.70f), Color(0.10f, 0.10f, 0.12f), Color(0.35f, 1.0f, 0.55f),
             "A martial artist without a Stand. Gale Mode spends his gauge for blinding speed.");
-        c.hp = 950; c.walkSpeed = 0.060f; c.backSpeed = 0.048f; c.jumpVel = 0.21f;
+        c.walkSpeed = 0.060f; c.backSpeed = 0.048f; c.jumpVel = 0.21f;
+        c.look = makeLook(HairStyle::TopKnot, StandDesign::None,
+            ACC_VEST | ACC_BARE_ARMS | ACC_WRAPS | ACC_HEADBAND | ACC_SASH, 0.98f, 0.96f, 0.95f, 1.0f, 1.0f,
+            Color(0.89f, 0.69f, 0.52f), Color(0.80f, 0.86f, 0.78f), Color(0.30f, 0.22f, 0.16f), Color(0.96f, 0.96f, 0.92f));
         addUniversal(c);
         addRush(c, "Gale Kick", Motion::QCF, 3, 30, 0.07f, false);
         addSlide(c, "Tailwind", Motion::QCB, 90);
@@ -307,7 +331,10 @@ std::vector<Character> buildRoster() {
         Character c = base("BRAM", "The Ember", "EMBER MODE", StyleType::Mode,
             Color(0.55f, 0.30f, 0.10f), Color(1.0f, 0.75f, 0.30f), Color(0.80f, 0.30f, 0.10f), Color(1.0f, 0.55f, 0.15f),
             "A blacksmith who burns his own stamina as fuel. Ember Mode turns every blow into a hammer strike.");
-        c.hp = 1100; c.walkSpeed = 0.05f; c.backSpeed = 0.04f;
+        c.walkSpeed = 0.05f; c.backSpeed = 0.04f;
+        c.look = makeLook(HairStyle::Mohawk, StandDesign::None,
+            ACC_BARE_ARMS | ACC_APRON | ACC_GAUNTLETS | ACC_GOGGLES | ACC_BELT | ACC_BEARD | ACC_BOOTS | ACC_HAMMER, 1.20f, 1.25f, 1.30f, 1.10f, 1.02f,
+            Color(0.66f, 0.44f, 0.32f), Color(0.20f, 0.14f, 0.10f), Color(0.12f, 0.09f, 0.07f), Color(0.38f, 0.22f, 0.11f));
         addUniversal(c);
         addCharge(c, "Ember Fist", Motion::QCF, AnimKind::StraightR, 130, true);
         addProjectile(c, "Cinder Wave", Motion::QCB, 80, true, 0.14f, false);

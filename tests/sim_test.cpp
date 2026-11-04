@@ -12,6 +12,50 @@ using namespace dc;
 int main() {
     const auto& ros = roster();
     int failures = 0;
+    auto simpleMoveWorks = [&](const Character& character, Motion motion, int dirX, int dirY,
+                               uint32_t button, MoveKind kind, float startingHeat) {
+        FightSim sim;
+        sim.init(&character, &ros[(static_cast<size_t>(&character - ros.data()) + 1) % ros.size()], 2);
+        sim.fighter(0).hhg = startingHeat;
+        SimInput neutral;
+        for (int i = 0; i < 150; ++i) sim.step(neutral, neutral);
+        SimInput input;
+        input.dirX = dirX;
+        input.dirY = dirY;
+        input.pressed = button;
+        sim.step(input, neutral);
+        input.pressed = 0;
+        sim.step(input, neutral);
+        const Move* move = sim.fighter(0).move;
+        return move && move->kind == kind && move->motion == motion;
+    };
+    for (const Character& character : ros) {
+        if (character.hp != Character::BASE_HP) {
+            std::printf("Unequal HP for %s: %.0f\n", character.name.c_str(), character.hp);
+            failures++;
+        }
+        if (!simpleMoveWorks(character, Motion::QCF, 1, 0, BTN_LIGHT, MoveKind::Special, 0)) {
+            std::printf("Forward + Light failed for %s\n", character.name.c_str());
+            failures++;
+        }
+        if (!simpleMoveWorks(character, Motion::QCB, -1, 0, BTN_LIGHT, MoveKind::Special, 0)) {
+            std::printf("Back + Light failed for %s\n", character.name.c_str());
+            failures++;
+        }
+        if (!simpleMoveWorks(character, Motion::DP, 1, 0, BTN_HEAVY, MoveKind::Special, 0)) {
+            std::printf("Forward + Heavy failed for %s\n", character.name.c_str());
+            failures++;
+        }
+        if (!simpleMoveWorks(character, Motion::QCF, 1, 0, BTN_LIGHT | BTN_MEDIUM, MoveKind::HHA, 1000)) {
+            std::printf("Forward + Light/Medium HHA failed for %s\n", character.name.c_str());
+            failures++;
+        }
+        if (!simpleMoveWorks(character, Motion::QCF, 1, 0, BTN_LIGHT | BTN_MEDIUM | BTN_HEAVY, MoveKind::GHA, 2000)) {
+            std::printf("Forward + Light/Medium/Heavy GHA failed for %s\n", character.name.c_str());
+            failures++;
+        }
+    }
+
     std::map<std::string, int> eventCounts;
     int totalHits = 0, matches = 0, projectilesSeen = 0, maxCombo = 0, clashes = 0;
     for (int a = 0; a < (int)ros.size(); ++a)

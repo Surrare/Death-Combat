@@ -58,13 +58,48 @@ struct Move {
     int totalFrames() const { return startup + active + recovery; }
 };
 
+// Visual identity. Everything is built from boxes / ellipsoids / cones in the rig renderer, no assets.
+enum class HairStyle { Cropped, Spiky, LongFlow, Ponytail, Mohawk, TopKnot, Bald };
+enum class StandDesign { None, Heart, Crystal, Bell, Silk };
+enum Accessory : uint32_t {
+    ACC_VEST = 1u << 0,        // open vest: bare chest between two cloth panels
+    ACC_BARE_ARMS = 1u << 1,
+    ACC_WRAPS = 1u << 2,       // bandaged forearms and fists
+    ACC_GAUNTLETS = 1u << 3,   // armoured forearms
+    ACC_HEADBAND = 1u << 4,    // with trailing tails
+    ACC_BELT = 1u << 5,
+    ACC_SASH = 1u << 6,        // knotted waist sash with hanging tails
+    ACC_BOOTS = 1u << 7,
+    ACC_COAT = 1u << 8,        // long coat tails and high collar
+    ACC_SCARF = 1u << 9,
+    ACC_VISOR = 1u << 10,      // glowing lens glasses
+    ACC_GOGGLES = 1u << 11,    // goggles pushed up on the forehead
+    ACC_PAULDRONS = 1u << 12,
+    ACC_BEARD = 1u << 13,
+    ACC_TABARD = 1u << 14,     // hanging cloth panels front and back
+    ACC_APRON = 1u << 15,      // leather work apron
+    ACC_SKIRT = 1u << 16,      // flared dancer skirt
+    ACC_RIBBONS = 1u << 17,    // trailing wrist ribbons
+    ACC_HAMMER = 1u << 18,     // big hammer slung across the back
+};
+struct Look {
+    HairStyle hair = HairStyle::Cropped;
+    StandDesign stand = StandDesign::None;
+    uint32_t acc = 0;
+    float shoulders = 1, torso = 1, arms = 1, legs = 1, head = 1;   // proportions, 1 = average
+    Color skin{0.92f, 0.74f, 0.62f}, pants{0.15f, 0.15f, 0.18f}, boots{0.15f, 0.12f, 0.12f}, cloth{0.3f, 0.3f, 0.3f};
+    bool has(Accessory a) const { return (acc & a) != 0; }
+};
+
 struct Character {
+    static constexpr float BASE_HP = 1000.0f;
     std::string name;
     std::string title;
     std::string styleName;            // Stand name or Mode name
     StyleType style = StyleType::Stand;
     Color bodyColor, accentColor, hairColor, styleColor;
-    float hp = 1000.0f;
+    Look look;
+    float hp = BASE_HP;
     float walkSpeed = 0.055f, backSpeed = 0.042f;
     float jumpVel = 0.20f;
     float gravity = 0.0095f;

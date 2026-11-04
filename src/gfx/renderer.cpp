@@ -20,7 +20,7 @@ out vec3 vWorld; out vec3 vNormal; out vec3 vColor; out vec4 vShadow;
 void main(){
     vec4 w = uModel * vec4(aPos,1.0);
     vWorld = w.xyz;
-    vNormal = normalize(mat3(uModel) * aNormal);
+    vNormal = normalize(transpose(inverse(mat3(uModel))) * aNormal);
     vColor = aColor;
     vShadow = uLightVP * w;
     gl_Position = uProj * uView * w;
@@ -31,7 +31,7 @@ in vec3 vWorld; in vec3 vNormal; in vec3 vColor; in vec4 vShadow;
 out vec4 FragColor;
 uniform vec4 uColor; uniform float uEmissive; uniform int uPattern;
 uniform vec3 uSunDir, uSunColor; uniform float uAmbient;
-uniform vec3 uEye; uniform vec3 uFogColor; uniform float uFogDensity;
+uniform vec3 uEye; uniform vec3 uFogColor; uniform float uFogDensity; uniform vec3 uRimColor;
 uniform int uNumLights; uniform vec4 uLightPos[16]; uniform vec3 uLightColor[16];
 uniform sampler2DShadow uShadowMap;
 uniform int uShadowEnabled;
@@ -91,7 +91,8 @@ void main(){
     vec3 col = base * uAmbient * mix(0.6, 1.2, hemi);
     // sun
     vec3 l = normalize(-uSunDir);
-    float ndl = max(dot(n, l), 0.0);
+    float ndl0 = dot(n, l);
+    float ndl = mix(max(ndl0, 0.0), pow(ndl0 * 0.5 + 0.5, 2.0), 0.35);   // slight wrap keeps shadow sides readable
     float sh = shadowFactor(n);
     vec3 h = normalize(l + v);
     float spec = pow(max(dot(n, h), 0.0), 32.0) * 0.25;
@@ -104,14 +105,17 @@ void main(){
         float att = clamp(1.0 - dist / uLightPos[i].w, 0.0, 1.0);
         att *= att;
         vec3 ld = d / max(dist, 0.001);
-        float pdl = max(dot(n, ld), 0.0);
+        float pdl0 = dot(n, ld);
+        float pdl = mix(max(pdl0, 0.0), pow(pdl0 * 0.5 + 0.5, 2.0), 0.3);
         vec3 ph = normalize(ld + v);
         float ps = pow(max(dot(n, ph), 0.0), 24.0) * 0.3;
         col += (base * pdl + vec3(ps * specMul)) * uLightColor[i] * att;
     }
     // rim
-    float rim = pow(1.0 - max(dot(n, v), 0.0), 3.0) * 0.15;
-    col += rim * base;
+    // rim: characters and props get a cool edge light so dark outfits do not vanish into the arena
+    float rim = pow(1.0 - max(dot(n, v), 0.0), 2.6);
+    float rimMul = uPattern == 0 ? 1.0 : 0.15;
+    col += rim * rimMul * (base * 0.35 + uRimColor * 0.22) * (0.35 + 0.65 * smoothstep(-0.3, 0.6, -dot(n, l) * 0.0 + n.y * 0.4 + 0.4));
     col = mix(col, uColor.rgb * vColor, uEmissive);
     // fog
     float dist = length(uEye - vWorld);
@@ -165,12 +169,93 @@ void main(){
     FragColor = vec4(vColor.rgb, vColor.a * a);
 })";
 
+
+static const char* POST_VS = R"(#version 330 core
+out vec2 vUV;
+void main(){
+    vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
+    vUV = p;
+    gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
+})";
+
+static const char* BRIGHT_FS = R"(#version 330 core
+in vec2 vUV; out vec4 FragColor;
+uniform sampler2D uTex; uniform float uThreshold;
+void main(){
+    vec3 c = texture(uTex, vUV).rgb;
+    float l = max(c.r, max(c.g, c.b));
+    float k = max(l - uThreshold, 0.0) / max(l, 1e-4);
+    FragColor = vec4(c * k, 1.0);
+})";
+
+static const char* BLUR_FS = R"(#version 330 core
+in vec2 vUV; out vec4 FragColor;
+uniform sampler2D uTex; uniform vec2 uDir;
+void main(){
+    const float w[5] = float[5](0.2270270, 0.1945946, 0.1216216, 0.0540541, 0.0162162);
+    vec3 c = texture(uTex, vUV).rgb * w[0];
+    for (int i = 1; i < 5; i++) {
+        c += texture(uTex, vUV + uDir * float(i)).rgb * w[i];
+        c += texture(uTex, vUV - uDir * float(i)).rgb * w[i];
+    }
+    FragColor = vec4(c, 1.0);
+})";
+
+static const char* COMPOSITE_FS = R"(#version 330 core
+in vec2 vUV; out vec4 FragColor;
+uniform sampler2D uScene, uBloom, uDepth;
+uniform vec2 uTexel; uniform float uNear, uFar, uBloomStrength, uOutline;
+float linDepth(float d){ float z = d * 2.0 - 1.0; return 2.0 * uNear * uFar / (uFar + uNear - z * (uFar - uNear)); }
+float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+void main(){
+    vec3 col = texture(uScene, vUV).rgb;
+
+    // ink outline from depth discontinuities (silhouettes only; relative so distance does not matter)
+    float d0raw = texture(uDepth, vUV).r;
+    if (uOutline > 0.0 && d0raw < 0.9999) {
+        float d0 = linDepth(d0raw);
+        vec2 o = uTexel * max(1.0, uTexel.y * 0.0 + 1.0);
+        float e = 0.0;
+        e = max(e, abs(linDepth(texture(uDepth, vUV + vec2(o.x, 0)).r) - d0));
+        e = max(e, abs(linDepth(texture(uDepth, vUV - vec2(o.x, 0)).r) - d0));
+        e = max(e, abs(linDepth(texture(uDepth, vUV + vec2(0, o.y)).r) - d0));
+        e = max(e, abs(linDepth(texture(uDepth, vUV - vec2(0, o.y)).r) - d0));
+        float edge = smoothstep(0.035, 0.11, e / d0) * (1.0 - smoothstep(10.0, 22.0, d0));   // far geometry (floor edge, distant walls) stays clean
+        col = mix(col, vec3(0.012, 0.008, 0.02), edge * uOutline);
+    }
+
+    // bloom
+    col += texture(uBloom, vUV).rgb * uBloomStrength;
+
+    // soft shoulder: leave the palette alone below 0.8, roll highlights off smoothly instead of clipping
+    const float knee = 0.8;
+    vec3 over = max(col - knee, 0.0);
+    col = min(col, vec3(knee)) + (1.0 - knee) * (1.0 - exp(-over / (1.0 - knee)));
+
+    // grade: a touch more saturation and contrast
+    float l = dot(col, vec3(0.299, 0.587, 0.114));
+    col = mix(vec3(l), col, 1.14);
+    col = mix(col, col * col * (3.0 - 2.0 * col), 0.28);
+
+    // vignette
+    vec2 q = vUV - 0.5;
+    col *= clamp(1.0 - dot(q, q) * 0.95, 0.0, 1.0);
+
+    col += (hash(gl_FragCoord.xy) - 0.5) / 255.0;   // dither: hides banding in dark gradients
+    FragColor = vec4(col, 1.0);
+})";
+
 // ------------------------------------------------------------------- init ----
 bool Renderer::init() {
     if (!lit_.compile(LIT_VS, LIT_FS, "lit")) return false;
     if (!depth_.compile(DEPTH_VS, DEPTH_FS, "depth")) return false;
     if (!unlit_.compile(UNLIT_VS, UNLIT_FS, "unlit")) return false;
     if (!ui2d_.compile(UI_VS, UI_FS, "ui")) return false;
+    // post-processing is optional: if any part fails the renderer falls back to drawing straight to the window
+    bool postShaders = bright_.compile(POST_VS, BRIGHT_FS, "bright") && blur_.compile(POST_VS, BLUR_FS, "blur") &&
+                       composite_.compile(POST_VS, COMPOSITE_FS, "composite");
+    glGenVertexArrays(1, &postVao_);
+    if (!postShaders) targetW_ = targetH_ = -1;   // never create targets
 
     // shadow map
     glGenFramebuffers(1, &shadowFbo_);
@@ -375,6 +460,7 @@ void Renderer::renderScenePass() {
     lit_.set("uEye", cam_.eye);
     lit_.set("uFogColor", fogColor_);
     lit_.set("uFogDensity", fogDensity_);
+    lit_.set("uRimColor", rimColor_);
     lit_.set("uShadowEnabled", 1);
     int n = std::min((int)pointLights_.size(), 16);
     lit_.set("uNumLights", n);
@@ -452,11 +538,140 @@ void Renderer::renderUi() {
     glEnable(GL_DEPTH_TEST);
 }
 
+void Renderer::destroyTargets() {
+    if (msaaFbo_) glDeleteFramebuffers(1, &msaaFbo_);
+    if (resolveFbo_) glDeleteFramebuffers(1, &resolveFbo_);
+    if (msaaColor_) glDeleteRenderbuffers(1, &msaaColor_);
+    if (msaaDepth_) glDeleteRenderbuffers(1, &msaaDepth_);
+    if (sceneTex_) glDeleteTextures(1, &sceneTex_);
+    if (depthTex_) glDeleteTextures(1, &depthTex_);
+    for (int i = 0; i < 2; ++i) {
+        if (bloomFbo_[i]) glDeleteFramebuffers(1, &bloomFbo_[i]);
+        if (bloomTex_[i]) glDeleteTextures(1, &bloomTex_[i]);
+        bloomFbo_[i] = bloomTex_[i] = 0;
+    }
+    msaaFbo_ = resolveFbo_ = msaaColor_ = msaaDepth_ = sceneTex_ = depthTex_ = 0;
+    postOk_ = false;
+}
+
+void Renderer::createTargets(int w, int h) {
+    destroyTargets();
+    targetW_ = w; targetH_ = h;
+    GLint maxSamples = 1;
+    glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
+    const int samples = std::max(1, std::min(4, (int)maxSamples));
+
+    glGenFramebuffers(1, &msaaFbo_);
+    glGenRenderbuffers(1, &msaaColor_);
+    glGenRenderbuffers(1, &msaaDepth_);
+    glBindRenderbuffer(GL_RENDERBUFFER, msaaColor_);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGBA16F, w, h);
+    glBindRenderbuffer(GL_RENDERBUFFER, msaaDepth_);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH_COMPONENT24, w, h);
+    glBindFramebuffer(GL_FRAMEBUFFER, msaaFbo_);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, msaaColor_);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, msaaDepth_);
+    bool ok = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+
+    auto makeTex = [&](GLuint& tex, GLenum internal, GLenum format, GLenum type, int tw, int th) {
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexImage2D(GL_TEXTURE_2D, 0, internal, tw, th, 0, format, type, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    };
+    makeTex(sceneTex_, GL_RGBA16F, GL_RGBA, GL_FLOAT, w, h);
+    makeTex(depthTex_, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT, w, h);
+    glBindTexture(GL_TEXTURE_2D, depthTex_);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glGenFramebuffers(1, &resolveFbo_);
+    glBindFramebuffer(GL_FRAMEBUFFER, resolveFbo_);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneTex_, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTex_, 0);
+    ok = ok && glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+
+    const int bw = std::max(1, w / 2), bh = std::max(1, h / 2);
+    for (int i = 0; i < 2; ++i) {
+        makeTex(bloomTex_[i], GL_RGBA16F, GL_RGBA, GL_FLOAT, bw, bh);
+        glGenFramebuffers(1, &bloomFbo_[i]);
+        glBindFramebuffer(GL_FRAMEBUFFER, bloomFbo_[i]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, bloomTex_[i], 0);
+        ok = ok && glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    postOk_ = ok;
+    if (!ok) {
+        std::fprintf(stderr, "[renderer] post-processing targets unavailable, drawing directly\n");
+        destroyTargets();
+        targetW_ = w; targetH_ = h;   // do not retry every frame
+    }
+}
+
+void Renderer::renderPost() {
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
+
+    // resolve MSAA colour + depth into textures
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, msaaFbo_);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, resolveFbo_);
+    glBlitFramebuffer(0, 0, width_, height_, 0, 0, width_, height_, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+    glBindVertexArray(postVao_);
+    const int bw = std::max(1, width_ / 2), bh = std::max(1, height_ / 2);
+    auto bindTex = [](int unit, GLuint tex) { glActiveTexture(GL_TEXTURE0 + unit); glBindTexture(GL_TEXTURE_2D, tex); };
+
+    // bright pass -> half resolution, then two separable blur rounds (the second widens the glow)
+    glViewport(0, 0, bw, bh);
+    glBindFramebuffer(GL_FRAMEBUFFER, bloomFbo_[0]);
+    bright_.use();
+    bindTex(0, sceneTex_); bright_.set("uTex", 0); bright_.set("uThreshold", 0.72f);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    blur_.use();
+    blur_.set("uTex", 0);
+    for (int round = 0; round < 2; ++round) {
+        const float spread = round == 0 ? 1.0f : 2.2f;
+        glBindFramebuffer(GL_FRAMEBUFFER, bloomFbo_[1]);
+        bindTex(0, bloomTex_[0]);
+        blur_.set("uDir", Vec2(spread / (float)bw, 0));
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindFramebuffer(GL_FRAMEBUFFER, bloomFbo_[0]);
+        bindTex(0, bloomTex_[1]);
+        blur_.set("uDir", Vec2(0, spread / (float)bh));
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+    }
+
+    // composite to the window
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, width_, height_);
+    composite_.use();
+    bindTex(0, sceneTex_); composite_.set("uScene", 0);
+    bindTex(1, bloomTex_[0]); composite_.set("uBloom", 1);
+    bindTex(2, depthTex_); composite_.set("uDepth", 2);
+    composite_.set("uTexel", Vec2(1.0f / (float)width_, 1.0f / (float)height_));
+    composite_.set("uNear", cam_.znear);
+    composite_.set("uFar", cam_.zfar);
+    composite_.set("uBloomStrength", 0.55f);
+    composite_.set("uOutline", outlineStrength_);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
+    glActiveTexture(GL_TEXTURE0);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+}
+
 void Renderer::endFrame() {
+    if (targetW_ >= 0 && (targetW_ != width_ || targetH_ != height_)) createTargets(width_, height_);
     renderShadowPass();
+    if (postOk_) glBindFramebuffer(GL_FRAMEBUFFER, msaaFbo_);
     renderScenePass();
     renderUnlit(unlitAlpha_, Blend::Alpha);
     renderUnlit(unlitAdd_, Blend::Additive);
+    if (postOk_) renderPost();
     renderUi();
 }
 

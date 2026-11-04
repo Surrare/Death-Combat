@@ -89,7 +89,8 @@ your choice is saved with the other settings.
 
 - **Normals:** Light, Medium, Heavy, standing / crouching / in the air. Chains go L → M → H.
 - **Easy Beat:** tap Light repeatedly for an automatic L → M → H → special combo.
-- **Specials:** quarter-circle forward (D, DF, F), quarter-circle back (D, DB, B) and dragon punch (F, D, DF) plus an attack button. Strength changes with the button.
+- **Simplified specials:** hold toward + Light/Medium for a character's signature forward special, away + Light/Medium for their back special, or toward + Heavy for their rising special. Quarter-circle and dragon-punch inputs still work.
+- **Easy Heat attacks:** hold toward and press Light + Medium for an HHA, or Light + Medium + Heavy for a GHA; classic quarter-circle inputs still work too.
 - **Throw:** L + M close to the opponent. Both throwing at once = throw tech.
 - **Dash / backdash:** Dash button with forward / back, or double-tap. Backdash is briefly invincible.
 - **Sidestep (Stylish Evade):** Dash + up / down steps around attacks, also out of block stun.
@@ -103,6 +104,7 @@ your choice is saved with the other settings.
   - **Stand users** (KAIN, VESPER, ORSOLO, MIRA) toggle their Stand with the Style button. Stand On gives longer,
     stronger normals, but hits taken drain the Stand gauge. When it empties: **Stand Break**, a long stun.
   - **Mode users** (KAZE, BRAM) burn their gauge for a power mode: more damage and speed until it runs out.
+- All fighters have the same **1,000 HP**; their identities come from movement, range, signature attacks, and Stand / Mode mechanics.
 - **Rush Mode:** when two rush attacks collide, a clash starts. Mash attack buttons to win it.
 - **Taunt** while the opponent is down to drain their Heart Heat.
 - Best of three rounds, 99-second timer.
@@ -143,4 +145,5 @@ DeathCombat --demo-fight            AI vs AI fight
 DeathCombat --demo-hunt             straight into the hunt
 DeathCombat --shot out.png 5        save a screenshot after 5 seconds and quit
 DeathCombat --seed 42               deterministic maze / effects
+DeathCombat --demo-select --char 3  character select showing fighter #3 (also picks the fighter for --demo-fight / --demo-hunt)
 ```

@@ -21,7 +21,7 @@ void Hunt::init(int playerChar, const std::vector<int>& opponentChars, uint64_t 
     floor_.upload(fb); walls_.upload(wb); ceiling_.upload(cb); props_.upload(pb);
 
     playerPos_ = maze_.cellCenter(w / 2, h / 2);
-    camYaw_ = 0; playerYaw_ = 0;
+    camYaw_ = 0; playerYaw_ = PI;   // camera looks down -z, so start facing away from it
 
     // scatter opponents in far dead-ends / corners
     std::vector<int> dist = maze_.pathDistances(maze_.cellIndex(w / 2, h / 2));

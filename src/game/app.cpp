@@ -12,6 +12,24 @@ namespace dc {
 namespace {
 const Color WHITE(1, 1, 1), GOLD(1.0f, 0.82f, 0.3f), RED(0.95f, 0.2f, 0.2f), DIM(0.55f, 0.55f, 0.6f), CYAN(0.4f, 0.9f, 1.0f);
 const char* MENU_ITEMS[] = {"HUNT MODE", "VERSUS CPU", "VERSUS 2P", "SETTINGS", "QUIT"};
+
+// Title menu geometry, shared by update (mouse hit-testing) and render so the two never disagree.
+struct TitleLayout {
+    float panelX, panelY, panelW, panelH;
+    float itemX, itemW, itemY0;   // highlight rectangle of item 0 (itemY0 is its top edge)
+    static constexpr float ITEM_H = 38, ITEM_STEP = 46;
+    float textY(int i) const { return itemY0 + 8 + i * ITEM_STEP; }
+    float itemY(int i) const { return itemY0 + i * ITEM_STEP; }
+};
+TitleLayout titleLayout(int width, int height) {
+    TitleLayout l;
+    l.panelX = 28; l.panelY = 24;
+    l.panelW = std::min(460.0f, width * 0.42f);
+    l.panelH = height - 48.0f;
+    l.itemX = l.panelX + 34; l.itemW = l.panelW - 56;
+    l.itemY0 = l.panelY + 202 - 8;
+    return l;
+}
 }
 
 bool App::init(GLFWwindow* window, const AppOptions& opts) {
@@ -33,8 +51,10 @@ bool App::init(GLFWwindow* window, const AppOptions& opts) {
         b.addSphere(Vec3(0, 0, 0), 0.5f, 8, 12, Vec3(1, 1, 1));
         projectileMesh_.upload(b);
     }
-    if (opts.demo == 1) { startFight(0, 1, FightMode::Demo, 2); }
-    else if (opts.demo == 2) { startHunt(0); }
+    const int ch = std::clamp(opts.character, 0, (int)roster().size() - 1);
+    selCursor_[0] = ch;
+    if (opts.demo == 1) { startFight(ch, (ch + 1) % (int)roster().size(), FightMode::Demo, 2); }
+    else if (opts.demo == 2) { startHunt(ch); }
     else if (opts.demo == 4) { openSettings(Scene::Title); }
     else if (opts.demo == 3) { scene_ = Scene::Select; pendingMode_ = FightMode::Hunt; selectFor_ = 0; }
     return true;
@@ -82,8 +102,10 @@ void App::frame(float dt, int w, int h) {
     width_ = w; height_ = h;
     renderer_.resize(w, h);
     renderer_.setLanguage(settings_.language);
-    input_.poll();
+    input_.poll(dt);
     time_ += dt;
+    frameDt_ = dt;
+    rig_.setTime(time_);
 
     audio_.setVolumes(settings_.master, settings_.music, settings_.sfx);
     if (menuSoundsActive()) {
@@ -144,8 +166,9 @@ void App::updateTitle(float dt) {
     if (p.justPressed(BTN_DOWN)) menuIndex_ = (menuIndex_ + 1) % n;
     if (p.justPressed(BTN_UP)) menuIndex_ = (menuIndex_ + n - 1) % n;
     bool clicked = false;
+    const TitleLayout tl = titleLayout(width_, height_);
     for (int i = 0; i < n; ++i) {
-        if (!input_.mouseIn(width_ * 0.5f - 170, height_ * 0.5f + i * 44 - 8, 340, 38)) continue;
+        if (!input_.mouseIn(tl.itemX, tl.itemY(i), tl.itemW, TitleLayout::ITEM_H)) continue;
         if (input_.mouseMoved() || input_.leftClicked()) menuIndex_ = i;
         clicked = input_.leftClicked();
     }
@@ -187,26 +210,33 @@ void App::renderTitle() {
             rig_.draw(renderer_, standIdlePose(time_ + i), sp, yaw, ros[i], 1.05f, 0.4f, 0, true, false);
         }
     }
-    // HUD
-    float cx = width_ * 0.5f;
+    // A restrained crimson dossier frames the mode select while keeping the arena visible.
+    const TitleLayout tl = titleLayout(width_, height_);
+    const float panelX = tl.panelX, panelY = tl.panelY, panelW = tl.panelW, panelH = tl.panelH;
+    renderer_.rect(panelX, panelY, panelW, panelH, Color(0.015f, 0.012f, 0.02f, 0.86f));
+    renderer_.rectOutline(panelX, panelY, panelW, panelH, 2, Color(0.7f, 0.12f, 0.16f, 0.9f));
+    renderer_.rect(panelX + 16, panelY + 16, 3, panelH - 32, Color(0.95f, 0.16f, 0.2f, 0.85f));
+    renderer_.rect(panelX + 30, panelY + 184, panelW - 60, 1, Color(1.0f, 0.82f, 0.3f, 0.35f));
+    float cx = panelX + panelW * 0.5f + 8;
     float pulse = 0.85f + 0.15f * std::sin(titleTime_ * 3.0f);
-    renderer_.textCentered(cx + 2, 64 + 2, "DEATH COMBAT", 8, Color(0, 0, 0, 0.6f));
-    renderer_.textCentered(cx, 64, "DEATH COMBAT", 8, Color(0.95f, 0.15f, 0.2f) * pulse);
-    renderer_.textCentered(cx, 150, "SEEK YOUR OPPONENT.  STAND AND FIGHT.", 2, DIM);
-    float my = height_ * 0.5f;
+    renderer_.textCentered(cx + 2, 48 + 2, "DEATH COMBAT", 5.5f, Color(0, 0, 0, 0.7f));
+    renderer_.textCentered(cx, 48, "DEATH COMBAT", 5.5f, Color(0.95f, 0.15f, 0.2f) * pulse);
+    renderer_.textCentered(cx, 108, "SEEK YOUR OPPONENT.  STAND AND FIGHT.", 1.65f, DIM);
+    renderer_.textCentered(cx, 146, "F / B + LIGHT  SPECIAL     F + HEAVY  RISING", 1.35f, GOLD);
+    renderer_.textCentered(cx, 166, "REPEAT LIGHT  EASY BEAT", 1.35f, DIM);
     for (int i = 0; i < 5; ++i) {
         bool sel = i == menuIndex_;
-        float y = my + i * 44;
-        if (sel) renderer_.rect(cx - 170, y - 8, 340, 38, Color(0.9f, 0.15f, 0.2f, 0.35f));
+        float y = tl.textY(i);
+        if (sel) {
+            renderer_.rect(tl.itemX, tl.itemY(i), tl.itemW, TitleLayout::ITEM_H, Color(0.7f, 0.08f, 0.12f, 0.48f));
+            renderer_.rect(tl.itemX, tl.itemY(i), 4, TitleLayout::ITEM_H, GOLD);
+            renderer_.rectOutline(tl.itemX, tl.itemY(i), tl.itemW, TitleLayout::ITEM_H, 1, Color(1, 0.45f, 0.2f, 0.65f));
+        }
         renderer_.textCentered(cx, y, MENU_ITEMS[i], 3, sel ? GOLD : WHITE);
     }
-    renderer_.textCentered(cx, my + 5 * 44 + 10, "UP / DOWN  CHOOSE      ENTER  CONFIRM      (OR USE THE MOUSE)", 1.8f, DIM);
-    auto K = [&](Action a) { return settings_.keyLabel(a); };
-    renderer_.text(20, height_ - 100, "MOVE  " + K(Action::Up) + " " + K(Action::Left) + " " + K(Action::Down) + " " + K(Action::Right) + " / LEFT STICK      LIGHT " + K(Action::Light) + "   MEDIUM " + K(Action::Medium) + "   HEAVY " + K(Action::Heavy), 1.6f, DIM);
-    renderer_.text(20, height_ - 80, "STAND / MODE  " + K(Action::Style) + "      DASH / EVADE  " + K(Action::Dash) + "      TAUNT  " + K(Action::Taunt), 1.6f, DIM);
-    renderer_.text(20, height_ - 60, "MENUS  ARROWS / WASD + ENTER      PAUSE  ESC      SCREENSHOT  F12", 1.6f, DIM);
-    renderer_.text(20, height_ - 40, "GAMEPAD: X LIGHT  Y MEDIUM  B HEAVY  A STAND  RB DASH  LB TAUNT", 1.6f, DIM);
-    renderer_.textRight(width_ - 20, height_ - 30, "OPENGL 3.3  /  LINUX + WINDOWS", 1.5f, DIM);
+    renderer_.textCentered(cx, panelY + panelH - 42, "UP / DOWN  CHOOSE      ENTER  CONFIRM", 1.5f, DIM);
+    renderer_.textRight(width_ - 24, height_ - 22, "WASD / ARROWS MOVE     J / K / L ATTACK     I STYLE     U DASH", 1.45f, DIM);
+    renderer_.text(24, height_ - 22, "F / B + LIGHT  SPECIAL     F + HEAVY  RISING", 1.45f, GOLD);
     renderer_.endFrame();
 }
 
@@ -249,9 +279,13 @@ void App::updateSelect(float dt) {
 
 void App::drawCharacterCard(int id, float x, float y, float w, float h, bool highlighted, bool defeated) {
     const Character& c = roster()[id];
-    renderer_.rect(x, y, w, h, Color(0.08f, 0.08f, 0.1f, 0.9f));
-    renderer_.rect(x, y, w, 6, c.styleColor);
-    if (highlighted) renderer_.rectOutline(x - 3, y - 3, w + 6, h + 6, 3, GOLD);
+    renderer_.rect(x, y, w, h, Color(0.025f, 0.02f, 0.03f, 0.94f));
+    renderer_.rect(x, y, w, 5, c.styleColor);
+    renderer_.rect(x, y + h - 2, w, 2, Color(0.75f, 0.12f, 0.16f, 0.8f));
+    if (highlighted) {
+        renderer_.rect(x, y + 5, 4, h - 7, GOLD);
+        renderer_.rectOutline(x - 3, y - 3, w + 6, h + 6, 2, GOLD);
+    }
     renderer_.text(x + 10, y + 16, c.name, 2.4f, defeated ? DIM : WHITE);
     renderer_.text(x + 10, y + 42, c.styleName, 1.4f, defeated ? DIM : c.styleColor);
     if (defeated) renderer_.text(x + 10, y + 62, "DEFEATED", 1.6f, RED);
@@ -272,6 +306,21 @@ void App::renderSelect() {
     renderer_.addPointLight(Vec3(-2, 2.5f, 2), c.styleColor.rgb() * 1.5f, 8);
     renderer_.addPointLight(Vec3(2, 1.5f, 2), Vec3(0.6f, 0.6f, 0.7f), 8);
     renderer_.draw(titleFloor_, Mat4::identity(), Color(0.7f, 0.7f, 0.8f), 0, 1);
+    // lit pedestal, coloured backdrop glow and a spotlight shaft turn the void into a showcase
+    {
+        const Color sc = c.styleColor;
+        renderer_.addPointLight(Vec3(0, 3.2f, 3.0f), Vec3(1.0f, 0.95f, 0.88f) * 0.9f, 12);
+        renderer_.addPointLight(Vec3(2.2f, 1.8f, -2.2f), sc.rgb() * 1.4f, 9);
+        renderer_.draw(rig_.unitCylinder(), Mat4::translate(Vec3(0, 0.03f, 0)) * Mat4::scale(Vec3(2.6f, 0.06f, 2.6f)), Color(0.07f, 0.07f, 0.09f), 0, 0, false);
+        renderer_.draw(rig_.unitCylinder(), Mat4::translate(Vec3(0, 0.065f, 0)) * Mat4::scale(Vec3(2.3f, 0.02f, 2.3f)), sc * 0.9f, 0.9f, 0, false);
+        renderer_.draw(rig_.unitCylinder(), Mat4::translate(Vec3(0, 0.08f, 0)) * Mat4::scale(Vec3(2.12f, 0.03f, 2.12f)), Color(0.05f, 0.05f, 0.07f), 0, 0, false);
+        renderer_.drawBillboard(Vec3(0, 1.5f, -2.6f), 9.5f, sc.withAlpha(0.20f), Blend::Additive, time_ * 0.1f);
+        renderer_.drawBillboard(Vec3(0, 1.3f, -2.4f), 5.0f, sc.withAlpha(0.14f), Blend::Additive, -time_ * 0.15f);
+        for (int k = 0; k < 14; ++k) {
+            float t = (float)k / 13.0f;
+            renderer_.drawBillboard(Vec3(0, 6.0f - 5.8f * t, 0.1f), 1.8f + 1.4f * t, Color(1.0f, 0.95f, 0.85f, 0.02f), Blend::Additive, 0.0f);
+        }
+    }
     float yaw = selectSpin_ * 0.8f;
     Pose p = idlePose(time_);
     rig_.draw(renderer_, p, Vec3(0, 0, 0), yaw, c, 1.0f);
@@ -291,7 +340,14 @@ void App::renderSelect() {
     float x0 = (width_ - totalW) * 0.5f;
     for (int i = 0; i < n; ++i) drawCharacterCard(i, x0 + i * (cardW + gap), height_ - 120, cardW, cardH, i == cur, false);
     // info panel
-    float px = 40, py = 110;
+    float px = 40, py = 128;
+    renderer_.rect(24, 96, 390, 385, Color(0.015f, 0.012f, 0.02f, 0.78f));
+    renderer_.rectOutline(24, 96, 390, 385, 1, Color(0.7f, 0.12f, 0.16f, 0.7f));
+    renderer_.rect(24, 96, 390, 3, c.styleColor);
+    renderer_.rect(width_ - 450, 106, 426, 345, Color(0.015f, 0.012f, 0.02f, 0.78f));
+    renderer_.rectOutline(width_ - 450, 106, 426, 345, 1, Color(0.7f, 0.12f, 0.16f, 0.7f));
+    renderer_.rect(width_ - 450, 106, 426, 3, GOLD);
+    renderer_.text(40, 100, pendingMode_ == FightMode::Hunt ? "HUNTER DOSSIER" : "FIGHTER DOSSIER", 1.4f, GOLD);
     renderer_.text(px, py, c.name, 5, WHITE);
     renderer_.text(px, py + 50, c.title, 2, c.styleColor);
     renderer_.text(px, py + 90, c.style == StyleType::Stand ? "STYLE: STAND" : "STYLE: MODE", 2, DIM);
@@ -317,14 +373,14 @@ void App::renderSelect() {
     ml.push_back("SPECIAL MOVES");
     for (const Move& m : c.moves) {
         if (m.kind == MoveKind::Special && m.buttons == BTN_LIGHT) {
-            std::string mo = m.motion == Motion::QCF ? "D,DF,F + ATK" : m.motion == Motion::QCB ? "D,DB,B + ATK" : "F,D,DF + ATK";
+            std::string mo = m.motion == Motion::QCF ? "F + LIGHT" : m.motion == Motion::QCB ? "B + LIGHT" : "F + HEAVY";
             ml.push_back(m.name.substr(0, m.name.size() - 2) + "  " + mo);
         }
     }
-    for (const Move& m : c.moves) if (m.kind == MoveKind::HHA) ml.push_back("HHA  " + m.name + "  D,DF,F + 2 ATK");
-    for (const Move& m : c.moves) if (m.kind == MoveKind::GHA) ml.push_back("GHA  " + m.name + "  D,DF,F + 3 ATK");
+    for (const Move& m : c.moves) if (m.kind == MoveKind::HHA) ml.push_back("HHA  " + m.name + "  F + J+K");
+    for (const Move& m : c.moves) if (m.kind == MoveKind::GHA) ml.push_back("GHA  " + m.name + "  F + J+K+L");
     drawPanelText(width_ - 440, 120, ml, 1.6f, WHITE, 1.5f);
-    renderer_.textCentered(width_ * 0.5f, height_ - 150, "ARROWS / MOUSE  CHOOSE FIGHTER     ENTER / CLICK  CONFIRM     ESC / RIGHT CLICK  BACK", 1.6f, DIM);
+    renderer_.textCentered(width_ * 0.5f, height_ - 150, "ARROWS / MOUSE  SELECT     ENTER / CLICK  CONFIRM     ESC  BACK", 1.6f, DIM);
     renderer_.endFrame();
 }
 
@@ -414,6 +470,9 @@ void App::renderHunt() {
     float level = hunt_.senseLevel();
     float pulse = hunt_.heartPulse();
     float hx = 40, hy = 40;
+    renderer_.rect(24, 24, 330, 84, Color(0.012f, 0.01f, 0.016f, 0.84f));
+    renderer_.rectOutline(24, 24, 330, 84, 1, Color(0.7f, 0.12f, 0.16f, 0.75f));
+    renderer_.rect(24, 24, 3, 84, RED);
     renderer_.text(hx, hy, "DEATH SENSE", 2, DIM);
     renderer_.rect(hx, hy + 24, 260, 14, Color(0.1f, 0.1f, 0.12f, 0.8f));
     renderer_.rect(hx, hy + 24, 260 * level, 14, mix(Color(0.3f, 0.3f, 0.9f), Color(1.0f, 0.1f, 0.15f), level));
@@ -430,6 +489,8 @@ void App::renderHunt() {
 
     // roster status
     float rx = width_ - 220, ry = 40;
+    renderer_.rect(rx - 12, ry - 16, 200, 150, Color(0.012f, 0.01f, 0.016f, 0.84f));
+    renderer_.rectOutline(rx - 12, ry - 16, 200, 150, 1, Color(0.7f, 0.12f, 0.16f, 0.75f));
     renderer_.text(rx, ry, "TARGETS", 2, DIM);
     for (size_t i = 0; i < hunt_.opponents().size(); ++i) {
         const HuntOpponent& o = hunt_.opponents()[i];
@@ -466,10 +527,20 @@ void App::renderHunt() {
         renderer_.textCentered(cx, height_ * 0.3f + 96, c.styleName, 2, DIM.withAlpha(a));
     }
     if (huntPaused_) {
-        renderer_.rect(0, 0, width_, height_, Color(0, 0, 0, 0.6f));
+        renderer_.rect(0, 0, width_, height_, Color(0.008f, 0.005f, 0.012f, 0.76f));
+        renderer_.rect(cx - 220, height_ * 0.34f, 440, 290, Color(0.02f, 0.012f, 0.02f, 0.96f));
+        renderer_.rectOutline(cx - 220, height_ * 0.34f, 440, 290, 2, RED.withAlpha(0.9f));
+        renderer_.rect(cx - 220, height_ * 0.34f, 440, 4, GOLD);
         renderer_.textCentered(cx, height_ * 0.35f, "PAUSED", 5, WHITE);
         const char* items[3] = {"RESUME", "SETTINGS", "QUIT TO TITLE"};
-        for (int i = 0; i < 3; ++i) renderer_.textCentered(cx, height_ * 0.5f + i * 40, items[i], 3, i == huntPauseIndex_ ? GOLD : WHITE);
+        for (int i = 0; i < 3; ++i) {
+            float y = height_ * 0.5f + i * 40;
+            if (i == huntPauseIndex_) {
+                renderer_.rect(cx - 170, y - 5, 340, 32, Color(0.65f, 0.06f, 0.1f, 0.5f));
+                renderer_.rect(cx - 170, y - 5, 3, 32, GOLD);
+            }
+            renderer_.textCentered(cx, y, items[i], 3, i == huntPauseIndex_ ? GOLD : WHITE);
+        }
         renderer_.textCentered(cx, height_ * 0.85f, "UP / DOWN / MOUSE  CHOOSE     ENTER / CLICK  CONFIRM     ESC  RESUME", 1.6f, DIM);
     }
     if (huntComplete_) {

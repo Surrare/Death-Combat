@@ -15,6 +15,7 @@ static void glfwErrorCallback(int code, const char* desc) {
 //   --demo-select       character select screen
 //   --shot <file> <s>   save a PNG screenshot after <s> seconds and quit
 //   --seed <n>          deterministic seed for maze / effects
+//   --char <n>          fighter index shown by --demo-select / --demo-hunt (0..5)
 int main(int argc, char** argv) {
     dc::AppOptions opts;
     for (int i = 1; i < argc; ++i) {
@@ -24,6 +25,7 @@ int main(int argc, char** argv) {
         else if (a == "--demo-select") opts.demo = 3;
         else if (a == "--demo-settings") opts.demo = 4;
         else if (a == "--shot" && i + 2 < argc) { opts.screenshotPath = argv[i + 1]; opts.screenshotTime = (float)std::atof(argv[i + 2]); i += 2; }
+        else if (a == "--char" && i + 1 < argc) { opts.character = std::atoi(argv[i + 1]); i += 1; }
         else if (a == "--seed" && i + 1 < argc) { opts.seed = (uint64_t)std::atoll(argv[i + 1]); i += 1; }
     }
     glfwSetErrorCallback(glfwErrorCallback);

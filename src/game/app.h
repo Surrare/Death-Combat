@@ -22,6 +22,7 @@ struct AppOptions {
     float screenshotTime = 0;
     int demo = 0;                 // 0 none, 1 = AI vs AI fight, 2 = hunt, 3 = character select
     uint64_t seed = 0;
+    int character = 0;            // --char N: fighter shown by the demo screens
 };
 
 struct Particle {
@@ -103,6 +104,7 @@ private:
     int windowedX_ = 100, windowedY_ = 100, windowedW_ = 1280, windowedH_ = 720;
     Scene scene_ = Scene::Title;
     float time_ = 0;
+    float frameDt_ = 1.0f / 60.0f;   // last frame time, for smoothing done in render code
     bool quit_ = false;
     int width_ = 1280, height_ = 720;
     bool shotTaken_ = false;
@@ -144,7 +146,7 @@ private:
     int pauseIndex_ = 0;
     bool showMoveList_ = false;
     int resultIndex_ = 0;
-    Mesh arenaFloor_, arenaWalls_, arenaProps_, projectileMesh_;
+    Mesh arenaFloor_, arenaWalls_, arenaProps_, arenaEmblem_, arenaBanners_, projectileMesh_;
     Camera fightCam_;
     bool fightCamInit_ = false;
     std::vector<Particle> particles_;

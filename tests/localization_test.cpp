@@ -16,6 +16,10 @@ int main() {
     check(localizeText("HUNT MODE", Language::English) == "HUNT MODE", "English remains unchanged");
     check(localizeText("HUNT MODE", Language::Russian) == u8"РЕЖИМ ОХОТЫ", "Russian menu translation");
     check(localizeText("HUNT MODE", Language::Kazakh) == u8"АҢШЫЛЫҚ РЕЖІМІ", "Kazakh menu translation");
+    check(localizeText("F / B + LIGHT  SPECIAL     F + HEAVY  RISING", Language::Russian).find(u8"ВПЕРЁД") != std::string::npos,
+        "Russian simplified-control hint");
+    check(localizeText("F / B + LIGHT  SPECIAL     F + HEAVY  RISING", Language::Kazakh).find(u8"АЛҒА") != std::string::npos,
+        "Kazakh simplified-control hint");
     check(localizeText("KAIN WINS", Language::Russian) == u8"KAIN побеждает", "Russian dynamic winner label");
     check(localizeText("KAIN WINS", Language::Kazakh) == u8"KAIN жеңді", "Kazakh dynamic winner label");
     check(localizeText("MOVE  W A S D / LEFT STICK      LIGHT J", Language::Russian).find(u8"ДВИЖЕНИЕ") != std::string::npos,

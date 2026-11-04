@@ -45,9 +45,12 @@ public:
               float floorY = 0.0f);
     const Mesh& unitBox() const { return box_; }
     const Mesh& unitSphere() const { return sphere_; }
+    const Mesh& unitCylinder() const { return cyl_; }
+    void setTime(float t) { time_ = t; }   // drives cloth / hair sway
 
 private:
-    Mesh box_, sphere_;
+    Mesh box_, sphere_, cyl_, cone_;
+    float time_ = 0;
 };
 
 } // namespace dc

@@ -49,6 +49,50 @@ void App::buildArena() {
     // seating steps at the front edge (towards the camera)
     for (int k = 0; k < 3; ++k) b.addBox(Vec3(0, 0.2f + k * 0.4f, 9.5f + k * 1.2f), Vec3(44, 0.4f, 1.2f), Vec3(0.22f, 0.2f, 0.22f));
     arenaProps_.upload(b);
+
+    // ring emblem on the fighting floor: gold outer ring, crimson inner ring, radial ticks
+    b.clear();
+    auto ring = [&](float r0, float r1, float y, Vec3 col, int seg, int skipEvery = 0) {
+        for (int i = 0; i < seg; ++i) {
+            if (skipEvery && i % skipEvery == 0) continue;
+            float a0 = (float)i / seg * 2 * PI, a1 = (float)(i + 1) / seg * 2 * PI;
+            Vec3 p0(std::cos(a0) * r0, y, std::sin(a0) * r0), p1(std::cos(a0) * r1, y, std::sin(a0) * r1);
+            Vec3 p2(std::cos(a1) * r1, y, std::sin(a1) * r1), p3(std::cos(a1) * r0, y, std::sin(a1) * r0);
+            b.addQuad(p0, p3, p2, p1, col);   // wound so the normal points up
+        }
+    };
+    const float ey = ARENA_SURFACE_Y + 0.006f;
+    ring(3.58f, 3.66f, ey, Vec3(0.62f, 0.45f, 0.16f), 72);
+    ring(3.22f, 3.26f, ey, Vec3(0.5f, 0.08f, 0.11f), 72);
+    ring(1.15f, 1.2f, ey, Vec3(0.62f, 0.45f, 0.16f), 48);
+    for (int k = 0; k < 24; ++k) {   // ticks between the two big rings
+        float a = (float)k / 24 * 2 * PI;
+        Vec3 c(std::cos(a) * 3.4f, ey, std::sin(a) * 3.4f), t(-std::sin(a), 0, std::cos(a)), r(std::cos(a), 0, std::sin(a));
+        b.addQuad(c - r * 0.16f - t * 0.025f, c + r * 0.16f - t * 0.025f, c + r * 0.16f + t * 0.025f, c - r * 0.16f + t * 0.025f, Vec3(0.62f, 0.45f, 0.16f));
+    }
+    b.addBox(Vec3(0, ey, 0), Vec3(13.0f, 0.004f, 0.035f), Vec3(0.3f, 0.06f, 0.08f));   // the fighting line
+    arenaEmblem_.upload(b);
+
+    // cloth banners hanging between the pillars
+    b.clear();
+    for (int i = -3; i <= 3; ++i) {
+        float x = i * 4.0f + (i % 2 ? 0.0f : 0.0f) + 2.0f * 0.0f;
+        if (i == 0) continue;
+        x = (i < 0 ? i * 4.0f + 2.0f : i * 4.0f - 2.0f);
+        Vec3 cloth = (i & 1) ? Vec3(0.30f, 0.04f, 0.07f) : Vec3(0.10f, 0.06f, 0.22f);
+        b.addBox(Vec3(x, 4.6f, -8.35f), Vec3(1.5f, 3.4f, 0.05f), cloth);
+        b.addBox(Vec3(x, 6.35f, -8.3f), Vec3(1.8f, 0.12f, 0.12f), Vec3(0.75f, 0.58f, 0.2f));      // rod
+        b.addBox(Vec3(x, 2.95f, -8.32f), Vec3(1.5f, 0.1f, 0.07f), Vec3(0.85f, 0.65f, 0.22f));     // hem
+        for (int t = 0; t < 5; ++t) b.addBox(Vec3(x - 0.6f + t * 0.3f, 2.75f, -8.32f), Vec3(0.06f, 0.3f, 0.04f), Vec3(0.85f, 0.65f, 0.22f)); // tassels
+        // diamond emblem made of two stacked rotated boxes
+        MeshBuilder d;
+        d.addBox(Vec3(0, 0, 0), Vec3(0.5f, 0.5f, 0.04f), Vec3(0.88f, 0.68f, 0.24f));
+        b.append(d, Mat4::translate(Vec3(x, 4.7f, -8.3f)) * Mat4::rotateZ(PI * 0.25f));
+        MeshBuilder d2;
+        d2.addBox(Vec3(0, 0, 0), Vec3(0.26f, 0.26f, 0.05f), cloth);
+        b.append(d2, Mat4::translate(Vec3(x, 4.7f, -8.29f)) * Mat4::rotateZ(PI * 0.25f));
+    }
+    arenaBanners_.upload(b);
 }
 
 void App::startFight(int charA, int charB, FightMode mode, int difficulty) {
@@ -316,7 +360,8 @@ void App::renderFight() {
     }
     if (!fightCamInit_) { fightCam_ = want; fightCamInit_ = true; }
     else {
-        float k = std::min(1.0f, (1.0f / 60.0f) * 9.0f);
+        // 0.15 per frame at 60 FPS, converted so smoothing speed does not depend on frame rate
+        float k = 1.0f - std::pow(1.0f - 0.15f, frameDt_ * 60.0f);
         fightCam_.eye = lerp(fightCam_.eye, want.eye, k);
         fightCam_.target = lerp(fightCam_.target, want.target, k);
         fightCam_.fovDeg = lerp(fightCam_.fovDeg, want.fovDeg, k);
@@ -336,6 +381,7 @@ void App::renderFight() {
     renderer_.setFog(Vec3(0.05f, 0.04f, 0.06f), 0.0015f);
     renderer_.addPointLight(Vec3(-6, 3.5f, 1.5f), ca.styleColor.rgb() * 1.1f, 12);
     renderer_.addPointLight(Vec3(6, 3.5f, 1.5f), cb.styleColor.rgb() * 1.1f, 12);
+    renderer_.addPointLight(Vec3(midX, 3.0f, 4.2f), Vec3(1.0f, 0.93f, 0.82f) * 0.95f, 14);   // front key light
     renderer_.addPointLight(Vec3(-11, 1.9f, -5.5f), Vec3(1.0f, 0.55f, 0.2f) * (1.0f + 0.06f * std::sin(time_ * 3.0f)), 9);
     renderer_.addPointLight(Vec3(11, 1.9f, -5.5f), Vec3(1.0f, 0.55f, 0.2f) * (1.0f + 0.06f * std::cos(time_ * 2.3f)), 9);
     if (hudFlash_ > 0) renderer_.addPointLight(Vec3(midX, 2.5f, 1), Vec3(1, 1, 1) * hudFlash_ * 0.5f, 10);
@@ -343,6 +389,23 @@ void App::renderFight() {
     renderer_.draw(arenaFloor_, Mat4::identity(), Color(1, 1, 1), 0, 1);
     renderer_.draw(arenaWalls_, Mat4::identity(), Color(1, 1, 1), 0, 2);
     renderer_.draw(arenaProps_, Mat4::identity(), Color(1, 1, 1), 0, 3);
+    renderer_.draw(arenaBanners_, Mat4::identity(), Color(1, 1, 1), 0.04f, 0, false);
+    renderer_.draw(arenaEmblem_, Mat4::identity(), Color(1, 1, 1), 0.5f, 0, false);
+    // soft shafts of light from the ceiling, built from stacked glows
+    for (int k = -2; k <= 2; ++k) {
+        Vec3 top(k * 5.0f, 7.0f, -4.0f), bot(k * 4.2f, 0.0f, -0.5f);
+        for (int s = 0; s < 14; ++s) {
+            float t = (float)s / 13.0f;
+            renderer_.drawBillboard(lerp(top, bot, t), 1.6f + 2.6f * t, Color(1.0f, 0.88f, 0.7f, 0.018f + 0.012f * (1.0f - t)), Blend::Additive, 0.0f);
+        }
+    }
+    // drifting dust motes catch the light
+    if (fxRng_.chance(std::min(1.0f, frameDt_ * 18.0f))) {
+        Particle m; m.pos = Vec3(fxRng_.uniform(-12, 12), fxRng_.uniform(0.2f, 5.5f), fxRng_.uniform(-6, 3));
+        m.vel = Vec3(fxRng_.uniform(-0.1f, 0.1f), fxRng_.uniform(0.02f, 0.18f), fxRng_.uniform(-0.05f, 0.05f));
+        m.life = m.maxLife = fxRng_.uniform(3.0f, 6.0f); m.size = 0.035f; m.col = Color(1.0f, 0.9f, 0.7f, 0.45f);
+        particles_.push_back(m);
+    }
     // pillar accents in the opponent's colour
     for (int i = -4; i <= 4; ++i)
         renderer_.draw(rig_.unitBox(), Mat4::translate(Vec3(i * 4.0f, 3.0f, -7.75f)) * Mat4::scale(Vec3(0.3f, 4.5f, 0.06f)), (i % 2 ? cb.styleColor : ca.styleColor) * 0.9f, 0.9f, 0, false);
@@ -387,7 +450,7 @@ void App::renderFight() {
             Vec3 front(pos.x + f.facing * 0.95f, pos.y + 0.05f, pos.z);
             Vec3 target = lerp(behind, front, blend);
             if (!standPosInit_) { standPos_[0] = standPos_[1] = target; }
-            standPos_[i] = lerp(standPos_[i], target, 0.35f);
+            standPos_[i] = lerp(standPos_[i], target, 1.0f - std::pow(1.0f - 0.35f, frameDt_ * 60.0f));
             Pose sp;
             if (f.state == FState::Attack && f.move && f.move->standAttack) {
                 const Move* m = f.move;
@@ -477,7 +540,11 @@ void App::drawFightHud() {
         const Character& c = *f.ch;
         float hpFrac = clampf(f.hpShown / c.hp, 0, 1), redFrac = clampf(f.hpRedShown / c.hp, 0, 1);
         float x0 = i == 0 ? margin : cx + 70;
+        renderer_.rect(x0 - 12, barY - 12, barW + 24, 94, Color(0.012f, 0.01f, 0.016f, 0.84f));
+        renderer_.rectOutline(x0 - 12, barY - 12, barW + 24, 94, 1, c.styleColor.withAlpha(0.85f));
+        renderer_.rect(x0 - 12, barY - 12, barW + 24, 3, c.styleColor);
         renderer_.rect(x0 - 3, barY - 3, barW + 6, barH + 6, Color(0, 0, 0, 0.7f));
+        renderer_.rectOutline(x0 - 3, barY - 3, barW + 6, barH + 6, 1, GOLD.withAlpha(0.8f));
         renderer_.rect(x0, barY, barW, barH, Color(0.18f, 0.05f, 0.06f));
         float rw = barW * redFrac, hw = barW * hpFrac;
         float rx = i == 0 ? x0 : x0 + barW - rw;
@@ -509,6 +576,9 @@ void App::drawFightHud() {
         float segW = 92, segH = 16, gap = 6, hy = H - 48;
         float totalW = segW * 3 + gap * 2;
         float hx0 = i == 0 ? margin : W - margin - totalW;
+        renderer_.rect(hx0 - 10, hy - 27, totalW + 20, 52, Color(0.012f, 0.01f, 0.016f, 0.82f));
+        renderer_.rectOutline(hx0 - 10, hy - 27, totalW + 20, 52, 1, c.styleColor.withAlpha(0.75f));
+        renderer_.rect(hx0 - 10, hy - 27, totalW + 20, 2, c.styleColor);
         int bars = (int)(f.hhg / 1000.0f);
         for (int s = 0; s < 3; ++s) {
             float sx = hx0 + s * (segW + gap);
@@ -540,6 +610,8 @@ void App::drawFightHud() {
         }
     }
     // timer
+    renderer_.rect(cx - 52, 12, 104, 54, Color(0.012f, 0.01f, 0.016f, 0.9f));
+    renderer_.rectOutline(cx - 52, 12, 104, 54, 2, GOLD.withAlpha(0.9f));
     renderer_.rect(cx - 48, 16, 96, 44, Color(0, 0, 0, 0.7f));
     int secs = sim_.secondsLeft();
     char buf[16]; std::snprintf(buf, sizeof(buf), "%02d", secs);
@@ -605,10 +677,20 @@ void App::drawFightHud() {
 
 void App::drawPauseMenu() {
     float W = (float)width_, H = (float)height_, cx = W * 0.5f;
-    renderer_.rect(0, 0, W, H, Color(0, 0, 0, 0.65f));
+    renderer_.rect(0, 0, W, H, Color(0.008f, 0.005f, 0.012f, 0.78f));
+    renderer_.rect(cx - 250, H * 0.22f, 500, H * 0.62f, Color(0.02f, 0.012f, 0.02f, 0.96f));
+    renderer_.rectOutline(cx - 250, H * 0.22f, 500, H * 0.62f, 2, RED.withAlpha(0.9f));
+    renderer_.rect(cx - 250, H * 0.22f, 500, 4, GOLD);
     renderer_.textCentered(cx, H * 0.3f, "PAUSED", 6, WHITE);
     const char* items[4] = {"RESUME", "MOVE LIST", "SETTINGS", "QUIT TO TITLE"};
-    for (int i = 0; i < 4; ++i) renderer_.textCentered(cx, H * 0.45f + i * 42, items[i], 3, i == pauseIndex_ ? GOLD : WHITE);
+    for (int i = 0; i < 4; ++i) {
+        float y = H * 0.45f + i * 42;
+        if (i == pauseIndex_) {
+            renderer_.rect(cx - 190, y - 6, 380, 34, Color(0.65f, 0.06f, 0.1f, 0.5f));
+            renderer_.rect(cx - 190, y - 6, 3, 34, GOLD);
+        }
+        renderer_.textCentered(cx, y, items[i], 3, i == pauseIndex_ ? GOLD : WHITE);
+    }
     renderer_.textCentered(cx, H * 0.85f, "UP / DOWN / MOUSE  CHOOSE     ENTER / CLICK  CONFIRM     ESC  RESUME", 1.6f, DIM);
 }
 
@@ -619,20 +701,21 @@ void App::drawMoveList() {
     float x = 60, y = 40;
     renderer_.text(x, y, c.name + "  -  " + c.styleName, 3, c.styleColor);
     std::vector<std::string> lines = {
-        "SYSTEM                                        (F = TOWARD OPPONENT, B = AWAY)",
-        "LIGHT J   MEDIUM K   HEAVY L        CHAIN  L > M > H    EASY BEAT: TAP J REPEATEDLY",
-        "THROW  J+K                          TAUNT  O  (DRAINS HEAT OF A DOWNED FOE)",
-        "DASH   U + F / B  OR DOUBLE TAP     SIDESTEP (STYLISH EVADE)  U + W / S",
-        "STAND / MODE ON-OFF  I              STAND ON: LONGER NORMALS, STAND TAKES HITS",
-        "FLASH CANCEL  J+K+L DURING A MOVE   COSTS 1 HEAT BAR",
-        "HHA  D,DF,F + TWO ATTACKS  (1 BAR)  GHA  D,DF,F + THREE ATTACKS  (2 BARS)",
-        "RUSH MODE: WHEN RUSH ATTACKS COLLIDE, MASH ATTACK TO WIN THE CLASH",
+        "MOVE  WASD / ARROWS       LIGHT J   MEDIUM K   HEAVY L",
+        "TAP LIGHT REPEATEDLY: EASY BEAT CHAIN  (L > M > H > SPECIAL)",
+        "F + LIGHT / MEDIUM: FORWARD SPECIAL     B + LIGHT / MEDIUM: BACK SPECIAL",
+        "F + HEAVY: RISING SPECIAL     CLASSIC MOTIONS STILL WORK",
+        "HOLD F + J+K: HHA (1 BAR)     HOLD F + J+K+L: GHA (2 BARS)",
+        "THROW  J+K     DASH / EVADE  U     STYLE / MODE  I     TAUNT  O",
+        "STYLISH EVADE: U + W / S     FLASH CANCEL: J+K+L DURING A MOVE",
+        "STAND USERS: LONG-RANGE STAND ATTACKS     MODE USERS: POWER BURST",
+        "RUSH MODE: WHEN RUSH ATTACKS COLLIDE, MASH ATTACK TO WIN",
         "",
-        "SPECIAL MOVES",
+        "SIGNATURE MOVES",
     };
     for (const Move& m : c.moves) {
         if (m.kind == MoveKind::Special && m.buttons == BTN_LIGHT) {
-            std::string mo = m.motion == Motion::QCF ? "D,DF,F + ATK" : m.motion == Motion::QCB ? "D,DB,B + ATK" : "F,D,DF + ATK";
+            std::string mo = m.motion == Motion::QCF ? "F + LIGHT" : m.motion == Motion::QCB ? "B + LIGHT" : "F + HEAVY";
             std::string tag = m.projectile ? "  (PROJECTILE)" : m.commandThrow ? "  (COMMAND THROW)" : m.rush ? "  (RUSH)" : m.armor ? "  (ARMOR)" : "";
             lines.push_back(upper(m.name.substr(0, m.name.size() - 2)) + "   " + mo + tag);
         }

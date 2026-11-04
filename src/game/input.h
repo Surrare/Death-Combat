@@ -33,7 +33,7 @@ struct PadState {
 class Input {
 public:
     void attach(GLFWwindow* window, const Settings* settings);
-    void poll();                      // call once per frame
+    void poll(float dt);              // call once per frame
     const PadState& player(int i) const { return pads_[i]; }
     // Both players' controls merged: arrows + WASD, Enter / J confirm, Esc back. Use for menus.
     const PadState& menu() const { return menu_; }
