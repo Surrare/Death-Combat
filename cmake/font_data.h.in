@@ -1,0 +1,7 @@
+// Generated from the bundled, unmodified font. See assets/fonts/OFL.txt.
+#pragma once
+namespace dc::font_data {
+inline constexpr unsigned char @DC_FONT_SYMBOL@[] = {
+@DC_FONT_BYTES@
+};
+}

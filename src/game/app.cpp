@@ -72,7 +72,8 @@ void App::addFloat(Vec3 pos, const std::string& t, Color c, float life, float sc
 }
 
 void App::drawPanelText(float x, float y, const std::vector<std::string>& lines, float scale, Color col, float lineGap) {
-    for (size_t i = 0; i < lines.size(); ++i) renderer_.text(x, y + (float)i * 8.0f * scale * lineGap, lines[i], scale, col);
+    const float lineHeight = renderer_.textLineHeight(scale) * lineGap / 1.5f;
+    for (size_t i = 0; i < lines.size(); ++i) renderer_.text(x, y + (float)i * lineHeight, lines[i], scale, col);
 }
 
 // --------------------------------------------------------------------- frame --
@@ -187,8 +188,8 @@ void App::renderTitle() {
     // HUD
     float cx = width_ * 0.5f;
     float pulse = 0.85f + 0.15f * std::sin(titleTime_ * 3.0f);
-    renderer_.textCentered(cx + 4, 64 + 4, "DEATH COMBAT", 9, Color(0, 0, 0, 0.6f));
-    renderer_.textCentered(cx, 64, "DEATH COMBAT", 9, Color(0.95f, 0.15f, 0.2f) * pulse);
+    renderer_.textCentered(cx + 2, 64 + 2, "DEATH COMBAT", 8, Color(0, 0, 0, 0.6f));
+    renderer_.textCentered(cx, 64, "DEATH COMBAT", 8, Color(0.95f, 0.15f, 0.2f) * pulse);
     renderer_.textCentered(cx, 150, "SEEK YOUR OPPONENT.  STAND AND FIGHT.", 2, DIM);
     float my = height_ * 0.5f;
     for (int i = 0; i < 5; ++i) {

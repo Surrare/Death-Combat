@@ -5,6 +5,10 @@
 #include <algorithm>
 
 namespace dc {
+namespace {
+constexpr float TEXT_CAP_HEIGHT = 9.0f;
+FontFace textFace(float scale) { return scale >= 2.4f ? FontFace::Display : FontFace::Body; }
+}
 
 // ---------------------------------------------------------------- shaders ----
 static const char* LIT_VS = R"(#version 330 core
@@ -154,7 +158,10 @@ static const char* UI_FS = R"(#version 330 core
 in vec2 vUV; in vec4 vColor; out vec4 FragColor;
 uniform sampler2D uFont;
 void main(){
-    float a = vUV.x < -0.5 ? 1.0 : texture(uFont, vUV).r;
+    float distance = texture(uFont, vUV).r;
+    float edge = 128.0 / 255.0;
+    float aa = clamp(0.5 * fwidth(distance), 1.0 / 255.0, 0.25);
+    float a = vUV.x < -0.5 ? 1.0 : smoothstep(edge - aa, edge + aa, distance);
     FragColor = vec4(vColor.rgb, vColor.a * a);
 })";
 
@@ -212,35 +219,26 @@ bool Renderer::init() {
     glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(UiVertex), (void*)offsetof(UiVertex, col));
     glBindVertexArray(0);
 
-    buildFontAtlas();
+    if (!buildFontAtlas()) return false;
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     return true;
 }
 
-void Renderer::buildFontAtlas() {
-    int count = 0;
-    const Glyph* glyphs = fontGlyphs(count);
-    fontCols_ = count;
-    const int cw = 8, ch = 8;   // 8 px cells, glyphs are 5x7: 3 px of padding avoids bleeding
-    std::vector<unsigned char> pixels((size_t)(count * cw * ch), 0);
-    for (int i = 0; i < 128; ++i) glyphIndex_[i] = 0;
-    for (int g = 0; g < count; ++g) {
-        glyphIndex_[(int)glyphs[g].ch] = g;
-        for (int r = 0; r < 7; ++r)
-            for (int c = 0; c < 5; ++c)
-                if (glyphs[g].rows[r][c] == '#')
-                    pixels[(size_t)(r * count * cw + g * cw + c)] = 255;
+bool Renderer::buildFontAtlas() {
+    if (!font_.build()) {
+        std::fprintf(stderr, "Failed to build the embedded TrueType font atlas\n");
+        return false;
     }
-    for (int c = 'a'; c <= 'z'; ++c) glyphIndex_[c] = glyphIndex_[c - 'a' + 'A'];
     glGenTextures(1, &fontTex_);
     glBindTexture(GL_TEXTURE_2D, fontTex_);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, count * cw, ch, 0, GL_RED, GL_UNSIGNED_BYTE, pixels.data());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, FontAtlas::WIDTH, FontAtlas::HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, font_.pixels().data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    return true;
 }
 
 // ------------------------------------------------------------- submission ----
@@ -302,18 +300,21 @@ void Renderer::rectOutline(float x, float y, float w, float h, float t, const Co
 }
 
 void Renderer::text(float x, float y, const std::string& s, float scale, const Color& col) {
-    float cw = 6.0f * scale, ch = 8.0f * scale;
-    float gu = 1.0f / (float)fontCols_;
-    for (size_t i = 0; i < s.size(); ++i) {
-        unsigned char c = (unsigned char)s[i];
-        if (c >= 128) c = '?';
-        int g = glyphIndex_[c];
-        float u0 = g * gu, u1 = (g + 0.75f) * gu;   // 6 of the 8 cell pixels
-        float px = x + (float)i * cw;
-        UiVertex v0{px, y, u0, 0, col}, v1{px + cw, y, u1, 0, col}, v2{px + cw, y + ch, u1, 1, col}, v3{px, y + ch, u0, 1, col};
+    const TextLayout layout = font_.layout(s, scale * TEXT_CAP_HEIGHT, textFace(scale));
+    for (const GlyphQuad& g : layout.quads) {
+        UiVertex v0{x + g.x0, y + g.y0, g.u0, g.v0, col}, v1{x + g.x1, y + g.y0, g.u1, g.v0, col},
+                 v2{x + g.x1, y + g.y1, g.u1, g.v1, col}, v3{x + g.x0, y + g.y1, g.u0, g.v1, col};
         ui_.push_back(v0); ui_.push_back(v1); ui_.push_back(v2);
         ui_.push_back(v0); ui_.push_back(v2); ui_.push_back(v3);
     }
+}
+
+float Renderer::textWidth(const std::string& s, float scale) const {
+    return font_.layout(s, scale * TEXT_CAP_HEIGHT, textFace(scale)).width;
+}
+
+float Renderer::textLineHeight(float scale) const {
+    return font_.lineHeight(scale * TEXT_CAP_HEIGHT, textFace(scale));
 }
 
 void Renderer::textCentered(float cx, float y, const std::string& s, float scale, const Color& col) {

@@ -42,11 +42,39 @@ endif()
 # ---- GLAD (vendored OpenGL loader) ---------------------------------------------
 add_subdirectory(third_party/glad)
 
+# Bundle the exact font bytes in the executable; no system font or runtime path is required.
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
+function(dc_embed_font filename symbol)
+    set(font_path "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/${filename}")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${font_path}")
+    file(READ "${font_path}" font_hex HEX)
+    string(REGEX REPLACE "(..)" "0x\\1," DC_FONT_BYTES "${font_hex}")
+    string(REPEAT "0x[0-9a-f][0-9a-f]," 16 font_line)
+    string(REGEX REPLACE "(${font_line})" "\\1\n" DC_FONT_BYTES "${DC_FONT_BYTES}")
+    set(DC_FONT_SYMBOL "${symbol}")
+    configure_file(cmake/font_data.h.in "generated/${symbol}.h" @ONLY)
+endfunction()
+dc_embed_font(BarlowSemiCondensed-Medium.ttf font_body)
+dc_embed_font(BarlowSemiCondensed-SemiBold.ttf font_display)
+add_library(dc_font STATIC src/core/font.cpp)
+target_include_directories(dc_font PUBLIC src PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+target_include_directories(dc_font SYSTEM PRIVATE third_party)
+if(MSVC)
+    target_compile_options(dc_font PRIVATE /W4 /utf-8)
+endif()
+
 # ---- Game ---------------------------------------------------------------------
 file(GLOB_RECURSE DC_SOURCES CONFIGURE_DEPENDS src/*.cpp src/*.h)
+list(REMOVE_ITEM DC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/core/font.cpp")
 add_executable(DeathCombat ${DC_SOURCES})
 target_include_directories(DeathCombat PRIVATE src third_party)
-target_link_libraries(DeathCombat PRIVATE glfw glad)
+target_link_libraries(DeathCombat PRIVATE glfw glad dc_font)
+add_custom_command(TARGET DeathCombat POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:DeathCombat>/licenses"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL.txt"
+        "$<TARGET_FILE_DIR:DeathCombat>/licenses/Barlow-OFL.txt"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/third_party/stb/LICENSE"
+        "$<TARGET_FILE_DIR:DeathCombat>/licenses/stb-LICENSE.txt")
 target_compile_definitions(DeathCombat PRIVATE GLFW_INCLUDE_NONE)
 if(MSVC)
     target_compile_options(DeathCombat PRIVATE /W4 /utf-8 /MP)
@@ -85,7 +113,7 @@ if(DC_BUILD_TESTS)
     add_executable(DeathCombatRigTest tests/rig_test.cpp src/game/rig.cpp src/game/characters.cpp
         src/gfx/renderer.cpp src/gfx/mesh.cpp src/gfx/shader.cpp)
     target_include_directories(DeathCombatRigTest PRIVATE src)
-    target_link_libraries(DeathCombatRigTest PRIVATE glad ${CMAKE_DL_LIBS})
+    target_link_libraries(DeathCombatRigTest PRIVATE glad dc_font ${CMAKE_DL_LIBS})
     if(MSVC)
         target_compile_options(DeathCombatRigTest PRIVATE /W4 /utf-8)
         target_compile_definitions(DeathCombatRigTest PRIVATE NOMINMAX _CRT_SECURE_NO_WARNINGS)
@@ -93,4 +121,11 @@ if(DC_BUILD_TESTS)
         target_compile_options(DeathCombatRigTest PRIVATE -Wall -Wextra -Wno-unused-parameter)
     endif()
     add_test(NAME rig_grounding COMMAND DeathCombatRigTest)
+
+    add_executable(DeathCombatFontTest tests/font_test.cpp)
+    target_link_libraries(DeathCombatFontTest PRIVATE dc_font)
+    if(MSVC)
+        target_compile_options(DeathCombatFontTest PRIVATE /W4 /utf-8)
+    endif()
+    add_test(NAME font_layout COMMAND DeathCombatFontTest)
 endif()

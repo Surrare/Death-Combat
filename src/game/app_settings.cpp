@@ -14,7 +14,8 @@ enum Row { ROW_MASTER, ROW_MUSIC, ROW_SFX, ROW_FULLSCREEN, ROW_VSYNC, ROW_MOUSE,
 // shared by update (mouse hit-testing) and render so the two never disagree
 static float settingsRowH(int height) { return std::min(26.0f, (height - 150.0f) / ROW_COUNT); }
 static float settingsRowY(int r, float rowH) { return 80.0f + r * rowH + (r >= ROW_KEYS ? 22.0f : 0.0f); }
-static const float CHAR_W = 6.0f * 1.7f;   // text scale 1.7 used for settings rows
+// Discrete slider cells retain stable click targets with the proportional font.
+static constexpr float SLIDER_CELL = 12.0f;
 
 void App::openSettings(Scene returnTo) {
     settingsReturn_ = returnTo;
@@ -72,10 +73,10 @@ void App::updateSettings(float dt) {
             } else if (r == ROW_MASTER || r == ROW_MUSIC || r == ROW_SFX || r == ROW_MOUSE) {
                 int& v = r == ROW_MASTER ? settings_.master : r == ROW_MUSIC ? settings_.music : r == ROW_SFX ? settings_.sfx : settings_.mouseSens;
                 int lo = r == ROW_MOUSE ? 1 : 0;
-                float barX = valueX + 3 * CHAR_W;
-                if (mx >= barX && mx < barX + 10 * CHAR_W) v = std::clamp((int)((mx - barX) / CHAR_W) + 1, lo, 10);
+                float barX = valueX + 3 * SLIDER_CELL;
+                if (mx >= barX && mx < barX + 10 * SLIDER_CELL) v = std::clamp((int)((mx - barX) / SLIDER_CELL) + 1, lo, 10);
                 else if (mx >= valueX && mx < barX) clickDx = -1;
-                else if (mx >= barX + 10 * CHAR_W && mx < barX + 10 * CHAR_W + 5 * CHAR_W) clickDx = 1;
+                else if (mx >= barX + 10 * SLIDER_CELL && mx < barX + 10 * SLIDER_CELL + 5 * SLIDER_CELL) clickDx = 1;
             } else if (r == ROW_FULLSCREEN || r == ROW_VSYNC) {
                 if (mx >= valueX) clicked = true;
             } else clicked = true;
@@ -118,10 +119,11 @@ void App::renderSettings() {
 
     const float rowH = settingsRowH(height_);
     const float labelX = cx - 300, valueX = cx + 20;
-    auto bar = [&](float y, int v, int maxV) {
-        std::string s = "<  ";
-        for (int i = 0; i < maxV; ++i) s += i < v ? "#" : "-";
-        return s + "  >";
+    auto bar = [&](float y, int value, Color col) {
+        renderer_.textCentered(valueX + SLIDER_CELL * 0.5f, y, "<", 1.7f, col);
+        for (int i = 0; i < 10; ++i)
+            renderer_.textCentered(valueX + (3.5f + i) * SLIDER_CELL, y, i < value ? "#" : "-", 1.7f, col);
+        renderer_.textCentered(valueX + SLIDER_CELL * 15.5f, y, ">", 1.7f, col);
     };
     for (int r = 0; r < ROW_COUNT; ++r) {
         float y = settingsRowY(r, rowH);
@@ -130,12 +132,13 @@ void App::renderSettings() {
         if (sel) renderer_.rect(labelX - 12, y - 4, 640, rowH - 2, Color(0.9f, 0.15f, 0.2f, 0.3f));
         Color col = sel ? GOLD : WHITE;
         std::string label, value;
-        if (r == ROW_MASTER) { label = "MASTER VOLUME"; value = bar(y, settings_.master, 10); }
-        else if (r == ROW_MUSIC) { label = "MUSIC VOLUME"; value = bar(y, settings_.music, 10); }
-        else if (r == ROW_SFX) { label = "EFFECTS VOLUME"; value = bar(y, settings_.sfx, 10); }
+        int sliderValue = -1;
+        if (r == ROW_MASTER) { label = "MASTER VOLUME"; sliderValue = settings_.master; }
+        else if (r == ROW_MUSIC) { label = "MUSIC VOLUME"; sliderValue = settings_.music; }
+        else if (r == ROW_SFX) { label = "EFFECTS VOLUME"; sliderValue = settings_.sfx; }
         else if (r == ROW_FULLSCREEN) { label = "FULLSCREEN"; value = settings_.fullscreen ? "<  ON  >" : "<  OFF  >"; }
         else if (r == ROW_VSYNC) { label = "VSYNC"; value = settings_.vsync ? "<  ON  >" : "<  OFF  >"; }
-        else if (r == ROW_MOUSE) { label = "MOUSE SENSITIVITY"; value = bar(y, settings_.mouseSens, 10); }
+        else if (r == ROW_MOUSE) { label = "MOUSE SENSITIVITY"; sliderValue = settings_.mouseSens; }
         else if (r == ROW_RESET) { label = "RESET CONTROLS TO DEFAULT"; }
         else if (r == ROW_BACK) { label = "BACK"; }
         else {
@@ -152,6 +155,7 @@ void App::renderSettings() {
             continue;
         }
         renderer_.text(labelX, y, label, 1.7f, col);
+        if (sliderValue >= 0) bar(y, sliderValue, col);
         if (!value.empty()) renderer_.text(valueX, y, value, 1.7f, col);
     }
     std::string hint = settingsCapturing_ ? "PRESS THE NEW KEY     ESC  CANCEL"

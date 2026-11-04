@@ -1,0 +1,3 @@
+﻿Source: https://github.com/nothings/stb/blob/6e9f34d5429cf16790ec43c9bac3f1ee4ad1f760/stb_truetype.h
+Unmodified stb_truetype.h. License: LICENSE.
+ECD30B05E0DD4FEA3A13C26810DD9E1992DC379049482C393D5A19E6B5090AAB

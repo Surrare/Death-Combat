@@ -1,10 +1,11 @@
 // Forward renderer: directional light with shadow map, point lights, fog, unlit 3D batches
-// (particles / glow), and a 2D HUD batch with bitmap text.
+// (particles / glow), and a 2D HUD batch with smooth TrueType text.
 #pragma once
 #include <glad/gl.h>
 #include <vector>
 #include <string>
 #include "core/math.h"
+#include "core/font.h"
 #include "gfx/shader.h"
 #include "gfx/mesh.h"
 
@@ -61,7 +62,8 @@ public:
     void text(float x, float y, const std::string& s, float scale, const Color& col);
     void textCentered(float cx, float y, const std::string& s, float scale, const Color& col);
     void textRight(float rx, float y, const std::string& s, float scale, const Color& col);
-    float textWidth(const std::string& s, float scale) const { return (float)s.size() * 6.0f * scale; }
+    float textWidth(const std::string& s, float scale) const;
+    float textLineHeight(float scale) const;
 
     // Renders everything submitted since beginFrame.
     void endFrame();
@@ -76,7 +78,7 @@ private:
     struct UnlitVertex { Vec3 pos; Color col; float u, v; };
     struct UiVertex { float x, y, u, v; Color col; };
 
-    void buildFontAtlas();
+    bool buildFontAtlas();
     void renderShadowPass();
     void renderScenePass();
     void renderUnlit(std::vector<UnlitVertex>& verts, Blend blend);
@@ -105,8 +107,7 @@ private:
     GLuint unlitVao_ = 0, unlitVbo_ = 0;
     GLuint uiVao_ = 0, uiVbo_ = 0;
     GLuint fontTex_ = 0;
-    int fontCols_ = 0;
-    int glyphIndex_[128];
+    FontAtlas font_;
 };
 
 } // namespace dc
