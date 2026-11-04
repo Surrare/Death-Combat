@@ -9,7 +9,15 @@ When you find them, the fight is a 3D arena brawl with the mechanics of
 *JoJo's Bizarre Adventure: All-Star Battle*: Stands, Heart Heat Gauge, HHA / GHA, Flash Cancel,
 Stylish Evade, Easy Beat chains, Stand Break and Rush Mode clashes.
 
-![Fight](docs/fight.png)
+## Screenshots
+
+| Title screen | Character select |
+|---|---|
+| <img src="docs/title.png" alt="The crimson title menu and fighter lineup" width="480"> | <img src="docs/character-select.png" alt="Character select with Mira's dossier and signature moves" width="480"> |
+
+| Arena select | Fight |
+|---|---|
+| <img src="docs/stage-select.png" alt="Arena select previewing Moonlit Shrine" width="480"> | <img src="docs/fight.png" alt="Kain and Vesper facing off in the Crimson Colosseum" width="480"> |
 
 ## Building
 
