@@ -72,6 +72,23 @@ cmake --build build -j
 ./build/DeathCombat
 ```
 
+#### Install and uninstall on Linux
+
+Configure with the desired installation prefix (the default is `/usr/local`):
+
+```bash
+cmake -S . -B build-linux -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/.local"
+cmake --build build-linux -j
+cmake --install build-linux
+```
+
+The install includes the game, shaders, licenses, and a desktop-menu entry with the game icon. With the default system prefix, install using `sudo cmake --install build-linux`; for a user-local install such as `$HOME/.local`, no `sudo` is needed. To uninstall, run from the same configured build directory (use `sudo` for a system-wide install):
+
+```bash
+cmake --build build-linux --target uninstall
+# For a system-wide install: sudo cmake --build build-linux --target uninstall
+```
+
 ### 4. Running the Automated Test Suite / Запуск тестов
 
 ```bash

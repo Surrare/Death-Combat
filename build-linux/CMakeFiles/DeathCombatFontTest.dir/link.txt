@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/DeathCombatFontTest.dir/link.d CMakeFiles/DeathCombatFontTest.dir/tests/font_test.cpp.o -o DeathCombatFontTest  libdc_font.a

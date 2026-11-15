@@ -1,0 +1,2 @@
+/usr/bin/ar qc libdc_localization.a CMakeFiles/dc_localization.dir/src/core/localization.cpp.o
+/usr/bin/ranlib libdc_localization.a

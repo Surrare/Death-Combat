@@ -1,0 +1,115 @@
+Start testing: Nov 15 17:27 +05
+----------------------------------------------------------
+1/4 Testing: sim_smoke
+1/4 Test: sim_smoke
+Command: "/home/dus/Softgays/Death-Combat/build-linux/DeathCombatSimTest"
+Directory: /home/dus/Softgays/Death-Combat/build-linux
+"sim_smoke" start time: Nov 15 17:27 +05
+Output:
+----------------------------------------------------------
+KAIN    vs VESPER   rounds 3  winner KAIN  frames 6808
+KAIN    vs ORSOLO   rounds 2  winner KAIN  frames 4835
+KAIN    vs MIRA     rounds 2  winner KAIN  frames 5555
+KAIN    vs KAZE     rounds 2  winner KAIN  frames 3644
+KAIN    vs BRAM     rounds 3  winner KAIN  frames 5698
+VESPER  vs KAIN     rounds 2  winner KAIN  frames 4944
+VESPER  vs ORSOLO   rounds 2  winner ORSOLO  frames 4878
+VESPER  vs MIRA     rounds 2  winner MIRA  frames 4272
+VESPER  vs KAZE     rounds 3  winner VESPER  frames 6825
+VESPER  vs BRAM     rounds 3  winner BRAM  frames 5683
+ORSOLO  vs KAIN     rounds 3  winner ORSOLO  frames 7160
+ORSOLO  vs VESPER   rounds 2  winner ORSOLO  frames 4321
+ORSOLO  vs MIRA     rounds 2  winner MIRA  frames 4350
+ORSOLO  vs KAZE     rounds 2  winner ORSOLO  frames 4357
+ORSOLO  vs BRAM     rounds 2  winner BRAM  frames 3564
+MIRA    vs KAIN     rounds 3  winner KAIN  frames 7464
+MIRA    vs VESPER   rounds 2  winner VESPER  frames 4690
+MIRA    vs ORSOLO   rounds 3  winner ORSOLO  frames 6403
+MIRA    vs KAZE     rounds 2  winner MIRA  frames 4792
+MIRA    vs BRAM     rounds 3  winner BRAM  frames 6678
+KAZE    vs KAIN     rounds 2  winner KAIN  frames 3648
+KAZE    vs VESPER   rounds 3  winner VESPER  frames 6762
+KAZE    vs ORSOLO   rounds 2  winner ORSOLO  frames 4191
+KAZE    vs MIRA     rounds 2  winner MIRA  frames 4349
+KAZE    vs BRAM     rounds 2  winner BRAM  frames 3216
+BRAM    vs KAIN     rounds 2  winner BRAM  frames 4798
+BRAM    vs VESPER   rounds 2  winner VESPER  frames 3627
+BRAM    vs ORSOLO   rounds 2  winner BRAM  frames 4487
+BRAM    vs MIRA     rounds 2  winner MIRA  frames 4125
+BRAM    vs KAZE     rounds 2  winner BRAM  frames 4637
+
+matches 30, hits 1555, max combo 11, clashes 1, projectile-frames 3433
+  Hit          1555
+  Block        675
+  Throw        15
+  Spark        160
+  Text         541
+  Projectile   142
+  Clash        1
+  StyleBreak   27
+  FlashCancel  0
+  KO           69
+  RoundStart   39
+  MoveName     1359
+  Dust         1168
+  Land         584
+  Tech         0
+
+OK
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"sim_smoke" end time: Nov 15 17:27 +05
+"sim_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/4 Testing: rig_grounding
+2/4 Test: rig_grounding
+Command: "/home/dus/Softgays/Death-Combat/build-linux/DeathCombatRigTest"
+Directory: /home/dus/Softgays/Death-Combat/build-linux
+"rig_grounding" start time: Nov 15 17:27 +05
+Output:
+----------------------------------------------------------
+Rig grounding: 776682 checks, 0 failures
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Passed.
+"rig_grounding" end time: Nov 15 17:27 +05
+"rig_grounding" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/4 Testing: font_layout
+3/4 Test: font_layout
+Command: "/home/dus/Softgays/Death-Combat/build-linux/DeathCombatFontTest"
+Directory: /home/dus/Softgays/Death-Combat/build-linux
+"font_layout" start time: Nov 15 17:27 +05
+Output:
+----------------------------------------------------------
+Font layout: 2350 checks, 0 failures
+<end of output>
+Test time =   0.61 sec
+----------------------------------------------------------
+Test Passed.
+"font_layout" end time: Nov 15 17:27 +05
+"font_layout" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/4 Testing: localization
+4/4 Test: localization
+Command: "/home/dus/Softgays/Death-Combat/build-linux/DeathCombatLocalizationTest"
+Directory: /home/dus/Softgays/Death-Combat/build-linux
+"localization" start time: Nov 15 17:27 +05
+Output:
+----------------------------------------------------------
+Localization: 0 failures
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"localization" end time: Nov 15 17:27 +05
+"localization" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 15 17:27 +05

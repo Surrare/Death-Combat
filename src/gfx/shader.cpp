@@ -7,9 +7,12 @@
 namespace dc {
 
 static std::string readShaderDiskFile(const char* filename, std::string& resolvedOut) {
-    const char* prefixes[] = {"shaders/", "../shaders/", "../../shaders/"};
-    for (const char* pfx : prefixes) {
-        std::string path = std::string(pfx) + filename;
+    std::vector<std::string> prefixes = {"shaders/", "../shaders/", "../../shaders/"};
+#ifdef DC_INSTALL_SHADER_DIR
+    prefixes.emplace_back(DC_INSTALL_SHADER_DIR "/");
+#endif
+    for (const std::string& prefix : prefixes) {
+        std::string path = prefix + filename;
         std::ifstream f(path, std::ios::in | std::ios::binary);
         if (f.is_open()) {
             std::ostringstream ss;

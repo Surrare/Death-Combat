@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/DeathCombatLocalizationTest.dir/link.d CMakeFiles/DeathCombatLocalizationTest.dir/tests/localization_test.cpp.o -o DeathCombatLocalizationTest  libdc_localization.a

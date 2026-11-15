@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Death Combat
+Comment=3D fighting and labyrinth-hunt game
+Exec=/tmp/death-combat-install-check/bin/DeathCombat
+Icon=death-combat
+Terminal=false
+Categories=Game;

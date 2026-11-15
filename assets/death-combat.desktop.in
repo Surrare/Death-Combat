@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Death Combat
+Comment=3D fighting and labyrinth-hunt game
+Exec=@CMAKE_INSTALL_FULL_BINDIR@/DeathCombat
+Icon=death-combat
+Terminal=false
+Categories=Game;

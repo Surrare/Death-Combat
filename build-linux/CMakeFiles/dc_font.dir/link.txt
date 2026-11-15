@@ -1,0 +1,2 @@
+/usr/bin/ar qc libdc_font.a CMakeFiles/dc_font.dir/src/core/font.cpp.o
+/usr/bin/ranlib libdc_font.a

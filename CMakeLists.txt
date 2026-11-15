@@ -82,6 +82,7 @@ endif()
 add_executable(DeathCombat ${DC_SOURCES})
 target_include_directories(DeathCombat PRIVATE src third_party)
 target_link_libraries(DeathCombat PRIVATE glfw glad dc_font dc_localization)
+include(GNUInstallDirs)
 add_custom_command(TARGET DeathCombat POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:DeathCombat>/licenses"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL.txt"
@@ -111,6 +112,35 @@ else()
     target_link_libraries(DeathCombat PRIVATE Threads::Threads ${CMAKE_DL_LIBS} m)
 endif()
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT DeathCombat)
+
+# ---- Linux installation --------------------------------------------------------
+if(UNIX AND NOT APPLE)
+    set(DC_DESKTOP_FILE "${CMAKE_CURRENT_BINARY_DIR}/death-combat.desktop")
+    configure_file(assets/death-combat.desktop.in "${DC_DESKTOP_FILE}" @ONLY)
+    install(TARGETS DeathCombat RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(DIRECTORY shaders/ DESTINATION "${CMAKE_INSTALL_DATADIR}/death-combat/shaders")
+    install(FILES assets/fonts/OFL.txt
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/death-combat/licenses"
+        RENAME Barlow-OFL.txt)
+    install(FILES assets/fonts/Noto-OFL.txt
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/death-combat/licenses"
+        RENAME Noto-OFL.txt)
+    install(FILES third_party/stb/LICENSE
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/death-combat/licenses"
+        RENAME stb-LICENSE.txt)
+    install(FILES assets/icon.png
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/128x128/apps"
+        RENAME death-combat.png)
+    install(FILES "${DC_DESKTOP_FILE}"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
+    target_compile_definitions(DeathCombat PRIVATE
+        "DC_INSTALL_SHADER_DIR=\"${CMAKE_INSTALL_FULL_DATADIR}/death-combat/shaders\"")
+
+    configure_file(cmake/uninstall.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" @ONLY)
+    add_custom_target(uninstall
+        COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+        VERBATIM)
+endif()
 
 # ---- Headless simulation test (no window / OpenGL) ------------------------------
 option(DC_BUILD_TESTS "Build the headless simulation test" ON)
