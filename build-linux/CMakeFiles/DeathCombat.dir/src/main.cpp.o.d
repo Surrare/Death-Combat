@@ -123,10 +123,7 @@ CMakeFiles/DeathCombat.dir/src/main.cpp.o: \
  /usr/include/c++/16/bits/stl_uninitialized.h \
  /usr/include/c++/16/bits/stl_vector.h \
  /usr/include/c++/16/bits/stl_bvector.h \
- /usr/include/c++/16/bits/vector.tcc \
- /home/dus/Softgays/Death-Combat/src/game/app.h \
- /home/dus/Softgays/Death-Combat/src/core/math.h \
- /usr/include/c++/16/cstdint /usr/include/c++/16/algorithm \
+ /usr/include/c++/16/bits/vector.tcc /usr/include/c++/16/algorithm \
  /usr/include/c++/16/bits/stl_algo.h \
  /usr/include/c++/16/bits/algorithmfwd.h \
  /usr/include/c++/16/bits/stl_heap.h \
@@ -134,6 +131,9 @@ CMakeFiles/DeathCombat.dir/src/main.cpp.o: \
  /usr/include/c++/16/bits/stl_tempbuf.h \
  /usr/include/c++/16/pstl/glue_algorithm_defs.h \
  /usr/include/c++/16/pstl/execution_defs.h \
+ /home/dus/Softgays/Death-Combat/src/game/app.h \
+ /home/dus/Softgays/Death-Combat/src/core/math.h \
+ /usr/include/c++/16/cstdint \
  /home/dus/Softgays/Death-Combat/src/gfx/renderer.h \
  /home/dus/Softgays/Death-Combat/src/core/font.h \
  /usr/include/c++/16/array /usr/include/c++/16/compare \

@@ -129,7 +129,7 @@ third_party/glad/clean: third_party/glad/CMakeFiles/glad.dir/clean
 CMakeFiles/dc_font.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/dc_font.dir/build.make CMakeFiles/dc_font.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/dc_font.dir/build.make CMakeFiles/dc_font.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=35,36 "Built target dc_font"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=38,39 "Built target dc_font"
 .PHONY : CMakeFiles/dc_font.dir/all
 
 # Build rule for subdir invocation for target.
@@ -146,7 +146,7 @@ dc_font: CMakeFiles/dc_font.dir/rule
 # codegen rule for target.
 CMakeFiles/dc_font.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/dc_font.dir/build.make CMakeFiles/dc_font.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=35,36 "Finished codegen for target dc_font"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=38,39 "Finished codegen for target dc_font"
 .PHONY : CMakeFiles/dc_font.dir/codegen
 
 # clean rule for target.
@@ -161,7 +161,7 @@ CMakeFiles/dc_font.dir/clean:
 CMakeFiles/dc_localization.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/dc_localization.dir/build.make CMakeFiles/dc_localization.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/dc_localization.dir/build.make CMakeFiles/dc_localization.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=37,38 "Built target dc_localization"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=40,41 "Built target dc_localization"
 .PHONY : CMakeFiles/dc_localization.dir/all
 
 # Build rule for subdir invocation for target.
@@ -178,7 +178,7 @@ dc_localization: CMakeFiles/dc_localization.dir/rule
 # codegen rule for target.
 CMakeFiles/dc_localization.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/dc_localization.dir/build.make CMakeFiles/dc_localization.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=37,38 "Finished codegen for target dc_localization"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=40,41 "Finished codegen for target dc_localization"
 .PHONY : CMakeFiles/dc_localization.dir/codegen
 
 # clean rule for target.
@@ -195,12 +195,12 @@ CMakeFiles/DeathCombat.dir/all: CMakeFiles/dc_localization.dir/all
 CMakeFiles/DeathCombat.dir/all: third_party/glad/CMakeFiles/glad.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombat.dir/build.make CMakeFiles/DeathCombat.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombat.dir/build.make CMakeFiles/DeathCombat.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18 "Built target DeathCombat"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20 "Built target DeathCombat"
 .PHONY : CMakeFiles/DeathCombat.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/DeathCombat.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/dus/Softgays/Death-Combat/build-linux/CMakeFiles 23
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/dus/Softgays/Death-Combat/build-linux/CMakeFiles 25
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/DeathCombat.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/dus/Softgays/Death-Combat/build-linux/CMakeFiles 0
 .PHONY : CMakeFiles/DeathCombat.dir/rule
@@ -212,7 +212,7 @@ DeathCombat: CMakeFiles/DeathCombat.dir/rule
 # codegen rule for target.
 CMakeFiles/DeathCombat.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombat.dir/build.make CMakeFiles/DeathCombat.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18 "Finished codegen for target DeathCombat"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20 "Finished codegen for target DeathCombat"
 .PHONY : CMakeFiles/DeathCombat.dir/codegen
 
 # clean rule for target.
@@ -259,7 +259,7 @@ CMakeFiles/uninstall.dir/clean:
 CMakeFiles/DeathCombatSimTest.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatSimTest.dir/build.make CMakeFiles/DeathCombatSimTest.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatSimTest.dir/build.make CMakeFiles/DeathCombatSimTest.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=30,31,32,33,34 "Built target DeathCombatSimTest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=33,34,35,36,37 "Built target DeathCombatSimTest"
 .PHONY : CMakeFiles/DeathCombatSimTest.dir/all
 
 # Build rule for subdir invocation for target.
@@ -276,7 +276,7 @@ DeathCombatSimTest: CMakeFiles/DeathCombatSimTest.dir/rule
 # codegen rule for target.
 CMakeFiles/DeathCombatSimTest.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatSimTest.dir/build.make CMakeFiles/DeathCombatSimTest.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=30,31,32,33,34 "Finished codegen for target DeathCombatSimTest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=33,34,35,36,37 "Finished codegen for target DeathCombatSimTest"
 .PHONY : CMakeFiles/DeathCombatSimTest.dir/codegen
 
 # clean rule for target.
@@ -293,12 +293,12 @@ CMakeFiles/DeathCombatRigTest.dir/all: CMakeFiles/dc_localization.dir/all
 CMakeFiles/DeathCombatRigTest.dir/all: third_party/glad/CMakeFiles/glad.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatRigTest.dir/build.make CMakeFiles/DeathCombatRigTest.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatRigTest.dir/build.make CMakeFiles/DeathCombatRigTest.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=23,24,25,26,27,28,29 "Built target DeathCombatRigTest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=25,26,27,28,29,30,31,32 "Built target DeathCombatRigTest"
 .PHONY : CMakeFiles/DeathCombatRigTest.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/DeathCombatRigTest.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/dus/Softgays/Death-Combat/build-linux/CMakeFiles 12
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/dus/Softgays/Death-Combat/build-linux/CMakeFiles 13
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/DeathCombatRigTest.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/dus/Softgays/Death-Combat/build-linux/CMakeFiles 0
 .PHONY : CMakeFiles/DeathCombatRigTest.dir/rule
@@ -310,7 +310,7 @@ DeathCombatRigTest: CMakeFiles/DeathCombatRigTest.dir/rule
 # codegen rule for target.
 CMakeFiles/DeathCombatRigTest.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatRigTest.dir/build.make CMakeFiles/DeathCombatRigTest.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=23,24,25,26,27,28,29 "Finished codegen for target DeathCombatRigTest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=25,26,27,28,29,30,31,32 "Finished codegen for target DeathCombatRigTest"
 .PHONY : CMakeFiles/DeathCombatRigTest.dir/codegen
 
 # clean rule for target.
@@ -325,7 +325,7 @@ CMakeFiles/DeathCombatRigTest.dir/clean:
 CMakeFiles/DeathCombatFontTest.dir/all: CMakeFiles/dc_font.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatFontTest.dir/build.make CMakeFiles/DeathCombatFontTest.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatFontTest.dir/build.make CMakeFiles/DeathCombatFontTest.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=19,20 "Built target DeathCombatFontTest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=21,22 "Built target DeathCombatFontTest"
 .PHONY : CMakeFiles/DeathCombatFontTest.dir/all
 
 # Build rule for subdir invocation for target.
@@ -342,7 +342,7 @@ DeathCombatFontTest: CMakeFiles/DeathCombatFontTest.dir/rule
 # codegen rule for target.
 CMakeFiles/DeathCombatFontTest.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatFontTest.dir/build.make CMakeFiles/DeathCombatFontTest.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=19,20 "Finished codegen for target DeathCombatFontTest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=21,22 "Finished codegen for target DeathCombatFontTest"
 .PHONY : CMakeFiles/DeathCombatFontTest.dir/codegen
 
 # clean rule for target.
@@ -357,7 +357,7 @@ CMakeFiles/DeathCombatFontTest.dir/clean:
 CMakeFiles/DeathCombatLocalizationTest.dir/all: CMakeFiles/dc_localization.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatLocalizationTest.dir/build.make CMakeFiles/DeathCombatLocalizationTest.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatLocalizationTest.dir/build.make CMakeFiles/DeathCombatLocalizationTest.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=21,22 "Built target DeathCombatLocalizationTest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=23,24 "Built target DeathCombatLocalizationTest"
 .PHONY : CMakeFiles/DeathCombatLocalizationTest.dir/all
 
 # Build rule for subdir invocation for target.
@@ -374,7 +374,7 @@ DeathCombatLocalizationTest: CMakeFiles/DeathCombatLocalizationTest.dir/rule
 # codegen rule for target.
 CMakeFiles/DeathCombatLocalizationTest.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatLocalizationTest.dir/build.make CMakeFiles/DeathCombatLocalizationTest.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=21,22 "Finished codegen for target DeathCombatLocalizationTest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=23,24 "Finished codegen for target DeathCombatLocalizationTest"
 .PHONY : CMakeFiles/DeathCombatLocalizationTest.dir/codegen
 
 # clean rule for target.
@@ -389,7 +389,7 @@ CMakeFiles/DeathCombatLocalizationTest.dir/clean:
 third_party/glad/CMakeFiles/glad.dir/all:
 	$(MAKE) $(MAKESILENT) -f third_party/glad/CMakeFiles/glad.dir/build.make third_party/glad/CMakeFiles/glad.dir/depend
 	$(MAKE) $(MAKESILENT) -f third_party/glad/CMakeFiles/glad.dir/build.make third_party/glad/CMakeFiles/glad.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=39 "Built target glad"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=42 "Built target glad"
 .PHONY : third_party/glad/CMakeFiles/glad.dir/all
 
 # Build rule for subdir invocation for target.
@@ -406,7 +406,7 @@ glad: third_party/glad/CMakeFiles/glad.dir/rule
 # codegen rule for target.
 third_party/glad/CMakeFiles/glad.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f third_party/glad/CMakeFiles/glad.dir/build.make third_party/glad/CMakeFiles/glad.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=39 "Finished codegen for target glad"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=42 "Finished codegen for target glad"
 .PHONY : third_party/glad/CMakeFiles/glad.dir/codegen
 
 # clean rule for target.

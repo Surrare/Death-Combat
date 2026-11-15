@@ -172,7 +172,7 @@ All controls for **both Player 1 and Player 2** (2 key slots per action) can be 
 | **Back / Pause** | `Esc` | `Esc` | `Back` |
 | **Developer Mode** | `F3` | | |
 | **Help & Pipeline Overlay** | `F1` / `H` | | |
-| **Cycle Shader Pipeline** | `F2` | | |
+| **Cycle Pipeline Mode (8 modes, see above)** | `F2` | | |
 | **Pause / Resume 3D Animation** | `P` | | |
 | **3D Free-Orbit Camera** | `V` *(Mouse Drag / Arrows + `-`/`=` Zoom)* | | |
 | **Rotate Sun Light Direction** | `[` / `]` *(Azimuth)*, `-` / `=` *(Elevation)*, `0` *(Reset)* | | |
@@ -183,24 +183,22 @@ All controls for **both Player 1 and Player 2** (2 key slots per action) can be 
 
 ## Computer Graphics Pipeline & Mathematical Foundation
 
-All shaders are stored as external GLSL `#version 330 core` files in [`shaders/`](shaders/) and loaded dynamically at startup (with live hot-reloading via **`F10`**):
+All shaders are stored as external GLSL `#version 330 core` files in [`shaders/`](shaders/) and loaded at startup (hot reload with **`F10`**). If a file is missing or fails to compile, an embedded copy of the same shader is used and a message is printed to the console. After editing a shader, run `python3 tools/embed_shaders.py` to refresh the embedded copies.
 
-1. **Directional Shadow Mapping (`shaders/depth.vert`, `shaders/depth.frag`, `shaders/lit.frag`):**
-   - Renders scene depth from an orthographic light-space projection ($M_{\text{light}} = P_{\text{ortho}} \cdot V_{\text{light}}$) into a `2048x2048` `GL_DEPTH_COMPONENT24` texture (`GL_COMPARE_REF_TO_TEXTURE`).
-   - Samples a **3×3 Percentage-Closer Filtering (PCF)** kernel with slope-scaled normal bias $b = \max(0.0018(1 - \mathbf{N}\cdot\mathbf{L}), 0.0004)$ to eliminate shadow acne and produce soft shadow edges.
-2. **Forward Lit Pass (`shaders/lit.vert`, `shaders/lit.frag`):**
-   - **Key-Fill-Rim Blinn-Phong Illumination:**
-     $$I = k_a I_a + S_{\text{PCF}}\Big(k_d \max(\mathbf{N}\cdot\mathbf{L}, 0) + k_s \max(\mathbf{N}\cdot\mathbf{H}, 0)^{36}\Big)\mathbf{C}_{\text{sun}} + k_{\text{rim}}(1 - \max(\mathbf{N}\cdot\mathbf{V}, 0))^3$$
-   - **Multi-Point Light Attenuation:** Up to 8 dynamic point lights with smooth quadratic distance falloff $a(d) = \text{clamp}(1 - d/R, 0, 1)^2$.
-   - **Tri-Planar Procedural Surface Patterns:** World-space marble tiles, staggered masonry bricks, and riveted steel plates computed analytically in the fragment shader.
-   - **Atmospheric Fog:** Exponential squared fog $f = \exp(-(d \cdot \rho)^2)$.
-3. **Dynamic Voronoi Split-Screen (`shaders/mask.frag`):**
-   - When two fighters separate in 2P Versus mode, a hardware **Stencil Buffer (`GL_STENCIL_TEST`)** pass clips the second camera's viewport along the dynamic screen-space perpendicular bisector $(\mathbf{x}_{\text{frag}} - \mathbf{c})\cdot\mathbf{n}_{\text{split}} > 0$.
-4. **HDR 4× MSAA Post-Processing (`shaders/post.vert`, `shaders/bright.frag`, `shaders/blur.frag`, `shaders/composite.frag`):**
-   - Renders the 3D scene into a 4× MSAA `GL_RGBA16F` floating-point framebuffer, resolves to a single-sample HDR texture, extracts high-luminance regions (`bright.frag`), applies a **separable two-pass 9-tap Gaussian blur** (`blur.frag`), detects **linearized-depth Sobel silhouette edges** (`composite.frag`), and applies soft-knee ACES-inspired tone mapping and ordered dithering.
-5. **15-Bone Hierarchical Skeletal Rig (`src/game/rig.cpp`):**
-   - Every character and Stand is composed of a 15-joint articulated skeleton (`Hip`, `Waist`, `Chest`, `Neck`, `Head`, `ShoulderL/R`, `ElbowL/R`, `ShoulderPadL/R`, `HipL/R`, `KneeL/R`) evaluated via recursive local-to-world matrix composition:
-     $$M_{\text{world}}(\text{joint}) = M_{\text{world}}(\text{parent}) \cdot T(\mathbf{p}_{\text{offset}}) \cdot R_z(\psi)\cdot R_x(\theta)\cdot R_y(\phi)$$
+The headline technique is the render pipeline below. **`F2`** cycles eight modes at runtime: `FULL`, `DIRECT`, `NO BLOOM`, `NO OUTLINE`, `NO SHADOWS`, `NO SSAO`, `BLINN-PHONG` and `NO TEXTURES`. `FULL` has every stage on and each other mode removes exactly one stage (`DIRECT` removes all post-processing), so the effect of every stage can be compared on the same frame. The active mode is shown in the HUD status bar.
+
+1. **Directional shadow mapping (`depth.vert`, `depth.frag`, `lit.frag`):** depth from an orthographic sun camera into a `2048x2048` `GL_DEPTH_COMPONENT24` texture, with the light frustum snapped to whole shadow texels so edges do not shimmer. `lit.frag` filters it with a 3x3 PCF kernel and the slope-scaled bias $b = \max(0.0025\,(1-\mathbf{N}\cdot\mathbf{L}),\ 0.0008)$.
+2. **Forward lit pass (`lit.vert`, `lit.frag`):**
+   - Diffuse: $d = 0.65\,\max(\mathbf{N}\cdot\mathbf{L},0) + 0.35\left(\frac{\mathbf{N}\cdot\mathbf{L}+1}{2}\right)^2$ (wrapped), hemisphere ambient, one shadowed sun and up to 16 point lights with falloff $a = \mathrm{clamp}(1 - d/R, 0, 1)^2$.
+   - **Cook-Torrance specular** (GGX distribution, Smith-Schlick geometry, Schlick Fresnel) with roughness and metalness chosen from the surface pattern (tiles 0.42, bricks 0.85, metal panels 0.32 / metallic 0.85, characters 0.5). `F2` mode `BLINN-PHONG` switches back to the older half-vector lobe.
+   - **Surface textures with normal mapping:** floor tiles, bricks and metal panels sample a generated RGBA8 texture (RGB tangent-space normal, A detail) with mipmaps. The tangent frame comes from screen-space derivatives of the pattern coordinate, so meshes need no tangents. The textures are built from height fields at startup (`src/gfx/textures.cpp`); there are no image files.
+   - Fresnel-shaped rim light $(1-\max(\mathbf{N}\cdot\mathbf{V},0))^{2.6}$ and exponential-squared fog $f = 1-e^{-\rho d^2}$.
+3. **Stencil split screen (`mask.frag`):** when two fighters separate in versus mode, a stencil pass marks the half-plane beyond the perpendicular bisector line, and the scene is drawn again from the second camera only where stencil equals 1.
+4. **HDR 4x MSAA post-processing (`ssao.frag`, `bright.frag`, `blur.frag`, `composite.frag`):** the scene is rendered into a 4x multisampled `RGBA16F` target and resolved to textures. A half-resolution **SSAO** pass (16 hemisphere samples from the resolved depth, normals rebuilt from depth) is blurred in the composite shader and multiplies the scene colour; it is skipped while the split screen is active. Bloom uses a bright pass on the brightest channel (threshold 0.72), a 9-tap separable Gaussian at half resolution, two rounds. The composite adds the bloom, draws a depth-discontinuity ink outline (four neighbours, linearised depth), applies a soft-knee tone map, a mild grade, vignette and dither.
+5. **Procedural rig (`src/game/rig.cpp`):** characters and Stands are boxes, spheres and cylinders in a joint hierarchy (hips, spine, head, two arms with elbows, two legs with knees) posed by angle structs and blended with `lerpPose`. There are no skin weights.
+6. **Distance-field text and UI (`ui.vert`, `ui.frag`):** a glyph atlas built at startup from the embedded TrueType fonts, drawn with `fwidth` anti-aliasing after post-processing.
+
+A full write-up with the pass diagram, every equation, and measured frame rates for each F2 mode is in `docs/Death_Combat_Report_IT-2502.docx`.
 
 ---
 
@@ -208,7 +206,7 @@ All shaders are stored as external GLSL `#version 330 core` files in [`shaders/`
 
 Accessible from the Title Screen or the in-game Pause Menu (`Esc`), organized into 4 intuitive tabs (`Q` / `E` / `Tab` or mouse click to switch):
 1. **GAMEPLAY:** Language (`English`, `Русский`, `Қазақша`), Rounds to Win (`1..5`), Round Timer (`60s`, `99s`, `120s`, `Infinite`), CPU Difficulty (`Easy`, `Normal`, `Hard`), Damage Scale (`75%..150%`), Camera Shake (`Off`, `50%`, `100%`), Impact Hitstop (`On/Off`), HUD Control Hints (`On/Off`), Developer Mode (`Enabled/Disabled`), Reset All Settings.
-2. **AUDIO & VIDEO:** Master Volume, Music Volume, Effects Volume, Display Mode (`Windowed` / `Fullscreen`), Window Size (`1280x720`, `1600x900`, `1920x1080`), VSync (`On/Off`), Render Pipeline (`Full`, `Direct`, `No Bloom`, `No Outline`, `No Shadows`), Camera FOV (`45°..70°`), Hunt Mouse Sensitivity.
+2. **AUDIO & VIDEO:** Master Volume, Music Volume, Effects Volume, Display Mode (`Windowed` / `Fullscreen`), Window Size (`1280x720`, `1600x900`, `1920x1080`), VSync (`On/Off`), Render Pipeline (`Full`, `Direct`, `No Bloom`, `No Outline`, `No Shadows`, `No SSAO`, `Blinn-Phong`, `No Textures`), Camera FOV (`45°..70°`), Hunt Mouse Sensitivity.
 3. **PLAYER 1:** P1 Easy Beat Auto-Combo (`On/Off`), Primary & Secondary key bindings for all P1 actions, Reset Player 1 Keys.
 4. **PLAYER 2:** P2 Easy Beat Auto-Combo (`On/Off`), Primary & Secondary key bindings for all P2 actions, Reset Player 2 Keys.
 
@@ -246,5 +244,6 @@ DeathCombat --demo-settings         Open Settings screen
 DeathCombat --demo-split            Versus match split-screen camera test
 DeathCombat --shot out.png 5        Save a PNG screenshot after 5 seconds and quit
 DeathCombat --seed 42               Deterministic RNG seed for maze / effects
-DeathCombat --render-debug <mode>   full | direct | no-bloom | no-outline | no-shadows
+DeathCombat --showcase --record demo.mp4 30   Scripted 89 s tour (every F2 mode, sun, orbit camera, scenes); needs ffmpeg on PATH
+DeathCombat --render-debug <mode>   full | direct | no-bloom | no-outline | no-shadows | no-ssao | no-pbr | no-textures
 ```

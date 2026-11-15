@@ -12,6 +12,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/dus/Softgays/Death-Combat/src/game/app.cpp" "CMakeFiles/DeathCombat.dir/src/game/app.cpp.o" "gcc" "CMakeFiles/DeathCombat.dir/src/game/app.cpp.o.d"
   "/home/dus/Softgays/Death-Combat/src/game/app_fight.cpp" "CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o" "gcc" "CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o.d"
   "/home/dus/Softgays/Death-Combat/src/game/app_settings.cpp" "CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o" "gcc" "CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o.d"
+  "/home/dus/Softgays/Death-Combat/src/game/app_showcase.cpp" "CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o" "gcc" "CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o.d"
   "/home/dus/Softgays/Death-Combat/src/game/arena.cpp" "CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o" "gcc" "CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o.d"
   "/home/dus/Softgays/Death-Combat/src/game/characters.cpp" "CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o" "gcc" "CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o.d"
   "/home/dus/Softgays/Death-Combat/src/game/fight.cpp" "CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o" "gcc" "CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o.d"
@@ -24,6 +25,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/dus/Softgays/Death-Combat/src/gfx/mesh.cpp" "CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o" "gcc" "CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o.d"
   "/home/dus/Softgays/Death-Combat/src/gfx/renderer.cpp" "CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o" "gcc" "CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o.d"
   "/home/dus/Softgays/Death-Combat/src/gfx/shader.cpp" "CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o" "gcc" "CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o.d"
+  "/home/dus/Softgays/Death-Combat/src/gfx/textures.cpp" "CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o" "gcc" "CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o.d"
   "/home/dus/Softgays/Death-Combat/src/main.cpp" "CMakeFiles/DeathCombat.dir/src/main.cpp.o" "gcc" "CMakeFiles/DeathCombat.dir/src/main.cpp.o.d"
   "" "DeathCombat" "gcc" "CMakeFiles/DeathCombat.dir/link.d"
   )

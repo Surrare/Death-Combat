@@ -5,7 +5,16 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
+#include <algorithm>
 #include "game/app.h"
+
+#ifdef _WIN32
+#define DC_POPEN _popen
+#define DC_PCLOSE _pclose
+#else
+#define DC_POPEN popen
+#define DC_PCLOSE pclose
+#endif
 
 static void glfwErrorCallback(int code, const char* desc) {
     std::fprintf(stderr, "[glfw] error %d: %s\n", code, desc);
@@ -106,12 +115,16 @@ static void setWindowIcon(GLFWwindow* window) {
 //   --demo-split        versus match where both players back away, then return (split screen check)
 //   --dev               enable Developer Mode overlay & hitboxes on startup
 //   --shot <file> <s>   save a PNG screenshot after <s> seconds and quit
+//   --showcase          scripted tour of every F2 mode, the sun, orbit camera and scenes (about 89 s)
+//   --record <f.mp4> <fps>  render with a fixed time step and pipe the frames to ffmpeg (needs ffmpeg on PATH)
 //   --seed <n>          deterministic seed for maze / effects
 //   --char <n>          fighter index shown by --demo-select / --demo-hunt (0..5)
 //   --arena <n>         arena for --demo-fight (0..3) or hunting ground for --demo-hunt (0..2)
-//   --render-debug <mode> full, direct, no-bloom, no-outline, or no-shadows
+//   --render-debug <mode> full, direct, no-bloom, no-outline, no-shadows, no-ssao, no-pbr or no-textures
 int main(int argc, char** argv) {
     dc::AppOptions opts;
+    std::string recordPath;     // --record: pipe rendered frames to ffmpeg
+    int recordFps = 30;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         if (a == "--demo-fight") opts.demo = 1;
@@ -124,6 +137,8 @@ int main(int argc, char** argv) {
         else if (a == "--dev") opts.devMode = true;
         else if (a == "--show-help") opts.showHelp = true;
         else if (a == "--shot" && i + 2 < argc) { opts.screenshotPath = argv[i + 1]; opts.screenshotTime = (float)std::atof(argv[i + 2]); i += 2; }
+        else if (a == "--showcase") opts.showcase = true;
+        else if (a == "--record" && i + 2 < argc) { recordPath = argv[i + 1]; recordFps = std::max(10, std::atoi(argv[i + 2])); i += 2; }
         else if (a == "--arena" && i + 1 < argc) { opts.arena = std::atoi(argv[i + 1]); i += 1; }
         else if (a == "--char" && i + 1 < argc) { opts.character = std::atoi(argv[i + 1]); i += 1; }
         else if (a == "--seed" && i + 1 < argc) { opts.seed = (uint64_t)std::atoll(argv[i + 1]); i += 1; }
@@ -134,6 +149,9 @@ int main(int argc, char** argv) {
             else if (mode == "no-bloom") opts.renderDebugMode = dc::RenderDebugMode::NoBloom;
             else if (mode == "no-outline") opts.renderDebugMode = dc::RenderDebugMode::NoOutline;
             else if (mode == "no-shadows") opts.renderDebugMode = dc::RenderDebugMode::NoShadows;
+            else if (mode == "no-ssao") opts.renderDebugMode = dc::RenderDebugMode::NoSsao;
+            else if (mode == "no-pbr") opts.renderDebugMode = dc::RenderDebugMode::NoPbr;
+            else if (mode == "no-textures") opts.renderDebugMode = dc::RenderDebugMode::NoTextures;
             else {
                 std::fprintf(stderr, "Unknown renderer debug mode: %s\n", mode.c_str());
                 return 2;
@@ -175,19 +193,41 @@ int main(int argc, char** argv) {
         initialized = app.init(window, opts);
         if (initialized) {
             double last = glfwGetTime();
+            FILE* ffmpeg = nullptr;
+            std::vector<unsigned char> frameBuf;
+            if (!recordPath.empty()) {
+                int fw, fh;
+                glfwGetFramebufferSize(window, &fw, &fh);
+                char cmd[1024];
+                std::snprintf(cmd, sizeof(cmd),
+                              "ffmpeg -y -loglevel error -f rawvideo -pix_fmt rgb24 -s %dx%d -r %d -i - -vf vflip "
+                              "-c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p \"%s\"",
+                              fw, fh, recordFps, recordPath.c_str());
+                ffmpeg = DC_POPEN(cmd, "w");
+                if (!ffmpeg) std::fprintf(stderr, "--record: could not start ffmpeg (is it on PATH?)\n");
+                else std::printf("recording %dx%d at %d fps to %s\n", fw, fh, recordFps, recordPath.c_str());
+            }
             while (!glfwWindowShouldClose(window) && !app.wantsQuit()) {
                 glfwPollEvents();
                 double now = glfwGetTime();
                 float dt = (float)(now - last);
                 last = now;
                 if (dt > 0.1f) dt = 0.1f;
+                if (ffmpeg) dt = 1.0f / (float)recordFps;   // fixed step so the video plays at real speed
                 int w, h;
                 glfwGetFramebufferSize(window, &w, &h);
                 if (w > 0 && h > 0) {
                     app.frame(dt, w, h);
+                    if (ffmpeg) {
+                        frameBuf.resize((size_t)w * h * 3);
+                        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+                        glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, frameBuf.data());
+                        std::fwrite(frameBuf.data(), 1, frameBuf.size(), ffmpeg);
+                    }
                     glfwSwapBuffers(window);
                 }
             }
+            if (ffmpeg) DC_PCLOSE(ffmpeg);
         }
     }
     glfwDestroyWindow(window);

@@ -29,6 +29,7 @@ struct AppOptions {
     bool renderDebugModeSet = false;
     bool devMode = false;
     bool showHelp = false;
+    bool showcase = false;        // --showcase: scripted tour of the pipeline modes, light, camera and scenes (for the demo video)
 };
 
 struct Particle {
@@ -80,6 +81,8 @@ private:
     void drawMoveList();
     void updateDevKeys();
     void drawDevOverlay();
+    void updateShowcase(float dt);
+    void drawShowcaseCaption();
     void drawDevFightWorld();
     void applyOrbitCamera(Camera& cam) const;
 
@@ -132,6 +135,9 @@ private:
     bool orbitCamActive_ = false;
     float orbitYaw_ = 0.45f, orbitPitch_ = 0.35f, orbitDist_ = 6.5f;
     float shaderReloadToast_ = 0.0f;
+    float showT_ = 0.0f;              // seconds since the showcase started
+    int showStep_ = -1;
+    std::string showCaption_;
 
     // title
     int menuIndex_ = 0;

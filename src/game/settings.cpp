@@ -163,7 +163,7 @@ bool Settings::load() {
         else if (k == "windowPreset") windowPreset = std::clamp(n, 0, 2);
         else if (k == "vsync") vsync = n != 0;
         else if (k == "language") language = static_cast<Language>(std::clamp(n, 0, 2));
-        else if (k == "renderMode") renderMode = std::clamp(n, 0, 4);
+        else if (k == "renderMode") renderMode = std::clamp(n, 0, 7);
         else if (k == "fovDeg") fovDeg = std::clamp(n, 45, 65);
         else if (k == "mouse") mouseSens = std::clamp(n, 1, 10);
         else if (k == "roundsToWin") roundsToWin = std::clamp(n, 1, 3);

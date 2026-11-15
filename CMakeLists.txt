@@ -158,7 +158,7 @@ if(DC_BUILD_TESTS)
 
     # Exercise the rendered rig's geometry on the CPU, without creating a GL context.
     add_executable(DeathCombatRigTest tests/rig_test.cpp src/game/rig.cpp src/game/characters.cpp
-        src/gfx/renderer.cpp src/gfx/mesh.cpp src/gfx/shader.cpp)
+        src/gfx/renderer.cpp src/gfx/mesh.cpp src/gfx/shader.cpp src/gfx/textures.cpp)
     target_include_directories(DeathCombatRigTest PRIVATE src)
     target_link_libraries(DeathCombatRigTest PRIVATE glad dc_font dc_localization ${CMAKE_DL_LIBS})
     if(MSVC)

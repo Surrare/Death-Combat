@@ -10,6 +10,7 @@ set(OLD_GLOB
   "/home/dus/Softgays/Death-Combat/src/game/app.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/app_fight.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/app_settings.cpp"
+  "/home/dus/Softgays/Death-Combat/src/game/app_showcase.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/arena.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/characters.cpp"
   "/home/dus/Softgays/Death-Combat/src/game/fight.cpp"
@@ -22,6 +23,7 @@ set(OLD_GLOB
   "/home/dus/Softgays/Death-Combat/src/gfx/mesh.cpp"
   "/home/dus/Softgays/Death-Combat/src/gfx/renderer.cpp"
   "/home/dus/Softgays/Death-Combat/src/gfx/shader.cpp"
+  "/home/dus/Softgays/Death-Combat/src/gfx/textures.cpp"
   "/home/dus/Softgays/Death-Combat/src/main.cpp"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
@@ -66,6 +68,7 @@ set(OLD_GLOB
   "/home/dus/Softgays/Death-Combat/src/gfx/mesh.h"
   "/home/dus/Softgays/Death-Combat/src/gfx/renderer.h"
   "/home/dus/Softgays/Death-Combat/src/gfx/shader.h"
+  "/home/dus/Softgays/Death-Combat/src/gfx/textures.h"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")

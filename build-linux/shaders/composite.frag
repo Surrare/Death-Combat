@@ -1,11 +1,20 @@
 #version 330 core
 in vec2 vUV; out vec4 FragColor;
-uniform sampler2D uScene, uBloom, uDepth;
-uniform vec2 uTexel; uniform float uNear, uFar, uBloomStrength, uOutline;
+uniform sampler2D uScene, uBloom, uDepth, uAo;
+uniform vec2 uTexel, uAoTexel; uniform float uNear, uFar, uBloomStrength, uOutline, uAoAmount;
 float linDepth(float d){ float z = d * 2.0 - 1.0; return 2.0 * uNear * uFar / (uFar + uNear - z * (uFar - uNear)); }
 float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 void main(){
     vec3 col = texture(uScene, vUV).rgb;
+
+    // screen-space ambient occlusion: 3x3 box blur of the half-resolution map hides the sampling noise
+    if (uAoAmount > 0.0) {
+        float ao = 0.0;
+        for (int x = -1; x <= 1; x++)
+            for (int y = -1; y <= 1; y++)
+                ao += texture(uAo, vUV + vec2(x, y) * uAoTexel).r;
+        col *= mix(1.0, ao / 9.0, uAoAmount);
+    }
 
     // ink outline from depth discontinuities (silhouettes only; relative so distance does not matter)
     float d0raw = texture(uDepth, vUV).r;

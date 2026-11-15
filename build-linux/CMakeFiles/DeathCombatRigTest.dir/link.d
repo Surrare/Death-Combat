@@ -8,6 +8,7 @@ DeathCombatRigTest: \
   CMakeFiles/DeathCombatRigTest.dir/src/gfx/renderer.cpp.o \
   CMakeFiles/DeathCombatRigTest.dir/src/gfx/mesh.cpp.o \
   CMakeFiles/DeathCombatRigTest.dir/src/gfx/shader.cpp.o \
+  CMakeFiles/DeathCombatRigTest.dir/src/gfx/textures.cpp.o \
   third_party/glad/CMakeFiles/glad.dir/src/gl.c.o \
   libdc_font.a \
   libdc_localization.a \
@@ -61,6 +62,8 @@ CMakeFiles/DeathCombatRigTest.dir/src/gfx/renderer.cpp.o:
 CMakeFiles/DeathCombatRigTest.dir/src/gfx/mesh.cpp.o:
 
 CMakeFiles/DeathCombatRigTest.dir/src/gfx/shader.cpp.o:
+
+CMakeFiles/DeathCombatRigTest.dir/src/gfx/textures.cpp.o:
 
 third_party/glad/CMakeFiles/glad.dir/src/gl.c.o:
 

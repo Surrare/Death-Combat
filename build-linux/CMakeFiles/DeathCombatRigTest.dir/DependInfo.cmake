@@ -13,6 +13,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/dus/Softgays/Death-Combat/src/gfx/mesh.cpp" "CMakeFiles/DeathCombatRigTest.dir/src/gfx/mesh.cpp.o" "gcc" "CMakeFiles/DeathCombatRigTest.dir/src/gfx/mesh.cpp.o.d"
   "/home/dus/Softgays/Death-Combat/src/gfx/renderer.cpp" "CMakeFiles/DeathCombatRigTest.dir/src/gfx/renderer.cpp.o" "gcc" "CMakeFiles/DeathCombatRigTest.dir/src/gfx/renderer.cpp.o.d"
   "/home/dus/Softgays/Death-Combat/src/gfx/shader.cpp" "CMakeFiles/DeathCombatRigTest.dir/src/gfx/shader.cpp.o" "gcc" "CMakeFiles/DeathCombatRigTest.dir/src/gfx/shader.cpp.o.d"
+  "/home/dus/Softgays/Death-Combat/src/gfx/textures.cpp" "CMakeFiles/DeathCombatRigTest.dir/src/gfx/textures.cpp.o" "gcc" "CMakeFiles/DeathCombatRigTest.dir/src/gfx/textures.cpp.o.d"
   "/home/dus/Softgays/Death-Combat/tests/rig_test.cpp" "CMakeFiles/DeathCombatRigTest.dir/tests/rig_test.cpp.o" "gcc" "CMakeFiles/DeathCombatRigTest.dir/tests/rig_test.cpp.o.d"
   "" "DeathCombatRigTest" "gcc" "CMakeFiles/DeathCombatRigTest.dir/link.d"
   )

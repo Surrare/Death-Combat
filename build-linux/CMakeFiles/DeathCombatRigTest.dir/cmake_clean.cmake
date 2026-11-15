@@ -10,6 +10,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/DeathCombatRigTest.dir/src/gfx/renderer.cpp.o.d"
   "CMakeFiles/DeathCombatRigTest.dir/src/gfx/shader.cpp.o"
   "CMakeFiles/DeathCombatRigTest.dir/src/gfx/shader.cpp.o.d"
+  "CMakeFiles/DeathCombatRigTest.dir/src/gfx/textures.cpp.o"
+  "CMakeFiles/DeathCombatRigTest.dir/src/gfx/textures.cpp.o.d"
   "CMakeFiles/DeathCombatRigTest.dir/tests/rig_test.cpp.o"
   "CMakeFiles/DeathCombatRigTest.dir/tests/rig_test.cpp.o.d"
   "DeathCombatRigTest"

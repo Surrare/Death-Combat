@@ -35,7 +35,10 @@ struct Camera {
 };
 
 enum class Blend { Alpha, Additive };
-enum class RenderDebugMode { Full, Direct, NoBloom, NoOutline, NoShadows };
+// F2 cycles these in order. Full has every stage on; each other mode removes exactly one stage
+// (Direct removes all post-processing, NoPbr swaps Cook-Torrance back to Blinn-Phong).
+enum class RenderDebugMode { Full, Direct, NoBloom, NoOutline, NoShadows, NoSsao, NoPbr, NoTextures };
+constexpr int RENDER_MODE_COUNT = 8;
 
 class Renderer {
 public:
@@ -113,6 +116,7 @@ private:
         GLuint msaaFbo = 0, msaaColor = 0, msaaDepth = 0;
         GLuint resolveFbo = 0, sceneTex = 0, depthTex = 0;
         GLuint bloomFbo[2] = {0, 0}, bloomTex[2] = {0, 0};
+        GLuint aoFbo = 0, aoTex = 0;   // half-resolution SSAO (R8)
     };
 
     bool buildFontAtlas();
@@ -146,7 +150,9 @@ private:
     std::vector<UnlitVertex> unlitAlpha_, unlitAdd_;
     std::vector<UiVertex> ui_;
 
-    Shader lit_, depth_, unlit_, ui2d_, bright_, blur_, composite_, mask_;
+    Shader lit_, depth_, unlit_, ui2d_, bright_, blur_, composite_, mask_, ssao_;
+    bool ssaoOk_ = false;
+    GLuint texFloor_ = 0, texBrick_ = 0, texMetal_ = 0;   // generated surface textures (normal map + detail)
     bool split_ = false;
     Camera camB_;
     Mat4 viewB_, projB_;

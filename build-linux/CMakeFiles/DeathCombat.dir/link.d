@@ -6,6 +6,7 @@ DeathCombat: \
   CMakeFiles/DeathCombat.dir/src/game/app.cpp.o \
   CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o \
   CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o \
+  CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o \
   CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o \
   CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o \
   CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o \
@@ -18,6 +19,7 @@ DeathCombat: \
   CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o \
   CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o \
   CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o \
+  CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o \
   CMakeFiles/DeathCombat.dir/src/main.cpp.o \
   third_party/glad/CMakeFiles/glad.dir/src/gl.c.o \
   /usr/lib/libglfw.so.3.5 \
@@ -70,6 +72,8 @@ CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o:
 
 CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o:
 
+CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o:
+
 CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o:
 
 CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o:
@@ -93,6 +97,8 @@ CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o:
 CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o:
 
 CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o:
+
+CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o:
 
 CMakeFiles/DeathCombat.dir/src/main.cpp.o:
 

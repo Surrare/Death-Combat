@@ -21,7 +21,7 @@ struct Settings {
     int windowPreset = 1;                   // 0 = 1280x720, 1 = 1600x900, 2 = 1920x1080
     bool vsync = true;
     Language language = Language::English;
-    int renderMode = 0;                     // RenderDebugMode value: full, direct, no bloom/outline/shadows
+    int renderMode = 0;                     // RenderDebugMode value: full, direct, no bloom/outline/shadows/ssao/pbr/textures
     int fovDeg = 50;                        // Fight camera base FOV (45..65)
 
     // Gameplay & Match Rules

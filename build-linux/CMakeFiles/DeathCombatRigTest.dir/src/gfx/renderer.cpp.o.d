@@ -148,4 +148,5 @@ CMakeFiles/DeathCombatRigTest.dir/src/gfx/renderer.cpp.o: \
  /usr/include/c++/16/bits/enable_special_members.h \
  /usr/include/c++/16/bits/node_handle.h \
  /home/dus/Softgays/Death-Combat/src/gfx/mesh.h \
+ /home/dus/Softgays/Death-Combat/src/gfx/textures.h \
  /usr/include/c++/16/cstring /usr/include/string.h /usr/include/strings.h

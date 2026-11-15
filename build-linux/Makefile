@@ -472,6 +472,30 @@ src/game/app_settings.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombat.dir/build.make CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.s
 .PHONY : src/game/app_settings.cpp.s
 
+src/game/app_showcase.o: src/game/app_showcase.cpp.o
+.PHONY : src/game/app_showcase.o
+
+# target to build an object file
+src/game/app_showcase.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombat.dir/build.make CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o
+.PHONY : src/game/app_showcase.cpp.o
+
+src/game/app_showcase.i: src/game/app_showcase.cpp.i
+.PHONY : src/game/app_showcase.i
+
+# target to preprocess a source file
+src/game/app_showcase.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombat.dir/build.make CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.i
+.PHONY : src/game/app_showcase.cpp.i
+
+src/game/app_showcase.s: src/game/app_showcase.cpp.s
+.PHONY : src/game/app_showcase.s
+
+# target to generate assembly for a file
+src/game/app_showcase.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombat.dir/build.make CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.s
+.PHONY : src/game/app_showcase.cpp.s
+
 src/game/arena.o: src/game/arena.cpp.o
 .PHONY : src/game/arena.o
 
@@ -784,6 +808,33 @@ src/gfx/shader.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatRigTest.dir/build.make CMakeFiles/DeathCombatRigTest.dir/src/gfx/shader.cpp.s
 .PHONY : src/gfx/shader.cpp.s
 
+src/gfx/textures.o: src/gfx/textures.cpp.o
+.PHONY : src/gfx/textures.o
+
+# target to build an object file
+src/gfx/textures.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombat.dir/build.make CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatRigTest.dir/build.make CMakeFiles/DeathCombatRigTest.dir/src/gfx/textures.cpp.o
+.PHONY : src/gfx/textures.cpp.o
+
+src/gfx/textures.i: src/gfx/textures.cpp.i
+.PHONY : src/gfx/textures.i
+
+# target to preprocess a source file
+src/gfx/textures.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombat.dir/build.make CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatRigTest.dir/build.make CMakeFiles/DeathCombatRigTest.dir/src/gfx/textures.cpp.i
+.PHONY : src/gfx/textures.cpp.i
+
+src/gfx/textures.s: src/gfx/textures.cpp.s
+.PHONY : src/gfx/textures.s
+
+# target to generate assembly for a file
+src/gfx/textures.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombat.dir/build.make CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DeathCombatRigTest.dir/build.make CMakeFiles/DeathCombatRigTest.dir/src/gfx/textures.cpp.s
+.PHONY : src/gfx/textures.cpp.s
+
 src/main.o: src/main.cpp.o
 .PHONY : src/main.o
 
@@ -944,6 +995,9 @@ help:
 	@echo "... src/game/app_settings.o"
 	@echo "... src/game/app_settings.i"
 	@echo "... src/game/app_settings.s"
+	@echo "... src/game/app_showcase.o"
+	@echo "... src/game/app_showcase.i"
+	@echo "... src/game/app_showcase.s"
 	@echo "... src/game/arena.o"
 	@echo "... src/game/arena.i"
 	@echo "... src/game/arena.s"
@@ -980,6 +1034,9 @@ help:
 	@echo "... src/gfx/shader.o"
 	@echo "... src/gfx/shader.i"
 	@echo "... src/gfx/shader.s"
+	@echo "... src/gfx/textures.o"
+	@echo "... src/gfx/textures.i"
+	@echo "... src/gfx/textures.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"

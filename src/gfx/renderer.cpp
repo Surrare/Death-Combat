@@ -1,5 +1,6 @@
 #include "gfx/renderer.h"
 #include "core/font.h"
+#include "gfx/textures.h"
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
@@ -11,143 +12,261 @@ FontFace textFace(float scale) { return scale >= 2.4f ? FontFace::Display : Font
 }
 
 // ---------------------------------------------------------------- shaders ----
-static const char* LIT_VS = R"(#version 330 core
+// Embedded fallback copies of the files in shaders/. They are used only when the files cannot be found or fail to
+// compile, and are generated from the files (tools/embed_shaders.py), so edit the files in shaders/, not these strings.
+static const char* LIT_VS = R"GLSL(#version 330 core
+// Death Combat — Forward Lit Vertex Shader (World-space transform, normal matrix, light-space shadow coords)
 layout(location=0) in vec3 aPos;
 layout(location=1) in vec3 aNormal;
 layout(location=2) in vec3 aColor;
+
 uniform mat4 uModel, uView, uProj, uLightVP;
-out vec3 vWorld; out vec3 vNormal; out vec3 vColor; out vec4 vShadow;
-void main(){
-    vec4 w = uModel * vec4(aPos,1.0);
+
+out vec3 vWorld;
+out vec3 vNormal;
+out vec3 vColor;
+out vec4 vShadow;
+
+void main() {
+    vec4 w = uModel * vec4(aPos, 1.0);
     vWorld = w.xyz;
     vNormal = normalize(transpose(inverse(mat3(uModel))) * aNormal);
     vColor = aColor;
     vShadow = uLightVP * w;
     gl_Position = uProj * uView * w;
-})";
+}
+)GLSL";
 
-static const char* LIT_FS = R"(#version 330 core
-in vec3 vWorld; in vec3 vNormal; in vec3 vColor; in vec4 vShadow;
+static const char* LIT_FS = R"GLSL(#version 330 core
+// Death Combat — Forward Lit Fragment Shader
+// Implements: Hemisphere Ambient + Wrap-Diffuse + Cook-Torrance (GGX) or Blinn-Phong Specular + 3x3 PCF Shadow Mapping
+// + Dynamic Point Lights + Fresnel Rim Lighting + Procedural Patterns with Normal-Mapped Surface Textures + Exponential-Squared Fog
+in vec3 vWorld;
+in vec3 vNormal;
+in vec3 vColor;
+in vec4 vShadow;
+
 out vec4 FragColor;
-uniform vec4 uColor; uniform float uEmissive; uniform int uPattern;
-uniform vec3 uSunDir, uSunColor; uniform float uAmbient;
-uniform vec3 uEye; uniform vec3 uFogColor; uniform float uFogDensity; uniform vec3 uRimColor;
-uniform int uNumLights; uniform vec4 uLightPos[16]; uniform vec3 uLightColor[16];
+
+uniform vec4 uColor;
+uniform float uEmissive;
+uniform int uPattern;
+uniform vec3 uSunDir, uSunColor;
+uniform float uAmbient;
+uniform vec3 uEye;
+uniform vec3 uFogColor;
+uniform float uFogDensity;
+uniform vec3 uRimColor;
+uniform int uNumLights;
+uniform vec4 uLightPos[16];
+uniform vec3 uLightColor[16];
 uniform sampler2DShadow uShadowMap;
 uniform int uShadowEnabled;
+uniform int uBrdf;          // 1 = Cook-Torrance GGX, 0 = Blinn-Phong (F2 mode BLINN-PHONG)
+uniform int uTexEnabled;    // 1 = normal-mapped surface textures, 0 = flat procedural patterns (F2 mode NO TEXTURES)
+uniform sampler2D uTexFloor;   // RGB tangent-space normal, A detail multiplier; one period = one tile
+uniform sampler2D uTexBrick;   // one period = one brick cell
+uniform sampler2D uTexMetal;   // one period = one panel cell
 
 // 0 on a grid line, 1 inside a cell; lines fade out with distance so they do not shimmer when the camera moves
-float gridLine(vec2 f, vec2 width, vec2 fw){
+float gridLine(vec2 f, vec2 width, vec2 fw) {
     vec2 e = smoothstep(width, width + fw * 1.5, f);
     float line = e.x * e.y;
     return mix(line, 0.94, clamp(max(fw.x, fw.y) * 6.0, 0.0, 1.0));
 }
 
-float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
 
-float shadowFactor(vec3 n){
+// 3x3 Percentage-Closer Filtering (PCF) with slope-scaled depth bias
+float shadowFactor(vec3 n) {
     if (uShadowEnabled == 0) return 1.0;
     vec3 p = vShadow.xyz / vShadow.w * 0.5 + 0.5;
     if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0 || p.z > 1.0) return 1.0;
     float bias = max(0.0025 * (1.0 - dot(n, -uSunDir)), 0.0008);
     float s = 0.0;
-    vec2 texel = vec2(1.0/2048.0);
-    for (int x=-1;x<=1;x++) for (int y=-1;y<=1;y++)
-        s += texture(uShadowMap, vec3(p.xy + vec2(x,y)*texel, p.z - bias));
+    vec2 texel = vec2(1.0 / 2048.0);
+    for (int x = -1; x <= 1; x++)
+        for (int y = -1; y <= 1; y++)
+            s += texture(uShadowMap, vec3(p.xy + vec2(x, y) * texel, p.z - bias));
     return s / 9.0;
 }
 
-vec3 patternColor(vec3 base){
+// Samples a surface texture and perturbs the normal with a tangent frame built from screen-space derivatives
+// of the continuous coordinate uvC (no per-vertex tangents). uvS is the coordinate actually sampled (it may carry the brick stagger).
+void applyTexture(sampler2D tex, vec2 uvC, vec2 uvS, inout vec3 base, inout vec3 n) {
+    if (uTexEnabled == 0) return;
+    vec3 dp1 = dFdx(vWorld), dp2 = dFdy(vWorld);
+    vec2 duv1 = dFdx(uvC), duv2 = dFdy(uvC);
+    float det = duv1.x * duv2.y - duv1.y * duv2.x;
+    if (abs(det) < 1e-9) return;                       // degenerate mapping (face seen edge-on or constant along one axis)
+    vec3 dp2perp = cross(dp2, n), dp1perp = cross(n, dp1);
+    vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+    vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+    float invMax = inversesqrt(max(max(dot(T, T), dot(B, B)), 1e-12));
+    vec4 t = textureGrad(tex, uvS, duv1, duv2);
+    float fade = 1.0 - smoothstep(0.30, 0.80, max(length(duv1), length(duv2)));   // far surfaces fall back to the flat pattern
+    vec3 tn = vec3((t.xy * 2.0 - 1.0) * fade, t.z * 2.0 - 1.0 + (1.0 - fade));
+    n = normalize(mat3(T * invMax, B * invMax, n) * tn);
+    base *= mix(1.0, t.a * 1.12, fade);
+}
+
+// Procedural pattern colour, optional normal map, and material parameters for the specular term
+void surface(inout vec3 base, inout vec3 n, out float rough, out float metal) {
+    rough = 0.5; metal = 0.0;
     if (uPattern == 1) { // floor tiles
         vec2 c = floor(vWorld.xz * 0.5);
         float h = hash(c);
         vec2 f = fract(vWorld.xz * 0.5);
         float edge = gridLine(f, vec2(0.03), fwidth(vWorld.xz * 0.5));
-        return base * (0.85 + 0.3*h) * (0.55 + 0.45*edge);
+        base = base * (0.85 + 0.3 * h) * (0.55 + 0.45 * edge);
+        applyTexture(uTexFloor, vWorld.xz * 0.5, vWorld.xz * 0.5, base, n);
+        rough = 0.42;
     } else if (uPattern == 2) { // bricks on walls
         float row = floor(vWorld.y * 3.0);
-        float along = (abs(vNormal.x) > 0.5 ? vWorld.z : vWorld.x) * 1.5 + mod(row, 2.0) * 0.5;
+        float alongC = (abs(vNormal.x) > 0.5 ? vWorld.z : vWorld.x) * 1.5;
+        float along = alongC + mod(row, 2.0) * 0.5;
         vec2 c = vec2(floor(along), row);
         float h = hash(c);
         vec2 f = vec2(fract(along), fract(vWorld.y * 3.0));
         float mortar = gridLine(f, vec2(0.05, 0.08), vec2(fwidth(along), fwidth(vWorld.y * 3.0)));
-        return base * (0.8 + 0.4*h) * (0.5 + 0.5*mortar);
+        base = base * (0.8 + 0.4 * h) * (0.5 + 0.5 * mortar);
+        applyTexture(uTexBrick, vec2(alongC, vWorld.y * 3.0), vec2(along, vWorld.y * 3.0), base, n);
+        rough = 0.85;
     } else if (uPattern == 3) { // metal panels
         vec2 uv = (abs(vNormal.y) > 0.5) ? vWorld.xz : (abs(vNormal.x) > 0.5 ? vWorld.zy : vWorld.xy);
         vec2 c = floor(uv * 0.75);
         vec2 f = fract(uv * 0.75);
         float groove = gridLine(f, vec2(0.04), fwidth(uv * 0.75));
-        return base * (0.9 + 0.2*hash(c)) * (0.6 + 0.4*groove);
+        base = base * (0.9 + 0.2 * hash(c)) * (0.6 + 0.4 * groove);
+        applyTexture(uTexMetal, uv * 0.75, uv * 0.75, base, n);
+        rough = 0.32; metal = 0.85;
     }
-    return base;
 }
 
-void main(){
-    vec3 n = normalize(vNormal);
-    vec3 base = patternColor(vColor * uColor.rgb);
+// Cook-Torrance specular (GGX distribution, Smith-Schlick geometry, Schlick Fresnel), already multiplied by N.L
+vec3 specGGX(vec3 n, vec3 v, vec3 l, float rough, float metal, vec3 base) {
+    vec3 h = normalize(l + v);
+    float nl = max(dot(n, l), 0.0), nv = max(dot(n, v), 1e-3);
+    float nh = max(dot(n, h), 0.0), vh = max(dot(v, h), 0.0);
+    float r2 = rough * rough;
+    float a2 = r2 * r2;
+    float dd = nh * nh * (a2 - 1.0) + 1.0;
+    float D = a2 / (3.14159265 * dd * dd);
+    float k = (rough + 1.0) * (rough + 1.0) * 0.125;
+    float G = (nl / (nl * (1.0 - k) + k)) * (nv / (nv * (1.0 - k) + k));
+    vec3 F0 = mix(vec3(0.04), base, metal);
+    float m1 = 1.0 - vh, m2 = m1 * m1;
+    vec3 F = F0 + (1.0 - F0) * (m2 * m2 * m1);
+    return D * G * F / (4.0 * nv * max(nl, 1e-3)) * nl * 0.45;
+}
+
+void main() {
+    vec3 ng = normalize(vNormal);            // geometric normal (shadow bias)
+    vec3 n = ng;
+    vec3 base = vColor * uColor.rgb;
+    float rough, metal;
+    surface(base, n, rough, metal);
     vec3 v = normalize(uEye - vWorld);
-    // hemisphere ambient
+
+    // Hemisphere ambient
     float hemi = 0.5 + 0.5 * n.y;
     vec3 col = base * uAmbient * mix(0.6, 1.2, hemi);
-    // sun
+
+    // Directional sun / moon light with Blinn-Phong half-vector specular & PCF shadow
     vec3 l = normalize(-uSunDir);
     float ndl0 = dot(n, l);
-    float ndl = mix(max(ndl0, 0.0), pow(ndl0 * 0.5 + 0.5, 2.0), 0.35);   // slight wrap keeps shadow sides readable
-    float sh = shadowFactor(n);
-    vec3 h = normalize(l + v);
-    float spec = pow(max(dot(n, h), 0.0), 32.0) * 0.25;
-    float specMul = uPattern == 1 ? 0.25 : 1.0;   // floor: tame glints that crawl as the camera moves
-    col += (base * ndl + vec3(spec * specMul)) * uSunColor * sh;
-    // point lights
+    float ndl = mix(max(ndl0, 0.0), pow(ndl0 * 0.5 + 0.5, 2.0), 0.35);
+    float sh = shadowFactor(ng);
+    float specMul = uPattern == 1 ? 0.25 : 1.0;
+    vec3 diffMul = vec3(uBrdf == 1 ? 1.0 - 0.8 * metal : 1.0);
+    vec3 sunSpec;
+    if (uBrdf == 1) {
+        sunSpec = specGGX(n, v, l, rough, metal, base);
+    } else {
+        vec3 h = normalize(l + v);
+        sunSpec = vec3(pow(max(dot(n, h), 0.0), 32.0) * 0.25 * specMul);
+    }
+    col += (base * ndl * diffMul + sunSpec) * uSunColor * sh;
+
+    // Dynamic point lights with quadratic attenuation
     for (int i = 0; i < uNumLights; i++) {
         vec3 d = uLightPos[i].xyz - vWorld;
         float dist = length(d);
         float att = clamp(1.0 - dist / uLightPos[i].w, 0.0, 1.0);
         att *= att;
+        if (att <= 0.0) continue;   // light out of range: skip the specular and diffuse work
         vec3 ld = d / max(dist, 0.001);
         float pdl0 = dot(n, ld);
         float pdl = mix(max(pdl0, 0.0), pow(pdl0 * 0.5 + 0.5, 2.0), 0.3);
-        vec3 ph = normalize(ld + v);
-        float ps = pow(max(dot(n, ph), 0.0), 24.0) * 0.3;
-        col += (base * pdl + vec3(ps * specMul)) * uLightColor[i] * att;
+        vec3 pSpec;
+        if (uBrdf == 1) {
+            pSpec = specGGX(n, v, ld, rough, metal, base);
+        } else {
+            vec3 ph = normalize(ld + v);
+            pSpec = vec3(pow(max(dot(n, ph), 0.0), 24.0) * 0.3 * specMul);
+        }
+        col += (base * pdl * diffMul + pSpec) * uLightColor[i] * att;
     }
-    // rim
-    // rim: characters and props get a cool edge light so dark outfits do not vanish into the arena
+
+    // Fresnel rim light on characters and props
     float rim = pow(1.0 - max(dot(n, v), 0.0), 2.6);
     float rimMul = uPattern == 0 ? 1.0 : 0.15;
-    col += rim * rimMul * (base * 0.35 + uRimColor * 0.22) * (0.35 + 0.65 * smoothstep(-0.3, 0.6, -dot(n, l) * 0.0 + n.y * 0.4 + 0.4));
+    col += rim * rimMul * (base * 0.35 + uRimColor * 0.22) * (0.35 + 0.65 * smoothstep(-0.3, 0.6, n.y * 0.4 + 0.4));
     col = mix(col, uColor.rgb * vColor, uEmissive);
-    // fog
+
+    // Exponential-squared distance fog
     float dist = length(uEye - vWorld);
     float fog = 1.0 - exp(-uFogDensity * dist * dist);
     col = mix(col, uFogColor, clamp(fog, 0.0, 1.0));
     FragColor = vec4(col, uColor.a);
-})";
+}
+)GLSL";
 
-static const char* DEPTH_VS = R"(#version 330 core
+static const char* DEPTH_VS = R"GLSL(#version 330 core
+// Death Combat — Shadow Map Depth Pass Vertex Shader
 layout(location=0) in vec3 aPos;
 uniform mat4 uModel, uLightVP;
-void main(){ gl_Position = uLightVP * uModel * vec4(aPos,1.0); })";
-static const char* DEPTH_FS = R"(#version 330 core
-void main(){})";
+void main() {
+    gl_Position = uLightVP * uModel * vec4(aPos, 1.0);
+}
+)GLSL";
 
-static const char* UNLIT_VS = R"(#version 330 core
+static const char* DEPTH_FS = R"GLSL(#version 330 core
+// Death Combat — Shadow Map Depth Pass Fragment Shader (depth written automatically)
+void main() {}
+)GLSL";
+
+static const char* UNLIT_VS = R"GLSL(#version 330 core
+// Death Combat — Unlit Particle & Billboard Vertex Shader
 layout(location=0) in vec3 aPos;
 layout(location=1) in vec4 aColor;
 layout(location=2) in vec2 aUV;
 uniform mat4 uViewProj;
-out vec4 vColor; out vec2 vUV;
-void main(){ vColor = aColor; vUV = aUV; gl_Position = uViewProj * vec4(aPos,1.0); })";
-static const char* UNLIT_FS = R"(#version 330 core
-in vec4 vColor; in vec2 vUV; out vec4 FragColor;
-void main(){
+out vec4 vColor;
+out vec2 vUV;
+void main() {
+    vColor = aColor;
+    vUV = aUV;
+    gl_Position = uViewProj * vec4(aPos, 1.0);
+}
+)GLSL";
+
+static const char* UNLIT_FS = R"GLSL(#version 330 core
+// Death Combat — Unlit Radial Soft-Particle Fragment Shader
+in vec4 vColor;
+in vec2 vUV;
+out vec4 FragColor;
+void main() {
     float d = length(vUV);
     float soft = 1.0 - smoothstep(0.15, 1.0, d);
     soft = soft * soft;
     FragColor = vec4(vColor.rgb, vColor.a * soft);
-})";
+}
+)GLSL";
 
-static const char* UI_VS = R"(#version 330 core
+static const char* UI_VS = R"GLSL(#version 330 core
 layout(location=0) in vec2 aPos;
 layout(location=1) in vec2 aUV;
 layout(location=2) in vec4 aColor;
@@ -157,8 +276,10 @@ void main(){
     vUV = aUV; vColor = aColor;
     vec2 ndc = vec2(aPos.x / uScreen.x * 2.0 - 1.0, 1.0 - aPos.y / uScreen.y * 2.0);
     gl_Position = vec4(ndc, 0.0, 1.0);
-})";
-static const char* UI_FS = R"(#version 330 core
+}
+)GLSL";
+
+static const char* UI_FS = R"GLSL(#version 330 core
 in vec2 vUV; in vec4 vColor; out vec4 FragColor;
 uniform sampler2D uFont;
 void main(){
@@ -167,18 +288,19 @@ void main(){
     float aa = clamp(0.5 * fwidth(distance), 1.0 / 255.0, 0.25);
     float a = vUV.x < -0.5 ? 1.0 : smoothstep(edge - aa, edge + aa, distance);
     FragColor = vec4(vColor.rgb, vColor.a * a);
-})";
+}
+)GLSL";
 
-
-static const char* POST_VS = R"(#version 330 core
+static const char* POST_VS = R"GLSL(#version 330 core
 out vec2 vUV;
 void main(){
     vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
     vUV = p;
     gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
-})";
+}
+)GLSL";
 
-static const char* BRIGHT_FS = R"(#version 330 core
+static const char* BRIGHT_FS = R"GLSL(#version 330 core
 in vec2 vUV; out vec4 FragColor;
 uniform sampler2D uTex; uniform float uThreshold;
 void main(){
@@ -186,9 +308,10 @@ void main(){
     float l = max(c.r, max(c.g, c.b));
     float k = max(l - uThreshold, 0.0) / max(l, 1e-4);
     FragColor = vec4(c * k, 1.0);
-})";
+}
+)GLSL";
 
-static const char* BLUR_FS = R"(#version 330 core
+static const char* BLUR_FS = R"GLSL(#version 330 core
 in vec2 vUV; out vec4 FragColor;
 uniform sampler2D uTex; uniform vec2 uDir;
 void main(){
@@ -199,26 +322,26 @@ void main(){
         c += texture(uTex, vUV - uDir * float(i)).rgb * w[i];
     }
     FragColor = vec4(c, 1.0);
-})";
+}
+)GLSL";
 
-// Split screen mask: marks the second view's half-plane with stencil = 1, fills it with the clear colour at far depth.
-static const char* MASK_FS = R"(#version 330 core
-out vec4 FragColor;
-uniform vec2 uCenter, uNormal; uniform vec3 uClear;
-void main(){
-    if (dot(gl_FragCoord.xy - uCenter, uNormal) <= 0.0) discard;
-    FragColor = vec4(uClear, 1.0);
-    gl_FragDepth = 1.0;
-})";
-
-static const char* COMPOSITE_FS = R"(#version 330 core
+static const char* COMPOSITE_FS = R"GLSL(#version 330 core
 in vec2 vUV; out vec4 FragColor;
-uniform sampler2D uScene, uBloom, uDepth;
-uniform vec2 uTexel; uniform float uNear, uFar, uBloomStrength, uOutline;
+uniform sampler2D uScene, uBloom, uDepth, uAo;
+uniform vec2 uTexel, uAoTexel; uniform float uNear, uFar, uBloomStrength, uOutline, uAoAmount;
 float linDepth(float d){ float z = d * 2.0 - 1.0; return 2.0 * uNear * uFar / (uFar + uNear - z * (uFar - uNear)); }
 float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 void main(){
     vec3 col = texture(uScene, vUV).rgb;
+
+    // screen-space ambient occlusion: 3x3 box blur of the half-resolution map hides the sampling noise
+    if (uAoAmount > 0.0) {
+        float ao = 0.0;
+        for (int x = -1; x <= 1; x++)
+            for (int y = -1; y <= 1; y++)
+                ao += texture(uAo, vUV + vec2(x, y) * uAoTexel).r;
+        col *= mix(1.0, ao / 9.0, uAoAmount);
+    }
 
     // ink outline from depth discontinuities (silhouettes only; relative so distance does not matter)
     float d0raw = texture(uDepth, vUV).r;
@@ -253,7 +376,88 @@ void main(){
 
     col += (hash(gl_FragCoord.xy) - 0.5) / 255.0;   // dither: hides banding in dark gradients
     FragColor = vec4(col, 1.0);
-})";
+}
+)GLSL";
+
+static const char* MASK_FS = R"GLSL(#version 330 core
+out vec4 FragColor;
+uniform vec2 uCenter, uNormal; uniform vec3 uClear;
+void main(){
+    if (dot(gl_FragCoord.xy - uCenter, uNormal) <= 0.0) discard;
+    FragColor = vec4(uClear, 1.0);
+    gl_FragDepth = 1.0;
+}
+)GLSL";
+
+static const char* SSAO_FS = R"GLSL(#version 330 core
+// Death Combat — Screen-Space Ambient Occlusion (half resolution, depth only).
+// Reconstructs view-space position and normal from the resolved depth buffer, tests 16 hemisphere samples
+// against the depth buffer, and writes an occlusion factor (1 = open, 0 = fully occluded) to the red channel.
+in vec2 vUV; out vec4 FragColor;
+uniform sampler2D uDepth;
+uniform mat4 uProj;
+uniform vec2 uTanHalf;          // (aspect * tan(fov/2), tan(fov/2))
+uniform float uNear, uFar, uRadius, uStrength;
+
+float linDepth(float d) { float z = d * 2.0 - 1.0; return 2.0 * uNear * uFar / (uFar + uNear - z * (uFar - uNear)); }
+// Integer texel fetches: sampling a NEAREST depth texture at exact texel boundaries (which is where half-resolution
+// pixel centres fall) picks rows inconsistently and shows up as horizontal bands.
+vec3 viewPos(ivec2 ip) {
+    ivec2 sz = textureSize(uDepth, 0);
+    ip = clamp(ip, ivec2(0), sz - 1);
+    float z = linDepth(texelFetch(uDepth, ip, 0).r);
+    vec2 uv = (vec2(ip) + 0.5) / vec2(sz);
+    return vec3((uv * 2.0 - 1.0) * uTanHalf * z, -z);
+}
+// interleaved gradient noise: well distributed per pixel, no row or column correlation
+float ign(vec2 p) { return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
+
+void main() {
+    ivec2 sz = textureSize(uDepth, 0);
+    ivec2 ip = clamp(ivec2(gl_FragCoord.xy) * 2, ivec2(0), sz - 1);   // the full-resolution pixel under this half-res pixel
+    float d0 = texelFetch(uDepth, ip, 0).r;
+    if (d0 >= 0.9999) { FragColor = vec4(1.0); return; }      // sky / background
+    vec3 p = viewPos(ip);
+    // normal from central differences; one-sided differences only where the second difference shows a depth edge
+    vec3 pr = viewPos(ip + ivec2(1, 0)), pl = viewPos(ip - ivec2(1, 0));
+    vec3 pu = viewPos(ip + ivec2(0, 1)), pd = viewPos(ip - ivec2(0, 1));
+    float ex = abs(pr.z + pl.z - 2.0 * p.z), ey = abs(pu.z + pd.z - 2.0 * p.z);
+    float tx = 0.15 * max(abs(pr.z - p.z), abs(p.z - pl.z)) + 0.002;
+    float ty = 0.15 * max(abs(pu.z - p.z), abs(p.z - pd.z)) + 0.002;
+    vec3 dx = ex < tx ? (pr - pl) : (abs(pr.z - p.z) < abs(p.z - pl.z) ? pr - p : p - pl);
+    vec3 dy = ey < ty ? (pu - pd) : (abs(pu.z - p.z) < abs(p.z - pd.z) ? pu - p : p - pd);
+    vec3 n = normalize(cross(dx, dy));
+    if (dot(n, -p) < 0.0) n = -n;
+
+    float ang = 6.2831853 * ign(gl_FragCoord.xy);
+    vec3 rvec = vec3(cos(ang), sin(ang), 0.0);
+    vec3 t = normalize(rvec - n * dot(rvec, n));
+    vec3 b = cross(n, t);
+
+    float occ = 0.0;
+    const int N = 16;
+    for (int i = 0; i < N; i++) {
+        float fi = (float(i) + 0.5) / float(N);
+        float phi = float(i) * 2.399963;                       // golden angle spiral over the hemisphere
+        float kz = mix(0.25, 1.0, fi);                         // stay off the tangent plane so flat surfaces do not self-occlude
+        float r = sqrt(1.0 - kz * kz);
+        vec3 k = vec3(r * cos(phi), r * sin(phi), kz);
+        k *= mix(0.25, 1.0, fi * fi);                          // more samples close to the surface point
+        vec3 sp = p + (t * k.x + b * k.y + n * k.z) * uRadius;
+        vec4 clip = uProj * vec4(sp, 1.0);
+        vec2 suv = clip.xy / clip.w * 0.5 + 0.5;
+        if (suv.x < 0.0 || suv.x > 1.0 || suv.y < 0.0 || suv.y > 1.0) continue;
+        float sceneZ = linDepth(texelFetch(uDepth, clamp(ivec2(suv * vec2(sz)), ivec2(0), sz - 1), 0).r);   // positive distance of the visible surface
+        float sampleZ = -sp.z;
+        float range = smoothstep(0.0, 1.0, uRadius / max(abs(p.z + sceneZ), 1e-4));   // ignore far-away occluders
+        float bias = 0.03 + 0.015 * sampleZ;                    // depth precision falls off with distance
+        occ += (sceneZ < sampleZ - bias ? 1.0 : 0.0) * range;
+    }
+    float ao = 1.0 - occ / float(N);
+    ao = mix(1.0, ao, smoothstep(0.7, 2.2, -p.z));          // very close surfaces: the sample disc covers too many pixels and turns to noise
+    FragColor = vec4(pow(clamp(ao, 0.0, 1.0), 1.0 + uStrength), 0.0, 0.0, 1.0);
+}
+)GLSL";
 
 // ------------------------------------------------------------------- init ----
 Renderer::~Renderer() {
@@ -266,6 +470,7 @@ Renderer::~Renderer() {
     if (uiVao_) glDeleteVertexArrays(1, &uiVao_);
     if (uiVbo_) glDeleteBuffers(1, &uiVbo_);
     if (fontTex_) glDeleteTextures(1, &fontTex_);
+    for (GLuint t : {texFloor_, texBrick_, texMetal_}) if (t) glDeleteTextures(1, &t);
 }
 
 bool Renderer::reloadShaders() {
@@ -277,6 +482,8 @@ bool Renderer::reloadShaders() {
                        blur_.compileFromFiles("post.vert", "blur.frag", POST_VS, BLUR_FS, "blur") &&
                        composite_.compileFromFiles("post.vert", "composite.frag", POST_VS, COMPOSITE_FS, "composite");
     if (!mask_.compileFromFiles("post.vert", "mask.frag", POST_VS, MASK_FS, "split mask")) return false;
+    ssaoOk_ = ssao_.compileFromFiles("post.vert", "ssao.frag", POST_VS, SSAO_FS, "ssao");
+    if (!ssaoOk_) std::fprintf(stderr, "[renderer] SSAO shader unavailable, ambient occlusion disabled\n");
     if (!postShaders) targetW_ = targetH_ = -1;
     return true;
 }
@@ -284,6 +491,11 @@ bool Renderer::reloadShaders() {
 bool Renderer::init() {
     if (!reloadShaders()) return false;
     glGenVertexArrays(1, &postVao_);
+
+    // generated surface textures (normal map + detail) for floor tiles, bricks and metal panels
+    texFloor_ = uploadTexture(generateSurfaceTexture(SurfaceTexture::FloorTile), "floor tile");
+    texBrick_ = uploadTexture(generateSurfaceTexture(SurfaceTexture::Brick), "brick");
+    texMetal_ = uploadTexture(generateSurfaceTexture(SurfaceTexture::MetalPanel), "metal panel");
 
     // shadow map
     glGenFramebuffers(1, &shadowFbo_);
@@ -557,6 +769,16 @@ void Renderer::renderScenePass(bool clear) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, shadowTex_);
     lit_.set("uShadowMap", 0);
+    lit_.set("uBrdf", debugMode_ != RenderDebugMode::NoPbr ? 1 : 0);
+    lit_.set("uTexEnabled", debugMode_ != RenderDebugMode::NoTextures && texFloor_ && texBrick_ && texMetal_ ? 1 : 0);
+    const GLuint surfaceTex[3] = {texFloor_, texBrick_, texMetal_};
+    const char* surfaceNames[3] = {"uTexFloor", "uTexBrick", "uTexMetal"};
+    for (int i = 0; i < 3; ++i) {
+        glActiveTexture(GL_TEXTURE1 + i);
+        glBindTexture(GL_TEXTURE_2D, surfaceTex[i]);
+        lit_.set(surfaceNames[i], 1 + i);
+    }
+    glActiveTexture(GL_TEXTURE0);
 
     auto submit = [&](const DrawCmd& c) {
         lit_.set("uModel", c.model);
@@ -631,6 +853,8 @@ void Renderer::destroyTargets(PostTargets& targets) {
     if (targets.resolveFbo) glDeleteFramebuffers(1, &targets.resolveFbo);
     if (targets.msaaColor) glDeleteRenderbuffers(1, &targets.msaaColor);
     if (targets.msaaDepth) glDeleteRenderbuffers(1, &targets.msaaDepth);
+    if (targets.aoFbo) glDeleteFramebuffers(1, &targets.aoFbo);
+    if (targets.aoTex) glDeleteTextures(1, &targets.aoTex);
     if (targets.sceneTex) glDeleteTextures(1, &targets.sceneTex);
     if (targets.depthTex) glDeleteTextures(1, &targets.depthTex);
     for (int i = 0; i < 2; ++i) {
@@ -706,6 +930,11 @@ void Renderer::createTargets(int w, int h) {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, next.bloomTex[i], 0);
         ok = framebufferComplete(i == 0 ? "bloom A" : "bloom B") && ok;
     }
+    makeTex(next.aoTex, GL_R8, GL_RED, GL_UNSIGNED_BYTE, bw, bh);
+    glGenFramebuffers(1, &next.aoFbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, next.aoFbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, next.aoTex, 0);
+    ok = framebufferComplete("SSAO") && ok;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -732,6 +961,21 @@ void Renderer::renderPost() {
     glBindVertexArray(postVao_);
     const int bw = std::max(1, width_ / 2), bh = std::max(1, height_ / 2);
     auto bindTex = [](int unit, GLuint tex) { glActiveTexture(GL_TEXTURE0 + unit); glBindTexture(GL_TEXTURE_2D, tex); };
+
+    // SSAO at half resolution from the resolved depth; skipped while the split screen is active because the
+    // two views have different projections and this pass only knows the first one
+    const bool ssaoOn = ssaoOk_ && targets_.aoFbo && debugMode_ != RenderDebugMode::NoSsao && !split_;
+    if (ssaoOn) {
+        glViewport(0, 0, bw, bh);
+        glBindFramebuffer(GL_FRAMEBUFFER, targets_.aoFbo);
+        ssao_.use();
+        bindTex(0, targets_.depthTex); ssao_.set("uDepth", 0);
+        ssao_.set("uProj", proj_);
+        ssao_.set("uTanHalf", Vec2(1.0f / proj_.m[0][0], 1.0f / proj_.m[1][1]));
+        ssao_.set("uNear", cam_.znear); ssao_.set("uFar", cam_.zfar);
+        ssao_.set("uRadius", 0.7f); ssao_.set("uStrength", 0.8f);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+    }
 
     // bright pass -> half resolution, then two separable blur rounds (the second widens the glow)
     glViewport(0, 0, bw, bh);
@@ -768,6 +1012,9 @@ void Renderer::renderPost() {
         composite_.set("uBloomStrength", 0.0f);
     }
     bindTex(2, targets_.depthTex); composite_.set("uDepth", 2);
+    bindTex(3, targets_.aoTex); composite_.set("uAo", 3);
+    composite_.set("uAoTexel", Vec2(1.0f / (float)bw, 1.0f / (float)bh));
+    composite_.set("uAoAmount", ssaoOn ? 0.9f : 0.0f);
     composite_.set("uTexel", Vec2(1.0f / (float)width_, 1.0f / (float)height_));
     composite_.set("uNear", cam_.znear);
     composite_.set("uFar", cam_.zfar);

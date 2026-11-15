@@ -406,7 +406,7 @@ void App::updateFight(float dt) {
     if (matchOver) {
         resultTimer_ += dt;
         if (fightMode_ == FightMode::Demo) {
-            if (resultTimer_ > 3.0f) { int a = fxRng_.range(0, 5), b = fxRng_.range(0, 4); if (b >= a) b++; startFight(a, b, FightMode::Demo, 2, -1); }
+            if (resultTimer_ > 3.0f) { int a = fxRng_.range(0, 5), b = fxRng_.range(0, 4); if (b >= a) b++; startFight(a, b, FightMode::Demo, 2, opts_.showcase ? arenaId_ : -1); }
             return;
         }
         if (resultTimer_ < 1.0f) return;
@@ -893,9 +893,9 @@ void App::updateDevKeys() {
     if (keyEdge(GLFW_KEY_F1, 7) || keyEdge(GLFW_KEY_H, 8)) {
         showHelp_ = !showHelp_;
     }
-    // F2: Cycle Headline Shader Pipeline Mode (Full -> Direct -> NoBloom -> NoOutline -> NoShadows)
+    // F2: Cycle Headline Shader Pipeline Mode (Full -> Direct -> NoBloom -> NoOutline -> NoShadows -> NoSsao -> NoPbr -> NoTextures)
     if (keyEdge(GLFW_KEY_F2, 9)) {
-        settings_.renderMode = (settings_.renderMode + 1) % 5;
+        settings_.renderMode = (settings_.renderMode + 1) % RENDER_MODE_COUNT;
         renderer_.setDebugMode(static_cast<RenderDebugMode>(settings_.renderMode));
     }
     // P: Pause / Resume 3D Animation & Physics Time
@@ -1080,17 +1080,21 @@ void App::drawDevFightWorld() {
 }
 
 void App::drawDevOverlay() {
-    static const char* PIPE_NAMES[5] = {
-        "FULL (PCF Shadows + HDR Bloom + Sobel Outline)",
-        "DIRECT (Unfiltered Forward Pass)",
-        "NO BLOOM (Shadows + Sobel Outline)",
-        "NO SOBEL OUTLINE (Shadows + HDR Bloom)",
-        "NO PCF SHADOWS (HDR Bloom + Sobel Outline)"
+    drawShowcaseCaption();
+    static const char* PIPE_NAMES[RENDER_MODE_COUNT] = {
+        "FULL (every stage on)",
+        "DIRECT (forward pass only, no post-processing)",
+        "NO BLOOM",
+        "NO DEPTH OUTLINE",
+        "NO PCF SHADOWS",
+        "NO SSAO",
+        "BLINN-PHONG (Cook-Torrance off)",
+        "NO TEXTURES (normal maps off)"
     };
-    static const char* PIPE_SHORT[5] = {
-        "FULL PIPELINE", "DIRECT PASS", "NO BLOOM", "NO OUTLINE", "NO SHADOWS"
+    static const char* PIPE_SHORT[RENDER_MODE_COUNT] = {
+        "FULL PIPELINE", "DIRECT PASS", "NO BLOOM", "NO OUTLINE", "NO SHADOWS", "NO SSAO", "BLINN-PHONG", "NO TEXTURES"
     };
-    int rm = std::clamp(settings_.renderMode, 0, 4);
+    int rm = std::clamp(settings_.renderMode, 0, RENDER_MODE_COUNT - 1);
 
     // Compact AITU status bar on Title screen (top-right) or active non-default states in any scene
     if (scene_ == Scene::Title) {
@@ -1217,17 +1221,17 @@ void App::drawDevOverlay() {
             "   2048x2048 orthographic light-space depth buffer + 3x3 PCF",
             "   soft shadow filtering with slope-scaled bias.",
             "2. FORWARD LIT PASS (lit.vert / lit.frag):",
-            "   Key-Fill-Rim Blinn-Phong (spec p=36) + Fresnel rim (1-N.V)^3",
-            "   + up to 8 point lights + tri-planar procedural materials",
-            "   + exponential squared fog: exp(-(d * density)^2).",
+            "   Cook-Torrance GGX specular (F2: BLINN-PHONG) + wrap diffuse,",
+            "   up to 16 point lights, normal-mapped tile / brick / metal",
+            "   textures, Fresnel rim, exp-squared fog.",
             "3. DYNAMIC VORONOI SPLIT-SCREEN (mask.frag):",
             "   Hardware stencil buffer (GL_STENCIL_TEST) clips along the",
             "   screen-space perpendicular bisector between P1 and P2.",
             "4. HDR MSAA POST-FX (bright.frag, blur.frag, composite.frag):",
-            "   4x MSAA RGBA16F -> Bright-pass -> 9-tap separable Gaussian",
-            "   Bloom -> Linear-depth Sobel silhouette ink outline -> Tone map.",
-            "5. HIERARCHICAL RIG & SDF TEXT (rig.cpp, ui.vert / ui.frag):",
-            "   15-bone skeletal hierarchy M_world = M_parent * T * R_z * R_x * R_y."
+            "   4x MSAA RGBA16F -> half-res SSAO (ssao.frag) -> bloom ->",
+            "   depth-edge ink outline -> soft-knee tone map.",
+            "5. PROCEDURAL RIG & SDF TEXT (rig.cpp, ui.vert / ui.frag):",
+            "   box-and-joint hierarchy posed by angles, distance-field text."
         };
         drawPanelText(col1X, y + 26.0f, pipeLines, 1.24f, WHITE, 1.36f);
 

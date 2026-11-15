@@ -105,6 +105,7 @@ void App::frame(float dt, int w, int h) {
     width_ = w; height_ = h;
     renderer_.resize(w, h);
     input_.poll(dt);
+    if (opts_.showcase) updateShowcase(dt);
     frameDt_ = dt;
     if (dt > 1e-4f) fpsSmoothed_ = lerp(fpsSmoothed_, 1.0f / dt, 0.08f);
     if (shaderReloadToast_ > 0.0f) shaderReloadToast_ = std::max(0.0f, shaderReloadToast_ - dt);

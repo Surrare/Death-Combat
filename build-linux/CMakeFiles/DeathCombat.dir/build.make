@@ -131,10 +131,24 @@ CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/dus/Softgays/Death-Combat/src/game/app_settings.cpp -o CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.s
 
+CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
+CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o: /home/dus/Softgays/Death-Combat/src/game/app_showcase.cpp
+CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o -MF CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o -c /home/dus/Softgays/Death-Combat/src/game/app_showcase.cpp
+
+CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/dus/Softgays/Death-Combat/src/game/app_showcase.cpp > CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.i
+
+CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/dus/Softgays/Death-Combat/src/game/app_showcase.cpp -o CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.s
+
 CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o: /home/dus/Softgays/Death-Combat/src/game/arena.cpp
 CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o -MF CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o -c /home/dus/Softgays/Death-Combat/src/game/arena.cpp
 
 CMakeFiles/DeathCombat.dir/src/game/arena.cpp.i: cmake_force
@@ -148,7 +162,7 @@ CMakeFiles/DeathCombat.dir/src/game/arena.cpp.s: cmake_force
 CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o: /home/dus/Softgays/Death-Combat/src/game/characters.cpp
 CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o -MF CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o -c /home/dus/Softgays/Death-Combat/src/game/characters.cpp
 
 CMakeFiles/DeathCombat.dir/src/game/characters.cpp.i: cmake_force
@@ -162,7 +176,7 @@ CMakeFiles/DeathCombat.dir/src/game/characters.cpp.s: cmake_force
 CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o: /home/dus/Softgays/Death-Combat/src/game/fight.cpp
 CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o -MF CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o -c /home/dus/Softgays/Death-Combat/src/game/fight.cpp
 
 CMakeFiles/DeathCombat.dir/src/game/fight.cpp.i: cmake_force
@@ -176,7 +190,7 @@ CMakeFiles/DeathCombat.dir/src/game/fight.cpp.s: cmake_force
 CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o: /home/dus/Softgays/Death-Combat/src/game/fight_ai.cpp
 CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o -MF CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.o -c /home/dus/Softgays/Death-Combat/src/game/fight_ai.cpp
 
 CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.i: cmake_force
@@ -190,7 +204,7 @@ CMakeFiles/DeathCombat.dir/src/game/fight_ai.cpp.s: cmake_force
 CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o: /home/dus/Softgays/Death-Combat/src/game/hunt.cpp
 CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o -MF CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.o -c /home/dus/Softgays/Death-Combat/src/game/hunt.cpp
 
 CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.i: cmake_force
@@ -204,7 +218,7 @@ CMakeFiles/DeathCombat.dir/src/game/hunt.cpp.s: cmake_force
 CMakeFiles/DeathCombat.dir/src/game/input.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/game/input.cpp.o: /home/dus/Softgays/Death-Combat/src/game/input.cpp
 CMakeFiles/DeathCombat.dir/src/game/input.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/input.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/input.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/game/input.cpp.o -MF CMakeFiles/DeathCombat.dir/src/game/input.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/game/input.cpp.o -c /home/dus/Softgays/Death-Combat/src/game/input.cpp
 
 CMakeFiles/DeathCombat.dir/src/game/input.cpp.i: cmake_force
@@ -218,7 +232,7 @@ CMakeFiles/DeathCombat.dir/src/game/input.cpp.s: cmake_force
 CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o: /home/dus/Softgays/Death-Combat/src/game/maze.cpp
 CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o -MF CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/game/maze.cpp.o -c /home/dus/Softgays/Death-Combat/src/game/maze.cpp
 
 CMakeFiles/DeathCombat.dir/src/game/maze.cpp.i: cmake_force
@@ -232,7 +246,7 @@ CMakeFiles/DeathCombat.dir/src/game/maze.cpp.s: cmake_force
 CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o: /home/dus/Softgays/Death-Combat/src/game/rig.cpp
 CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o -MF CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/game/rig.cpp.o -c /home/dus/Softgays/Death-Combat/src/game/rig.cpp
 
 CMakeFiles/DeathCombat.dir/src/game/rig.cpp.i: cmake_force
@@ -246,7 +260,7 @@ CMakeFiles/DeathCombat.dir/src/game/rig.cpp.s: cmake_force
 CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o: /home/dus/Softgays/Death-Combat/src/game/settings.cpp
 CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o -MF CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o -c /home/dus/Softgays/Death-Combat/src/game/settings.cpp
 
 CMakeFiles/DeathCombat.dir/src/game/settings.cpp.i: cmake_force
@@ -260,7 +274,7 @@ CMakeFiles/DeathCombat.dir/src/game/settings.cpp.s: cmake_force
 CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o: /home/dus/Softgays/Death-Combat/src/gfx/mesh.cpp
 CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o -MF CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o -c /home/dus/Softgays/Death-Combat/src/gfx/mesh.cpp
 
 CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.i: cmake_force
@@ -274,7 +288,7 @@ CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.s: cmake_force
 CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o: /home/dus/Softgays/Death-Combat/src/gfx/renderer.cpp
 CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o -MF CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o -c /home/dus/Softgays/Death-Combat/src/gfx/renderer.cpp
 
 CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.i: cmake_force
@@ -288,7 +302,7 @@ CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.s: cmake_force
 CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o: /home/dus/Softgays/Death-Combat/src/gfx/shader.cpp
 CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o -MF CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o -c /home/dus/Softgays/Death-Combat/src/gfx/shader.cpp
 
 CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.i: cmake_force
@@ -299,10 +313,24 @@ CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/dus/Softgays/Death-Combat/src/gfx/shader.cpp -o CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.s
 
+CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
+CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o: /home/dus/Softgays/Death-Combat/src/gfx/textures.cpp
+CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o -MF CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o -c /home/dus/Softgays/Death-Combat/src/gfx/textures.cpp
+
+CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/dus/Softgays/Death-Combat/src/gfx/textures.cpp > CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.i
+
+CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/dus/Softgays/Death-Combat/src/gfx/textures.cpp -o CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.s
+
 CMakeFiles/DeathCombat.dir/src/main.cpp.o: CMakeFiles/DeathCombat.dir/flags.make
 CMakeFiles/DeathCombat.dir/src/main.cpp.o: /home/dus/Softgays/Death-Combat/src/main.cpp
 CMakeFiles/DeathCombat.dir/src/main.cpp.o: CMakeFiles/DeathCombat.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/DeathCombat.dir/src/main.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/DeathCombat.dir/src/main.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/DeathCombat.dir/src/main.cpp.o -MF CMakeFiles/DeathCombat.dir/src/main.cpp.o.d -o CMakeFiles/DeathCombat.dir/src/main.cpp.o -c /home/dus/Softgays/Death-Combat/src/main.cpp
 
 CMakeFiles/DeathCombat.dir/src/main.cpp.i: cmake_force
@@ -319,6 +347,7 @@ DeathCombat_OBJECTS = \
 "CMakeFiles/DeathCombat.dir/src/game/app.cpp.o" \
 "CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o" \
 "CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o" \
+"CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o" \
 "CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o" \
 "CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o" \
 "CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o" \
@@ -331,6 +360,7 @@ DeathCombat_OBJECTS = \
 "CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o" \
 "CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o" \
 "CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o" \
+"CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o" \
 "CMakeFiles/DeathCombat.dir/src/main.cpp.o"
 
 # External object files for target DeathCombat
@@ -341,6 +371,7 @@ DeathCombat: CMakeFiles/DeathCombat.dir/src/audio/audio.cpp.o
 DeathCombat: CMakeFiles/DeathCombat.dir/src/game/app.cpp.o
 DeathCombat: CMakeFiles/DeathCombat.dir/src/game/app_fight.cpp.o
 DeathCombat: CMakeFiles/DeathCombat.dir/src/game/app_settings.cpp.o
+DeathCombat: CMakeFiles/DeathCombat.dir/src/game/app_showcase.cpp.o
 DeathCombat: CMakeFiles/DeathCombat.dir/src/game/arena.cpp.o
 DeathCombat: CMakeFiles/DeathCombat.dir/src/game/characters.cpp.o
 DeathCombat: CMakeFiles/DeathCombat.dir/src/game/fight.cpp.o
@@ -353,6 +384,7 @@ DeathCombat: CMakeFiles/DeathCombat.dir/src/game/settings.cpp.o
 DeathCombat: CMakeFiles/DeathCombat.dir/src/gfx/mesh.cpp.o
 DeathCombat: CMakeFiles/DeathCombat.dir/src/gfx/renderer.cpp.o
 DeathCombat: CMakeFiles/DeathCombat.dir/src/gfx/shader.cpp.o
+DeathCombat: CMakeFiles/DeathCombat.dir/src/gfx/textures.cpp.o
 DeathCombat: CMakeFiles/DeathCombat.dir/src/main.cpp.o
 DeathCombat: third_party/glad/CMakeFiles/glad.dir/src/gl.c.o
 DeathCombat: CMakeFiles/DeathCombat.dir/build.make
@@ -361,7 +393,7 @@ DeathCombat: /usr/lib/libglfw.so.3.5
 DeathCombat: libdc_font.a
 DeathCombat: libdc_localization.a
 DeathCombat: CMakeFiles/DeathCombat.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Linking CXX executable DeathCombat"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/dus/Softgays/Death-Combat/build-linux/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Linking CXX executable DeathCombat"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/DeathCombat.dir/link.txt --verbose=$(VERBOSE)
 	/usr/bin/cmake -E make_directory /home/dus/Softgays/Death-Combat/build-linux/licenses
 	/usr/bin/cmake -E copy_if_different /home/dus/Softgays/Death-Combat/assets/fonts/OFL.txt /home/dus/Softgays/Death-Combat/build-linux/licenses/Barlow-OFL.txt

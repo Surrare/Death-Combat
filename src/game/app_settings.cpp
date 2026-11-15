@@ -25,7 +25,7 @@ const char* TAB_NAMES[TAB_COUNT] = {
     "PLAYER 2"
 };
 
-const char* RENDER_MODE_NAMES[] = {"FULL", "DIRECT", "NO BLOOM", "NO OUTLINE", "NO SHADOWS"};
+const char* RENDER_MODE_NAMES[] = {"FULL", "DIRECT", "NO BLOOM", "NO OUTLINE", "NO SHADOWS", "NO SSAO", "BLINN-PHONG", "NO TEXTURES"};
 const char* DIFFICULTY_NAMES[] = {"EASY", "NORMAL", "HARD"};
 const char* WINDOW_PRESET_NAMES[] = {"1280 x 720", "1600 x 900", "1920 x 1080"};
 const int WINDOW_PRESET_W[] = {1280, 1600, 1920};
@@ -282,7 +282,7 @@ void App::updateSettings(float /*dt*/) {
             settings_.vsync = !settings_.vsync;
             applyVideoSettings();
         } else if (r == AV_RENDER_MODE && (dx || confirm)) {
-            settings_.renderMode = (settings_.renderMode + (dx < 0 ? 4 : 1)) % 5;
+            settings_.renderMode = (settings_.renderMode + (dx < 0 ? RENDER_MODE_COUNT - 1 : 1)) % RENDER_MODE_COUNT;
         } else if (r == AV_FOV) {
             stepInt(settings_.fovDeg, 45, 70, 5);
         } else if (r == AV_MOUSE_SENS) {
@@ -439,7 +439,7 @@ void App::renderSettings() {
                 drawSelector(ry, settings_.vsync ? "ON" : "OFF", sel);
             } else if (r == AV_RENDER_MODE) {
                 renderer_.text(L.labelX, ry + 5.0f, "RENDER PIPELINE", 1.55f, labelCol);
-                drawSelector(ry, RENDER_MODE_NAMES[std::clamp(settings_.renderMode, 0, 4)], sel);
+                drawSelector(ry, RENDER_MODE_NAMES[std::clamp(settings_.renderMode, 0, RENDER_MODE_COUNT - 1)], sel);
             } else if (r == AV_FOV) {
                 renderer_.text(L.labelX, ry + 5.0f, "CAMERA FIELD OF VIEW", 1.55f, labelCol);
                 drawSelector(ry, std::to_string(settings_.fovDeg) + " DEG", sel);
