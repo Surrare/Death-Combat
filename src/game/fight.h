@@ -20,6 +20,8 @@ enum class Phase { Intro, Fight, KO, RoundOver, MatchOver };
 struct ArenaShape {
     float radius = 9.0f;      // fighters stay inside this circle (centre at the origin)
     float spawnGap = 4.4f;    // distance between the fighters when a round starts
+    bool hasLavaPit = false;  // when true, no outer barrier — stepping off drops into lethal lava
+    int arenaId = 0;          // 0=Colosseum, 1=Shrine, 2=Ember Forge, 3=Glass Cathedral
 };
 
 struct SimInput {
@@ -81,6 +83,13 @@ struct Fighter {
     bool inCombo = false;
     int invulStrikes = 0, invulThrows = 0;
     float sideDir = 0;          // last sidestep direction, +1 = to the fighter's right (presentation)
+    Vec3 dashDir{1, 0, 0};      // world-space unit vector of active omnidirectional dash
+    float moveF_smooth = 0;     // smoothed forward/back movement input (-1..1)
+    float moveS_smooth = 0;     // smoothed strafe movement input (-1..1)
+    bool airDashUsed = false;   // SilkAcrobatics: air dash / double jump used this airborne state
+    int burnTimer = 0;          // MoltenTemper: frames of burn DoT remaining
+    int chillTimer = 0;         // MirrorAegis: frames of movement slow remaining
+    int galeChargeTimer = 0;    // TailwindStep: frames of dash-charged next attack buff
     int roundsWon = 0;
     int proxGuard = 0;
 
@@ -92,6 +101,10 @@ struct Fighter {
     int lastTapDir = 0, tapTimer = 0;
     int dashRequest = 0;        // +1 forward, -1 back (from double tap)
     bool neutralSeen = true;
+    int lastTapDirS = 0, tapTimerS = 0;
+    int dashRequestS = 0;       // +1 right, -1 left (from lateral double tap)
+    bool neutralSeenS = true;
+    bool easyControls = true;
     bool wantsBlock = false;
     bool hardKD = false;
 
@@ -101,15 +114,26 @@ struct Fighter {
     int lastMoveNameTimer = 0;
     std::string lastMoveName;
 
-    bool grounded() const { return pos.y <= 0.0001f; }
+    bool grounded() const { return pos.y <= 0.0001f && !inLavaPit(); }
+    bool inLavaPit() const { return pos.y < -0.001f; }
     Vec3 right() const { return Vec3(-fwd.z, 0, fwd.x); }   // fighter's right hand side
     float yaw() const { return std::atan2(fwd.x, fwd.z); }   // rig convention: 0 = facing +z
     bool attacking() const { return state == FState::Attack; }
     bool inHitstun() const { return state == FState::Hit || state == FState::CrouchHit || state == FState::AirHit || state == FState::Knockdown || state == FState::Thrown || state == FState::StyleBreak; }
     bool canAct() const { return state == FState::Idle || state == FState::Walk || state == FState::Crouch; }
     bool isDown() const { return state == FState::Knockdown || state == FState::GetUp; }
-    float effectiveDamageMul() const { return (ch->style == StyleType::Mode && styleOn) ? 1.2f : 1.0f; }
-    float effectiveSpeedMul() const { return (ch->style == StyleType::Mode && styleOn) ? 1.3f : 1.0f; }
+    float effectiveDamageMul() const {
+        float m = (ch && ch->style == StyleType::Mode && styleOn) ? 1.2f : 1.0f;
+        if (ch && ch->trait == TraitKind::BloodRush && hp < 400.0f) m *= 1.20f;
+        if (galeChargeTimer > 0) m *= 1.18f;
+        return m;
+    }
+    float effectiveSpeedMul() const {
+        float m = (ch && ch->style == StyleType::Mode && styleOn) ? 1.3f : 1.0f;
+        if (galeChargeTimer > 0) m *= 1.15f;
+        if (chillTimer > 0) m *= 0.75f;
+        return m;
+    }
 };
 
 struct ClashState {
@@ -126,6 +150,11 @@ public:
     void setArena(const ArenaShape& a) { arena_ = a; }   // call before init()
     const ArenaShape& arena() const { return arena_; }
     bool insideArena(const Vec3& p, float margin = 0.0f) const { return p.x * p.x + p.z * p.z <= (arena_.radius + margin) * (arena_.radius + margin); }
+
+    void setRoundSeconds(int sec) { roundSeconds_ = sec; }
+    void setDamageScale(float s) { damageScale_ = s; }
+    void setHitstopEnabled(bool e) { hitstopEnabled_ = e; }
+    void setEasyControls(int player, bool e) { if (player >= 0 && player < 2) f_[player].easyControls = e; }
 
     void init(const Character* a, const Character* b, int roundsToWin = 2);
     void step(const SimInput& inA, const SimInput& inB);
@@ -166,7 +195,7 @@ private:
     void applyHit(Fighter& att, Fighter& def, const HitWindow& w, const Move* move, Vec3 at, Vec3 pushDir, bool fromProjectile);
     void applyBlock(Fighter& att, Fighter& def, const HitWindow& w, Vec3 at, Vec3 pushDir, bool fromProjectile);
     Vec3 clampArena(Vec3 p, float r) const;
-    bool atWall(const Fighter& f) const { return !insideArena(f.pos, -FIGHTER_RADIUS - 0.05f); }
+    bool atWall(const Fighter& f) const { return !arena_.hasLavaPit && !insideArena(f.pos, -FIGHTER_RADIUS - 0.05f); }
     void pushboxes();
     void startClash();
     void updateClash(const SimInput& inA, const SimInput& inB);
@@ -178,7 +207,10 @@ private:
     int phaseTimer_ = 0;
     int round_ = 1;
     int roundsToWin_ = 2;
+    int roundSeconds_ = ROUND_SECONDS;
     int timerFrames_ = ROUND_SECONDS * 60;
+    float damageScale_ = 1.0f;
+    bool hitstopEnabled_ = true;
     int winner_ = -1, matchWinner_ = -1;
     bool dramatic_ = false;
     int frame_ = 0;

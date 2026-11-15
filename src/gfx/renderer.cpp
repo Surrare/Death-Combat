@@ -268,17 +268,22 @@ Renderer::~Renderer() {
     if (fontTex_) glDeleteTextures(1, &fontTex_);
 }
 
+bool Renderer::reloadShaders() {
+    if (!lit_.compileFromFiles("lit.vert", "lit.frag", LIT_VS, LIT_FS, "lit")) return false;
+    if (!depth_.compileFromFiles("depth.vert", "depth.frag", DEPTH_VS, DEPTH_FS, "depth")) return false;
+    if (!unlit_.compileFromFiles("unlit.vert", "unlit.frag", UNLIT_VS, UNLIT_FS, "unlit")) return false;
+    if (!ui2d_.compileFromFiles("ui.vert", "ui.frag", UI_VS, UI_FS, "ui")) return false;
+    bool postShaders = bright_.compileFromFiles("post.vert", "bright.frag", POST_VS, BRIGHT_FS, "bright") &&
+                       blur_.compileFromFiles("post.vert", "blur.frag", POST_VS, BLUR_FS, "blur") &&
+                       composite_.compileFromFiles("post.vert", "composite.frag", POST_VS, COMPOSITE_FS, "composite");
+    if (!mask_.compileFromFiles("post.vert", "mask.frag", POST_VS, MASK_FS, "split mask")) return false;
+    if (!postShaders) targetW_ = targetH_ = -1;
+    return true;
+}
+
 bool Renderer::init() {
-    if (!lit_.compile(LIT_VS, LIT_FS, "lit")) return false;
-    if (!depth_.compile(DEPTH_VS, DEPTH_FS, "depth")) return false;
-    if (!unlit_.compile(UNLIT_VS, UNLIT_FS, "unlit")) return false;
-    if (!ui2d_.compile(UI_VS, UI_FS, "ui")) return false;
-    // post-processing is optional: if any part fails the renderer falls back to drawing straight to the window
-    bool postShaders = bright_.compile(POST_VS, BRIGHT_FS, "bright") && blur_.compile(POST_VS, BLUR_FS, "blur") &&
-                       composite_.compile(POST_VS, COMPOSITE_FS, "composite");
+    if (!reloadShaders()) return false;
     glGenVertexArrays(1, &postVao_);
-    if (!mask_.compile(POST_VS, MASK_FS, "split mask")) return false;
-    if (!postShaders) targetW_ = targetH_ = -1;   // never create targets
 
     // shadow map
     glGenFramebuffers(1, &shadowFbo_);
@@ -396,7 +401,16 @@ bool Renderer::projectToScreen(const Vec3& p, float& sx, float& sy) const {
 }
 
 void Renderer::setDirectionalLight(const Vec3& dir, const Vec3& color, float ambient) {
-    sunDir_ = normalize(dir); sunColor_ = color; ambient_ = ambient;
+    Vec3 d = normalize(dir);
+    if (std::fabs(lightYawDeg_) > 0.001f || std::fabs(lightPitchDeg_) > 0.001f) {
+        float az = std::atan2(d.z, d.x) + radians(lightYawDeg_);
+        float el = clampf(std::asin(clampf(d.y, -0.98f, -0.15f)) + radians(lightPitchDeg_), -1.46f, -0.22f);
+        float cEl = std::cos(el);
+        d = normalize(Vec3(std::cos(az) * cEl, std::sin(el), std::sin(az) * cEl));
+    }
+    sunDir_ = d;
+    sunColor_ = color;
+    ambient_ = ambient;
 }
 
 void Renderer::draw(const Mesh& mesh, const Mat4& model, const Color& color, float emissive, int pattern, bool castShadow) {
@@ -554,15 +568,19 @@ void Renderer::renderScenePass(bool clear) {
     for (const DrawCmd& c : opaque_) submit(c);
 
     if (!transparent_.empty()) {
-        // sort back to front
-        std::sort(transparent_.begin(), transparent_.end(), [&](const DrawCmd& a, const DrawCmd& b) {
-            Vec3 pa = a.model.transformPoint(Vec3(0, 0, 0)), pb = b.model.transformPoint(Vec3(0, 0, 0));
-            return (pa - cam_.eye).lengthSq() > (pb - cam_.eye).lengthSq();
-        });
+        // Depth pre-pass for translucent meshes (Stands) prevents internal box overlap and Z-sort flickering
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        glDepthMask(GL_TRUE);
+        glDepthFunc(GL_LESS);
+        for (const DrawCmd& c : transparent_) submit(c);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
+        glDepthFunc(GL_LEQUAL);
         for (const DrawCmd& c : transparent_) submit(c);
+        glDepthFunc(GL_LESS);
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
     }

@@ -1,8 +1,28 @@
 #include "gfx/shader.h"
 #include <cstdio>
+#include <fstream>
+#include <sstream>
 #include <vector>
 
 namespace dc {
+
+static std::string readShaderDiskFile(const char* filename, std::string& resolvedOut) {
+    const char* prefixes[] = {"shaders/", "../shaders/", "../../shaders/"};
+    for (const char* pfx : prefixes) {
+        std::string path = std::string(pfx) + filename;
+        std::ifstream f(path, std::ios::in | std::ios::binary);
+        if (f.is_open()) {
+            std::ostringstream ss;
+            ss << f.rdbuf();
+            std::string s = ss.str();
+            if (!s.empty()) {
+                resolvedOut = path;
+                return s;
+            }
+        }
+    }
+    return {};
+}
 
 static GLuint compileStage(GLenum type, const char* src, const char* debugName) {
     GLuint s = glCreateShader(type);
@@ -28,24 +48,47 @@ Shader::~Shader() {
 bool Shader::compile(const char* vertexSrc, const char* fragmentSrc, const char* debugName) {
     GLuint vs = compileStage(GL_VERTEX_SHADER, vertexSrc, debugName);
     GLuint fs = compileStage(GL_FRAGMENT_SHADER, fragmentSrc, debugName);
-    if (!vs || !fs) return false;
-    program_ = glCreateProgram();
-    glAttachShader(program_, vs);
-    glAttachShader(program_, fs);
-    glLinkProgram(program_);
+    if (!vs || !fs) {
+        if (vs) glDeleteShader(vs);
+        if (fs) glDeleteShader(fs);
+        return false;
+    }
+    GLuint newProg = glCreateProgram();
+    glAttachShader(newProg, vs);
+    glAttachShader(newProg, fs);
+    glLinkProgram(newProg);
     glDeleteShader(vs);
     glDeleteShader(fs);
     GLint ok = 0;
-    glGetProgramiv(program_, GL_LINK_STATUS, &ok);
+    glGetProgramiv(newProg, GL_LINK_STATUS, &ok);
     if (!ok) {
         char log[4096];
-        glGetProgramInfoLog(program_, sizeof(log), nullptr, log);
+        glGetProgramInfoLog(newProg, sizeof(log), nullptr, log);
         std::fprintf(stderr, "[shader] %s link error:\n%s\n", debugName, log);
-        glDeleteProgram(program_);
-        program_ = 0;
+        glDeleteProgram(newProg);
         return false;
     }
+    if (program_) glDeleteProgram(program_);
+    program_ = newProg;
+    locations_.clear();
     return true;
+}
+
+bool Shader::compileFromFiles(const char* vertFile, const char* fragFile,
+                              const char* fallbackVS, const char* fallbackFS, const char* debugName) {
+    std::string vsPath, fsPath;
+    std::string vsDisk = readShaderDiskFile(vertFile, vsPath);
+    std::string fsDisk = readShaderDiskFile(fragFile, fsPath);
+    if (!vsDisk.empty() && !fsDisk.empty()) {
+        if (compile(vsDisk.c_str(), fsDisk.c_str(), debugName)) {
+            std::printf("[shader] loaded %s (%s + %s)\n", debugName, vsPath.c_str(), fsPath.c_str());
+            return true;
+        }
+        std::fprintf(stderr, "[shader] %s disk shader failed to compile, falling back to embedded GLSL\n", debugName);
+    } else {
+        std::fprintf(stderr, "[shader] %s disk files (%s, %s) not found, using embedded fallback\n", debugName, vertFile, fragFile);
+    }
+    return compile(fallbackVS, fallbackFS, debugName);
 }
 
 GLint Shader::location(const char* name) {

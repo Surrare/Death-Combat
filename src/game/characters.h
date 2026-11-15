@@ -8,6 +8,14 @@
 namespace dc {
 
 enum class StyleType { Stand, Mode };            // ASB battle styles: Stand user, or a power "Mode"
+enum class TraitKind {
+    BloodRush,       // KAIN: lifesteal on hit + berserk damage/heat boost at low HP
+    MirrorAegis,     // VESPER: chilling projectiles + glass refraction guard boost
+    IronColossus,    // ORSOLO: armored heavy normals + bell shockwave drains enemy style
+    SilkAcrobatics,  // MIRA: double jump & omnidirectional air dash + air special cancels
+    TailwindStep,    // KAZE: dash-cancel attacks on hit/block + dash empowers next strike
+    MoltenTemper     // BRAM: heavy/special attacks ignite enemy + high chip damage in Ember Mode
+};
 enum class Motion { None, QCF, QCB, DP };        // 236, 214, 623
 enum class MoveKind { Normal, Throw, Special, HHA, GHA, Taunt };
 enum class Stance { Ground, Crouch, Air };
@@ -97,6 +105,9 @@ struct Character {
     std::string title;
     std::string styleName;            // Stand name or Mode name
     StyleType style = StyleType::Stand;
+    TraitKind trait = TraitKind::BloodRush;
+    std::string traitName;            // Unique character trait title
+    std::string traitDesc;            // Short description of the unique trait
     Color bodyColor, accentColor, hairColor, styleColor;
     Look look;
     float hp = BASE_HP;

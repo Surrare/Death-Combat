@@ -1,0 +1,3 @@
+"C:\Program Files\CMake\bin\cmake.exe" -E rm -f CMakeFiles\DeathCombatFontTest.dir/objects.a
+C:\msys64\ucrt64\bin\ar.exe qc CMakeFiles\DeathCombatFontTest.dir/objects.a @CMakeFiles\DeathCombatFontTest.dir\objects1.rsp
+C:\msys64\ucrt64\bin\c++.exe -O3 -DNDEBUG -Wl,--whole-archive CMakeFiles\DeathCombatFontTest.dir/objects.a -Wl,--no-whole-archive -o DeathCombatFontTest.exe -Wl,--out-implib,libDeathCombatFontTest.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\DeathCombatFontTest.dir\linkLibs.rsp

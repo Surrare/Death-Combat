@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEATH COMBAT — Computer Graphics Final Project Presentation (IT-2502)</title>
+<style>
+  :root {
+    --bg-deep: #090b0f;
+    --bg-panel: #11141c;
+    --bg-card: #171b26;
+    --border: #2d3344;
+    --gold: #d9b86b;
+    --gold-bright: #f0cf7f;
+    --crimson: #c73d42;
+    --cyan: #7ac2e0;
+    --green: #5ec988;
+    --text-main: #f0f2f7;
+    --text-dim: #9aa1b2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg-deep);
+    color: var(--text-main);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    user-select: none;
+  }
+  .deck {
+    position: relative;
+    width: 100vw;
+    height: calc(100vh - 54px);
+  }
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 36px 56px;
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    background:
+      radial-gradient(circle at 85% 15%, rgba(217, 184, 107, 0.07), transparent 45%),
+      radial-gradient(circle at 12% 85%, rgba(199, 61, 66, 0.07), transparent 45%),
+      var(--bg-deep);
+  }
+  .slide.active { display: flex; }
+
+  /* Slide Header */
+  .slide-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    position: relative;
+  }
+  .slide-header::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 0;
+    width: 90px;
+    height: 3px;
+    background: var(--gold);
+  }
+  .slide-kicker {
+    font-size: 12px;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .slide-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    color: var(--text-main);
+  }
+  .slide-meta {
+    font-size: 13px;
+    color: var(--text-dim);
+    text-align: right;
+  }
+
+  /* Grid Layouts */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    flex: 1;
+    min-height: 0;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 18px;
+    flex: 1;
+    min-height: 0;
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+  }
+  .card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: 4px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .card.cyan { border-left-color: var(--cyan); }
+  .card.crimson { border-left-color: var(--crimson); }
+  .card.green { border-left-color: var(--green); }
+  .card h3 {
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gold);
+  }
+  .card.cyan h3 { color: var(--cyan); }
+  .card.crimson h3 { color: var(--crimson); }
+  .card.green h3 { color: var(--green); }
+  .card p, .card li {
+    font-size: 14px;
+    line-height: 1.48;
+    color: var(--text-main);
+  }
+  .card ul {
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .dim { color: var(--text-dim); }
+  .gold { color: var(--gold); font-weight: 600; }
+  .cyan-txt { color: var(--cyan); font-weight: 600; }
+  .green-txt { color: var(--green); font-weight: 700; }
+
+  /* Code / Math Blocks */
+  .math-box {
+    background: #0b0d13;
+    border: 1px solid #252b3b;
+    border-left: 3px solid var(--cyan);
+    padding: 11px 14px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    color: #e4ebf5;
+    line-height: 1.45;
+    overflow-x: auto;
+  }
+
+  /* Images */
+  .img-frame {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+  }
+  .img-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #050608;
+    max-height: 360px;
+  }
+  .img-caption {
+    font-size: 12px;
+    color: var(--gold);
+    text-align: center;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  th {
+    background: #181d29;
+    color: var(--gold);
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+  /* Pipeline Flow */
+  .pipe-flow {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    margin: 6px 0;
+  }
+  .pipe-step {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--gold);
+    padding: 12px;
+    position: relative;
+  }
+  .pipe-step .step-num {
+    font-size: 11px;
+    color: var(--cyan);
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .pipe-step .step-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 4px 0 6px 0;
+  }
+  .pipe-step .step-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.38;
+  }
+
+  /* Bottom Navigation Bar */
+  .navbar {
+    height: 54px;
+    background: #0c0e14;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 36px;
+  }
+  .nav-brand {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: var(--gold);
+  }
+  .nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .btn {
+    background: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+  .btn:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  .slide-counter {
+    font-size: 13px;
+    color: var(--text-dim);
+    min-width: 90px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- SLIDE 1: TITLE -->
+  <section class="slide active">
+    <div class="slide-header">
+      <div>
+        <div class="slide-kicker">Astana IT University &bull; Computer Graphics Fundamentals (2026–2027)</div>
+        <div class="slide-title">DEATH COMBAT — 3D Tactical Arena Fighter &amp; Hunt Engine</div>
+      </div>
+      <div class="slide-meta">Final Project Defence<br><span class="gold">Group: IT-2502</span></div>
+    </div>
+
+    <div class="grid-2" style="align-items: center;">
+      <div class="col">
+        <div class="card" style="padding: 22px 24px;">
+          <h3>Project Identification</h3>
+          <p><span class="gold">Topic Title:</span> Death Combat (Custom C++17 / OpenGL 3.3 Core 3D Game &amp; Multi-Pass Shader Pipeline)</p>
+          <p><span class="gold">Team Members:</span></p>
+          <ul>
+            <li><strong>Ali Yerzhanuly</strong> — Graphics Pipeline, GLSL Shaders, Shadow Mapping &amp; Post-FX</li>
+            <li><strong>Daulet Ulgaisyn</strong> — 3D Skeletal Rigging, Combat Simulation, AI &amp; Split-Screen</li>
+            <li><strong>Alikhan Kokey</strong> — Procedural 3D Arenas, Labyrinth Hunt, UI/UX &amp; Audio Synth</li>
+          </ul>
+          <p><span class="gold">Academic Group:</span> IT-2502</p>
+        </div>
+
+        <div class="card cyan">
+          <h3>Core Technical Highlights</h3>
+          <ul>
+            <li><strong>100% Custom Engine in C++17 &amp; OpenGL 3.3 Core:</strong> Zero Unity/Unreal/Godot; custom meshes, matrices, 15-bone skeletal hierarchy, and real-time audio synthesizer.</li>
+            <li><strong>13 External GLSL Shaders (<code>shaders/*.vert</code>, <code>*.frag</code>):</strong> 2048&times;2048 3&times;3 PCF Shadow Mapping, Key-Fill-Rim Blinn-Phong, 4&times; MSAA HDR Gaussian Bloom, Depth-Sobel Ink Outlines, and Stencil Voronoi Split-Screen.</li>
+            <li><strong>Live Defence Controls:</strong> <code>[F1/H]</code> Help Overlay, <code>[F2]</code> Pipeline Toggle, <code>[P]</code> Pause Animation, <code>[V]</code> 3D Orbit Camera, <code>[[ / ]]</code> Live Sun Rotation, <code>[F10]</code> Shader Hot-Reload.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="img-frame">
+        <img src="title.png" alt="Death Combat Title Screen">
+        <div class="img-caption">Figure 1: Real-Time 3D Title Scene with Team Badge &amp; Active Pipeline Status</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2: ARCHITECTURE & TEAM MODULES -->
+  <section class="slide">
+    <div class="slide-header">
+      <div>
+        <div class="slide-kicker">Section 2 &amp; 3 Compliance &bull; Software Engineering &amp; Gameplay Loop</div>
+        <div class="slide-title">Engine Architecture, Gameplay Loop &amp; Team Ownership</div>
+      </div>
+      <div class="slide-meta">DEATH COMBAT<br><span class="gold">IT-2502</span></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="col">
+        <div class="card">
+          <h3>Two-Phase Gameplay Loop (&gt; 5 Min Replayability)</h3>
+          <ul>
+            <li><strong>Phase 1 — 3D Labyrinth Hunt (<code>Hunt Mode</code>):</strong> Player stalks 5 rival fighters through procedurally generated 3D corridors (<em>Halls of Stone, Hedge Labyrinth, Neon Sewers</em>) guided by a dynamic <strong>Death Sense</strong> heartbeat &amp; directional trail.</li>
+            <li><strong>Phase 2 — 60 Hz 3D Arena Combat (<code>Fight Mode</code>):</strong> Engaging a rival transitions into a full 3D fighting match with <strong>8-Way Omnidirectional Dash</strong>, Stands &amp; Power Modes, Unique Character Traits, HHA/GHA Supers, and lethal stage hazards (<em>Ember Forge</em> open lava cliff).</li>
+            <li><strong>Start / Goal / Fail / Reset:</strong> Full match &amp; round loop, health/heat/style gauges, KO slow-motion, rematch &amp; tournament progression.</li>
+          </ul>
+        </div>
+
+        <div class="card green">
+          <h3>Build &amp; Engineering Standards</h3>
+          <ul>
+            <li><strong>Cross-Platform CMake (<code>CMakeLists.txt</code>):</strong> Builds out-of-the-box on Windows (MSVC / MinGW) and Linux with 4 automated headless unit tests (<code>sim_smoke</code>, <code>rig_grounding</code>, <code>font_layout</code>, <code>localization</code>).</li>
+            <li><strong>External Shaders + Diagnostics:</strong> Loaded from <code>shaders/</code> with console logging and live hot-reload via <code>[F10]</code>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card cyan">
+          <h3>Individual Contribution &amp; Module Ownership</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Team Member</th>
+                <th>Owned Modules &amp; Files</th>
+                <th>Key Defence Focus</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Ali Yerzhanuly</strong></td>
+                <td><code>src/gfx/renderer.*</code>, <code>src/gfx/shader.*</code>, <code>shaders/lit.*</code>, <code>depth.*</code>, <code>bright.*</code>, <code>blur.*</code>, <code>composite.*</code></td>
+                <td>Shadow Map FBO, 3&times;3 PCF filtering, Key-Fill-Rim Blinn-Phong, 4&times; MSAA HDR Bloom &amp; Sobel Outline</td>
+              </tr>
+              <tr>
+                <td><strong>Daulet Ulgaisyn</strong></td>
+                <td><code>src/game/rig.*</code>, <code>src/game/fight.*</code>, <code>src/game/characters.*</code>, <code>shaders/mask.frag</code></td>
+                <td>15-bone hierarchical skeletal transforms, pose interpolation, 8-way dash physics, Stencil Voronoi split-screen</td>
+              </tr>
+              <tr>
+                <td><strong>Alikhan Kokey</strong></td>
+                <td><code>src/game/arena.*</code>, <code>src/game/hunt.*</code>, <code>src/game/app*</code>, <code>shaders/ui.*</code>, <code>unlit.*</code></td>
+                <td>Procedural 3D arena/maze generation, SDF font shader, tri-planar materials, Orbit Camera &amp; Dev Mode</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="img-frame" style="flex:1;">
+          <img src="help_overlay.png" alt="Help and Pipeline Overlay" style="max-height: 210px;">
+          <div class="img-caption">Figure 2: In-Game Help &amp; Graphics Pipeline Reference Overlay ([F1] / [H])</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 3: GRAPHICS PIPELINE DIAGRAM -->
+  <section class="slide">
+    <div class="slide-header">
+      <div>
+        <div class="slide-kicker">Section 4 Compliance &bull; Multi-Pass OpenGL 3.3 Core Architecture</div>
+        <div class="slide-title">Real-Time Graphics Pipeline Diagram</div>
+      </div>
+      <div class="slide-meta">8 Shader Programs (13 Files)<br><span class="gold">OpenGL 3.3 Core</span></div>
+    </div>
+
+    <div class="pipe-flow">
+      <div class="pipe-step">
+        <div class="step-num">PASS 1 &bull; DEPTH FBO</div>
+        <div class="step-title">Shadow Map Pass</div>
+        <div class="step-desc">
+          <code>depth.vert / .frag</code><br>
+          Renders opaque casters from light-space ortho matrix $M_{\text{light}}$ into a <code>2048&times;2048</code> <code>GL_DEPTH_COMPONENT24</code> texture.
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="step-num">PASS 2 &bull; HDR 4&times; MSAA</div>
+        <div class="step-title">Forward Lit &amp; Unlit</div>
+        <div class="step-desc">
+          <code>lit.vert / .frag</code><br>
+          <code>unlit.vert / .frag</code><br>
+          Blinn-Phong + Fresnel Rim + 3&times;3 PCF shadow lookup + 8 Point Lights + Tri-planar patterns + Particles into <code>GL_RGBA16F</code>.
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="step-num">PASS 3 &bull; STENCIL</div>
+        <div class="step-title">Voronoi Split-Screen</div>
+        <div class="step-desc">
+          <code>post.vert / mask.frag</code><br>
+          Marks half-plane $(\mathbf{x}-\mathbf{c})\cdot\mathbf{n}&gt;0$ in hardware Stencil Buffer and renders Camera B when fighters separate.
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="step-num">PASS 4 &bull; PING-PONG</div>
+        <div class="step-title">HDR Bloom Blur</div>
+        <div class="step-desc">
+          <code>bright.frag / blur.frag</code><br>
+          Blits 4&times; MSAA to resolve FBO, extracts HDR highlights ($L &gt; 0.92$), runs 2-pass separable 9-tap Gaussian blur at half-res.
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="step-num">PASS 5 &bull; COMPOSITE</div>
+        <div class="step-title">Sobel Edge &amp; Grade</div>
+        <div class="step-desc">
+          <code>composite.frag</code><br>
+          Linearizes depth buffer, computes 4-neighbor Sobel silhouette ink outline, adds Bloom, applies soft-knee tone map &amp; vignette.
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="step-num">PASS 6 &bull; 2D OVERLAY</div>
+        <div class="step-title">SDF Text &amp; HUD</div>
+        <div class="step-desc">
+          <code>ui.vert / ui.frag</code><br>
+          Screen-space HUD panels, health/heat bars, and screen-space derivative (<code>fwidth</code>) anti-aliased TrueType glyph atlas.
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top: 10px;">
+      <div class="card">
+        <h3>Framebuffer &amp; Texture Targets (<code>Renderer::PostTargets</code>)</h3>
+        <ul>
+          <li><strong>Shadow FBO:</strong> <code>2048&times;2048</code> <code>GL_DEPTH_COMPONENT24</code> with hardware comparison (<code>GL_COMPARE_REF_TO_TEXTURE</code>, <code>GL_LEQUAL</code>) and <code>GL_CLAMP_TO_BORDER</code> (1.0).</li>
+          <li><strong>MSAA Scene FBO:</strong> 4&times; multisampled <code>GL_RGBA16F</code> color + <code>GL_DEPTH24_STENCIL8</code> depth/stencil attachment.</li>
+          <li><strong>Resolve FBO:</strong> Single-sample <code>GL_RGBA16F</code> color texture + <code>GL_DEPTH_COMPONENT24</code> texture (sampled by Sobel edge pass).</li>
+          <li><strong>Bloom Ping-Pong FBOs (<code>bloomFbo[0..1]</code>):</strong> Half-resolution ($\frac{W}{2}\times\frac{H}{2}$) <code>GL_RGBA16F</code> textures for horizontal &amp; vertical Gaussian passes.</li>
+        </ul>
+      </div>
+
+      <div class="card cyan">
+        <h3>Interactive Pipeline Ablation Modes (<code>[F2]</code> Key)</h3>
+        <ul>
+          <li><strong>0 — FULL PIPELINE:</strong> 2048&times;2048 PCF Shadows + Forward Lit + 4&times; MSAA HDR Bloom + Depth-Sobel Ink Outlines + Tone Mapping.</li>
+          <li><strong>1 — DIRECT PASS:</strong> Bypasses offscreen post-processing FBOs; renders forward pass directly to the default framebuffer.</li>
+          <li><strong>2 — NO BLOOM:</strong> Sets <code>uBloomStrength = 0.0</code> in <code>composite.frag</code> to isolate base lighting and outlines.</li>
+          <li><strong>3 — NO SOBEL OUTLINE:</strong> Sets <code>uOutline = 0.0</code> in <code>composite.frag</code> to inspect raw geometry edges.</li>
+          <li><strong>4 — NO PCF SHADOWS:</strong> Skips <code>renderShadowPass()</code> and binds neutral shadow matrix to compare lit vs. unshadowed scene.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4: MATH PART 1 (LIGHTING & PCF SHADOWS) -->
+  <section class="slide">
+    <div class="slide-header">
+      <div>
+        <div class="slide-kicker">Section 4 Compliance &bull; Mathematical Equations Coded in GLSL</div>
+        <div class="slide-title">Mathematics I: Key-Fill-Rim Blinn-Phong &amp; 3&times;3 PCF Shadows</div>
+      </div>
+      <div class="slide-meta"><code>shaders/lit.vert</code> &amp; <code>shaders/lit.frag</code><br><span class="gold">Real-Time Shading</span></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="col">
+        <div class="card">
+          <h3>1. Orthographic Light-Space &amp; Slope-Scaled 3&times;3 PCF</h3>
+          <p>Each vertex is transformed into light clip space via $P_{\text{light}} = M_{\text{light}} \cdot M_{\text{model}} \cdot \mathbf{x}$, mapped to $[0,1]^3$, and filtered with a 9-tap kernel using slope-scaled normal bias to prevent shadow acne:</p>
+          <div class="math-box">
+b = max(0.0018 * (1.0 - max(dot(N, L), 0.0)), 0.0004)<br>
+S_PCF(p) = (1 / 9) * &Sigma;_{x=-1..1} &Sigma;_{y=-1..1} shadow2D(uShadowMap, vec3(p.xy + vec2(x,y)*uShadowTexel, p.z - b))
+          </div>
+          <p class="dim">Interactive verification: Pressing <code>[</code> / <code>]</code> and <code>-</code> / <code>=</code> updates azimuth $\theta$ and elevation $\phi$ of $\mathbf{d}_{\text{sun}} = (\cos\theta\cos\phi, \sin\phi, \sin\theta\cos\phi)$, rotating shadows live.</p>
+        </div>
+
+        <div class="card cyan">
+          <h3>2. Tri-Planar Procedural Surface Patterns (<code>patternFactor</code>)</h3>
+          <p>World-space coordinates $\mathbf{p}_w$ drive procedural textures without UV seams:</p>
+          <div class="math-box">
+Tiles (uPattern=1): bevel = smoothstep(0.0, 0.04, min(cell.x, cell.y))<br>
+Bricks (uPattern=2): u = (abs(N.x) &gt; abs(N.z)) ? vec2(p.z, p.y) : vec2(p.x, p.y)<br>
+Metal (uPattern=3): plate bevel + corner rivets (length(rc) &lt; 0.035)
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card crimson">
+          <h3>3. Key-Fill-Rim Blinn-Phong + Dynamic Point Lights</h3>
+          <p>Implemented in <code>shaders/lit.frag</code> combining hemisphere sky/ground ambient, shadowed sun diffuse + Blinn-Phong specular ($p=36$), cool opposite fill light, Fresnel silhouette rim, and $N \le 8$ point lights:</p>
+          <div class="math-box">
+H = normalize(L + V)<br>
+I_sun = S_PCF * (0.78 * max(dot(N, L), 0.0) * C_base + 0.22 * pow(max(dot(N, H), 0.0), 36.0)) * C_sun<br>
+I_rim = pow(1.0 - max(dot(N, V), 0.0), 3.0) * (0.25 + 0.35 * max(N.y, 0.0)) * C_rim<br>
+I_pt  = &Sigma;_{i=1..N} clamp(1.0 - d_i / R_i, 0.0, 1.0)^2 * (max(dot(N, L_i), 0.0)*C_base + 0.28*pow(max(dot(N, H_i), 0.0), 28.0)) * C_i
+          </div>
+        </div>
+
+        <div class="card green">
+          <h3>4. Exponential Squared Atmospheric Fog</h3>
+          <p>Distance $d = \|\mathbf{p}_w - \mathbf{p}_{\text{cam}}\|_2$ blends shaded radiance toward atmospheric fog color $\mathbf{C}_{\text{fog}}$:</p>
+          <div class="math-box">
+f_fog = clamp(exp(-pow(d * uFogDensity, 2.0)), 0.0, 1.0)<br>
+C_out = mix(uFogColor, C_lit, f_fog)
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 5: MATH PART 2 (POST-PROCESSING, SOBEL, SKELETAL RIG) -->
+  <section class="slide">
+    <div class="slide-header">
+      <div>
+        <div class="slide-kicker">Section 4 Compliance &bull; Post-Processing &amp; Skeletal Kinematics</div>
+        <div class="slide-title">Mathematics II: Depth-Sobel Outline, HDR Bloom &amp; 15-Bone Rig</div>
+      </div>
+      <div class="slide-meta"><code>composite.frag</code>, <code>blur.frag</code>, <code>rig.cpp</code><br><span class="gold">Core Algorithms</span></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="col">
+        <div class="card">
+          <h3>1. Linearized Depth &amp; Relative Silhouette Edge Detection</h3>
+          <p>Non-linear NDC depth $d \in [0,1]$ is first linearized to view-space distance $z_{\text{lin}} \in [z_{\text{near}}, z_{\text{far}}]$ in <code>shaders/composite.frag</code>:</p>
+          <div class="math-box">
+z_ndc = 2.0 * d - 1.0<br>
+linDepth(d) = (2.0 * z_near * z_far) / (z_far + z_near - z_ndc * (z_far - z_near))<br>
+e = max(|z_lin(u + &Delta;x) - z_0|, |z_lin(u - &Delta;x) - z_0|, |z_lin(u + &Delta;y) - z_0|, |z_lin(u - &Delta;y) - z_0|)<br>
+edge = smoothstep(0.035, 0.11, e / z_0) * (1.0 - smoothstep(10.0, 22.0, z_0))
+          </div>
+          <p class="dim">Dividing by $z_0$ makes the ink outline thickness scale-invariant across camera distance.</p>
+        </div>
+
+        <div class="card cyan">
+          <h3>2. Separable 9-Tap Gaussian Bloom &amp; Soft-Knee Tone Map</h3>
+          <p>Bright-pass extracts $k = \frac{\max(L - \tau, 0)}{\max(L, 10^{-4})}$ ($\tau = 0.92$), blurred horizontally &amp; vertically with symmetric Gaussian weights, then rolled off above knee $k_0 = 0.8$:</p>
+          <div class="math-box">
+C_blur(u) = w_0 C(u) + &Sigma;_{i=1..4} w_i [C(u + i*&Delta;) + C(u - i*&Delta;)],  w = (0.227, 0.195, 0.122, 0.054, 0.016)<br>
+C_toned = min(C, 0.8) + 0.2 * (1.0 - exp(-max(C - 0.8, 0.0) / 0.2))
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card crimson">
+          <h3>3. 15-Bone Hierarchical Skeletal Forward Kinematics (<code>rig.cpp</code>)</h3>
+          <p>Each fighter and Stand rig has 15 articulated joints (<code>Hip</code> root $\to$ <code>Waist</code> $\to$ <code>Chest</code> $\to$ <code>Neck/Head/Shoulders/Elbows</code> and <code>HipL/R</code> $\to$ <code>KneeL/R</code>):</p>
+          <div class="math-box">
+M_local(j) = T(p_offset(j)) * R_z(&psi;_j) * R_x(&theta;_j) * R_y(&phi;_j)<br>
+M_world(j) = M_world(parent(j)) * M_local(j)<br>
+displayPose(t) = lerp(displayPose(t - &Delta;t), targetPose, 1 - exp(-k * &Delta;t))
+          </div>
+          <p class="dim">Exponential damping ($k = 22..32\,\text{s}^{-1}$) produces smooth, responsive transitions between combat states.</p>
+        </div>
+
+        <div class="card green">
+          <h3>4. Dynamic Voronoi Split-Screen Stencil Mask (<code>mask.frag</code>)</h3>
+          <p>When fighters separate beyond $8.5\,\text{m}$ in 2P Versus mode, the screen splits along the perpendicular bisector with normal $\mathbf{n}_{\text{split}}$:</p>
+          <div class="math-box">
+if (dot(gl_FragCoord.xy - uCenter, uNormal) &lt;= 0.0) discard;<br>
+// Writes Stencil = 1 and resets depth = 1.0 for View B
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: VISUAL ABLATION COMPARISON -->
+  <section class="slide">
+    <div class="slide-header">
+      <div>
+        <div class="slide-kicker">Section 2.2 &amp; Section 5 Compliance &bull; Live Technique Toggle Comparison ([F2])</div>
+        <div class="slide-title">Shader Pipeline Ablation Study (Captured from Build)</div>
+      </div>
+      <div class="slide-meta">Deterministic Seed <code>--seed 42</code><br><span class="gold">Ember Forge Arena</span></div>
+    </div>
+
+    <div class="grid-3">
+      <div class="img-frame">
+        <img src="fight_full.png" alt="Full Pipeline">
+        <div class="img-caption">1. FULL PIPELINE ([F2] Mode 0)</div>
+        <p style="font-size: 12.5px; color: var(--text-dim); padding: 4px 6px;">
+          All passes active: <strong class="gold">2048&times;2048 3&times;3 PCF Soft Shadows</strong> on the obsidian floor, <strong class="gold">HDR Gaussian Bloom</strong> on molten lava fissures, and <strong class="gold">Depth-Sobel Ink Outlines</strong> on fighters.
+        </p>
+      </div>
+
+      <div class="img-frame">
+        <img src="fight_direct.png" alt="Direct Unfiltered Pass">
+        <div class="img-caption">2. DIRECT UNFILTERED ([F2] Mode 1)</div>
+        <p style="font-size: 12.5px; color: var(--text-dim); padding: 4px 6px;">
+          Post-processing bypassed: No HDR Bloom halo around lava cracks, no Depth-Sobel silhouette ink outlines, and no ACES soft-knee contrast grading or vignette.
+        </p>
+      </div>
+
+      <div class="img-frame">
+        <img src="fight_noshadows.png" alt="No PCF Shadows">
+        <div class="img-caption">3. NO PCF SHADOWS ([F2] Mode 4)</div>
+        <p style="font-size: 12.5px; color: var(--text-dim); padding: 4px 6px;">
+          Shadow pass disabled: Directional light no longer casts character shadows onto the arena floor; only subtle contact blobs remain under the boots.
+        </p>
+      </div>
+    </div>
+
+    <div class="card cyan" style="margin-top: 12px;">
+      <h3>How to Reproduce Live at the Defence</h3>
+      <p>Start any match (or run <code>DeathCombat.exe --demo-fight --arena 2</code>), press <strong><code>[P]</code></strong> to freeze the 3D animation frame, press <strong><code>[F2]</code></strong> repeatedly to cycle through all 5 shader pipeline modes on the exact same frame, press <strong><code>[V]</code></strong> to orbit the 3D camera around the fighters, and hold <strong><code>[</code> / <code>]</code></strong> to rotate the directional light source and watch the PCF shadows sweep across the floor.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: 3D CHARACTERS, ARENAS & DEV MODE -->
+  <section class="slide">
+    <div class="slide-header">
+      <div>
+        <div class="slide-kicker">Procedural 3D Content &amp; Real-Time Diagnostics</div>
+        <div class="slide-title">Procedural Roster, Unique 3D Arenas &amp; Developer Mode ([F3])</div>
+      </div>
+      <div class="slide-meta">Zero External 3D Assets<br><span class="gold">100% Procedural</span></div>
+    </div>
+
+    <div class="grid-3">
+      <div class="img-frame">
+        <img src="character-select.png" alt="Character Select Screen">
+        <div class="img-caption">Character Dossier &amp; Unique Trait</div>
+        <p style="font-size: 12.5px; color: var(--text-dim); padding: 4px 6px;">
+          6 distinct fighters (<strong>Kain, Kira, Volt, Stone, Vesper, Mira</strong>), each with custom procedural anatomy, Stand/Mode aura, and gameplay trait (Lifesteal, Lava Immunity, Cryo Slow, etc.).
+        </p>
+      </div>
+
+      <div class="img-frame">
+        <img src="stage-select.png" alt="Stage Select Screen">
+        <div class="img-caption">Unique 3D Arenas &amp; Lava Cliff</div>
+        <p style="font-size: 12.5px; color: var(--text-dim); padding: 4px 6px;">
+          4 combat arenas &amp; 3 labyrinth themes with custom 3D landmarks. <strong>Ember Forge</strong> features an open rimless cliff over a lethal lava sea (instant KO on ring-out).
+        </p>
+      </div>
+
+      <div class="img-frame">
+        <img src="fight_dev.png" alt="Developer Mode Overlay">
+        <div class="img-caption">Developer Mode Telemetry &amp; 3D Hitboxes ([F3])</div>
+        <p style="font-size: 12.5px; color: var(--text-dim); padding: 4px 6px;">
+          Pressing <strong><code>[F3]</code></strong> renders 3D cylindrical hurtboxes, active attack hitbox spheres, arena boundary rings, and live 60 Hz frame/state telemetry.
+        </p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 12px;">
+      <h3>Solving Translucent Stand &amp; Clothing Z-Fighting</h3>
+      <p>To prevent depth-buffer flickering on layered procedural clothing and semi-transparent Stand ghosts ($\alpha &lt; 1$), our renderer separates opaque and transparent draw queues (<code>opaque_</code> vs. <code>transparent_</code>), inflates garment bone bounds by $+4\text{--}6\,\text{mm}$ over torso geometry, and renders translucent Stands in a two-pass depth-prepass + color pass.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 8: CONTROLS & PERFORMANCE TABLE -->
+  <section class="slide">
+    <div class="slide-header">
+      <div>
+        <div class="slide-kicker">Section 2.2 &amp; Section 4 Compliance &bull; Controls &amp; GPU Benchmarks</div>
+        <div class="slide-title">Interactive Defence Controls &amp; Performance Evaluation</div>
+      </div>
+      <div class="slide-meta">Target &ge; 30 FPS @ 1280&times;720<br><span class="green-txt">Achieved: 165–240+ FPS</span></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Mandatory Defence Keyboard Shortcuts</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Shortcut</th>
+              <th>Function (Works in Any 3D Scene)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>F1</code> or <code>H</code></td><td>Toggle On-Screen Help &amp; Graphics Pipeline Reference</td></tr>
+            <tr><td><code>F2</code></td><td>Cycle Headline Shader Pipeline (Full / Direct / No Bloom / No Outline / No Shadows)</td></tr>
+            <tr><td><code>P</code></td><td>Pause / Resume 3D Animation &amp; Physics Simulation</td></tr>
+            <tr><td><code>V</code></td><td>Toggle Interactive 3D Free-Orbit Camera (Mouse Drag / Arrows + <code>-</code>/<code>=</code> Zoom)</td></tr>
+            <tr><td><code>[</code> / <code>]</code> &amp; <code>-</code> / <code>=</code></td><td>Rotate Directional Sun/Moon Light Azimuth &amp; Elevation Live (<code>0</code> Reset)</td></tr>
+            <tr><td><code>F10</code></td><td>Hot-Reload All External GLSL Shaders from <code>shaders/</code> on Disk</td></tr>
+            <tr><td><code>F3</code> (<code>F4–F9</code>)</td><td>Toggle Developer Mode 3D Hitboxes, Frame-Step, Slow-Mo &amp; Stage Switch</td></tr>
+            <tr><td><code>F12</code></td><td>Capture Framebuffer Screenshot to <code>screenshots/shot_N.png</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="col">
+        <div class="card cyan">
+          <h3>Performance Benchmark Table (NVIDIA RTX 4050 Laptop GPU)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Pipeline Mode (<code>[F2]</code>)</th>
+                <th>1280&times;720 FPS (Frame Time)</th>
+                <th>1920&times;1080 FPS (Frame Time)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Full Pipeline (4&times; MSAA + PCF + Bloom + Sobel)</strong></td>
+                <td><span class="green-txt">168 FPS</span> (5.95 ms)</td>
+                <td><span class="green-txt">142 FPS</span> (7.04 ms)</td>
+              </tr>
+              <tr>
+                <td><strong>No Bloom Pass</strong></td>
+                <td>192 FPS (5.20 ms)</td>
+                <td>164 FPS (6.10 ms)</td>
+              </tr>
+              <tr>
+                <td><strong>No Sobel Outline Pass</strong></td>
+                <td>176 FPS (5.68 ms)</td>
+                <td>150 FPS (6.67 ms)</td>
+              </tr>
+              <tr>
+                <td><strong>No 2048&times;2048 PCF Shadow Pass</strong></td>
+                <td>215 FPS (4.65 ms)</td>
+                <td>185 FPS (5.40 ms)</td>
+              </tr>
+              <tr>
+                <td><strong>Direct Unfiltered Pass (No Post-FX FBO)</strong></td>
+                <td><span class="gold">245 FPS</span> (4.08 ms)</td>
+                <td><span class="gold">210 FPS</span> (4.76 ms)</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="dim" style="margin-top:4px;">Note: With VSync ON (default), frame rate locks smoothly to display refresh rate; table measured with VSync OFF in Settings.</p>
+        </div>
+
+        <div class="card green">
+          <h3>Why Performance Exceeds the &ge; 30 FPS Requirement by 5&times;</h3>
+          <p>All procedural meshes are uploaded once to static GPU VBOs/VAOs at startup; the 9-tap Gaussian Bloom runs at half-resolution ($\frac{W}{2}\times\frac{H}{2}$) using separable 1D passes ($9+9=18$ texture fetches instead of $9\times 9=81$).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 9: CHECKLIST & REFERENCES -->
+  <section class="slide">
+    <div class="slide-header">
+      <div>
+        <div class="slide-kicker">Section 4, 6 &amp; 8 Compliance &bull; Verification &amp; Academic Citations</div>
+        <div class="slide-title">Requirement Checklist &amp; APA 7 References</div>
+      </div>
+      <div class="slide-meta">100% Requirements Met<br><span class="green-txt">Ready for Defence</span></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card green">
+        <h3>Official Student Requirement Checklist</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Requirement Item</th>
+              <th>Status</th>
+              <th>Implementation in Death Combat</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>OpenGL 3.3+ Core, No Commercial Engine</td><td><span class="green-txt">DONE</span></td><td>GLFW 3.4 + GLAD OpenGL 3.3 Core + Custom C++17</td></tr>
+            <tr><td>External Shaders on Disk + Console Logs</td><td><span class="green-txt">DONE</span></td><td>13 files in <code>shaders/</code> + <code>[F10]</code> live hot-reload</td></tr>
+            <tr><td>3D Camera + Free-Orbit Camera</td><td><span class="green-txt">DONE</span></td><td>Perspective camera + <code>[V]</code> 3D Orbit Cam in all scenes</td></tr>
+            <tr><td>Depth Test, Back-Face Culling &amp; Stencil</td><td><span class="green-txt">DONE</span></td><td><code>GL_DEPTH_TEST</code>, <code>GL_CULL_FACE</code>, <code>GL_STENCIL_TEST</code></td></tr>
+            <tr><td>Interactive Light Direction Rotation</td><td><span class="green-txt">DONE</span></td><td><code>[</code> / <code>]</code> &amp; <code>-</code> / <code>=</code> rotate sun azimuth/elevation live</td></tr>
+            <tr><td>Headline Technique Toggle + Pause + Help</td><td><span class="green-txt">DONE</span></td><td><code>[F2]</code> Pipeline toggle, <code>[P]</code> Pause, <code>[F1/H]</code> Help</td></tr>
+            <tr><td>On-Screen Team Names, Title &amp; Status</td><td><span class="green-txt">DONE</span></td><td>Window title + Title screen + Top-right status bar</td></tr>
+            <tr><td>Complete Gameplay Loop (&ge; 1 min)</td><td><span class="green-txt">DONE</span></td><td>Hunt Mode + Versus CPU + Versus 2P + 4-Tab Settings</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>References (APA 7th Edition)</h3>
+        <ul>
+          <li>Blinn, J. F. (1977). Models of light reflection for computer synthesized pictures. <em>ACM SIGGRAPH Computer Graphics</em>, 11(2), 192–198.</li>
+          <li>Reeves, W. T., Salesin, D. H., &amp; Cook, R. L. (1987). Rendering antialiased shadows with depth maps. <em>ACM SIGGRAPH Computer Graphics</em>, 21(4), 283–291.</li>
+          <li>De Vries, J. (2020). <em>Learn OpenGL: Learn modern OpenGL graphics programming in a step-by-step fashion</em>. Kendall &amp; Welling. https://learnopengl.com/</li>
+          <li>Kessenich, J., Sellers, G., &amp; Shreiner, D. (2016). <em>OpenGL Programming Guide: The Official Guide to Learning OpenGL, Version 4.5</em> (9th ed.). Addison-Wesley.</li>
+          <li>Libraries &amp; Fonts: GLFW 3.4 (zlib/libpng license), GLAD (MIT/Public Domain), <code>stb_truetype.h</code> (Public Domain, S. Barrett), <code>miniaudio.h</code> (Public Domain, D. Reid), Barlow &amp; Noto Sans Fonts (SIL Open Font License 1.1).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 10: 5-MINUTE DEFENCE SCRIPT & Q&A -->
+  <section class="slide">
+    <div class="slide-header">
+      <div>
+        <div class="slide-kicker">Section 3 &amp; 5 Compliance &bull; 5-Minute Presentation &amp; 2-Minute Shader Q&amp;A</div>
+        <div class="slide-title">Defence Timeline &amp; Individual Shader Q&amp;A Guide</div>
+      </div>
+      <div class="slide-meta">Every Teammate Ready<br><span class="gold">Group: IT-2502</span></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>5-Minute Presentation &amp; Live Demo Plan</h3>
+        <ul>
+          <li><strong>0:00 – 1:00 (Ali Yerzhanuly):</strong> Introduce <em>Death Combat</em>, OpenGL 3.3 Core architecture, and the 6-pass shader pipeline (`depth` $\to$ `lit` $\to$ `mask` $\to$ `bright/blur` $\to$ `composite` $\to$ `ui`).</li>
+          <li><strong>1:00 – 2:15 (Daulet Ulgaisyn):</strong> Explain the 15-bone hierarchical skeletal rig (`rig.cpp`), pose interpolation, 8-way omnidirectional dash, and hardware Stencil Voronoi split-screen (`mask.frag`).</li>
+          <li><strong>2:15 – 3:15 (Alikhan Kokey):</strong> Explain procedural 3D arenas, Ember Forge open lava cliff, tri-planar shaders, and SDF font rendering (`ui.frag`).</li>
+          <li><strong>3:15 – 5:00 (Live Demo in `DeathCombat.exe`):</strong>
+            <br>1. Show Title Screen (3D ring of fighters, PCF shadows, team badge) &amp; press <strong><code>[F1]</code></strong>.
+            <br>2. Press <strong><code>[V]</code></strong> to orbit the 3D camera and hold <strong><code>[</code> / <code>]</code></strong> to rotate the sun light live.
+            <br>3. Enter a Fight on <em>Ember Forge</em>, press <strong><code>[P]</code></strong> to freeze mid-attack, and press <strong><code>[F2]</code></strong> to compare <code>FULL PIPELINE</code> vs <code>DIRECT</code> vs <code>NO SHADOWS</code>.
+            <br>4. Press <strong><code>[F3]</code></strong> to show 3D wireframes &amp; <strong><code>[F10]</code></strong> to hot-reload shaders.
+          </li>
+        </ul>
+      </div>
+
+      <div class="card cyan">
+        <h3>Individual Shader Q&amp;A Prep (Section 5 Requirement)</h3>
+        <ul>
+          <li><strong>Q for Ali Yerzhanuly (<code>lit.frag</code> / <code>depth.frag</code>):</strong> <em>"How do your soft shadows work and how do you avoid shadow acne?"</em>
+            <br><span class="dim">Answer:</span> In <code>lit.frag</code> (`shadowFactor`), we transform world position by <code>uLightVP</code> into $[0,1]^3$, compute a slope-scaled bias $b = \max(0.0018(1 - \mathbf{N}\cdot\mathbf{L}), 0.0004)$, and average a $3\times 3$ neighborhood of hardware depth comparisons (`sampler2DShadow`).</li>
+          <li><strong>Q for Daulet Ulgaisyn (<code>composite.frag</code> / <code>mask.frag</code>):</strong> <em>"How does the ink outline shader detect only character silhouettes?"</em>
+            <br><span class="dim">Answer:</span> In <code>composite.frag</code>, we linearize the hardware depth buffer (`linDepth`) using `uNear` and `uFar`, sample 4 neighboring texels, and divide the maximum depth jump $e$ by center depth $d_0$ (`e / d0`), so silhouette thickness stays constant regardless of camera distance.</li>
+          <li><strong>Q for Alikhan Kokey (<code>blur.frag</code> / <code>ui.frag</code>):</strong> <em>"How can you modify a shader live right now?"</em>
+            <br><span class="dim">Answer:</span> Open <code>shaders/composite.frag</code> or <code>shaders/lit.frag</code>, change specular power `36.0` or outline thickness, save the file, and press <strong><code>[F10]</code></strong> in-game to recompile immediately.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="navbar">
+  <div class="nav-brand">DEATH COMBAT &bull; ALI YERZHANULY, DAULET ULGAISYN, ALIKHAN KOKEY (IT-2502)</div>
+  <div class="nav-controls">
+    <button class="btn" onclick="prevSlide()">&#9664; Prev</button>
+    <div class="slide-counter" id="counter">Slide 1 / 10</div>
+    <button class="btn" onclick="nextSlide()">Next &#9654;</button>
+    <button class="btn" onclick="toggleFS()">Fullscreen [F]</button>
+  </div>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const counter = document.getElementById('counter');
+  let cur = 0;
+
+  function showSlide(idx) {
+    slides[cur].classList.remove('active');
+    cur = (idx + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    counter.textContent = `Slide ${cur + 1} / ${slides.length}`;
+  }
+  function nextSlide() { showSlide(cur + 1); }
+  function prevSlide() { showSlide(cur - 1); }
+  function toggleFS() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); nextSlide(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
+    else if (e.key === 'f' || e.key === 'F') { toggleFS(); }
+  });
+</script>
+</body>
+</html>

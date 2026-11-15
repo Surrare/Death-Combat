@@ -22,6 +22,7 @@ void Hunt::init(int playerChar, const std::vector<int>& opponentChars, uint64_t 
     floor_.upload(fb); walls_.upload(wb); ceiling_.upload(cb); props_.upload(pb);
 
     playerPos_ = maze_.cellCenter(w / 2, h / 2);
+    playerVel_ = Vec3();
     camYaw_ = 0; playerYaw_ = PI;   // camera looks down -z, so start facing away from it
 
     // scatter opponents in far dead-ends / corners
@@ -206,22 +207,31 @@ void Hunt::updateCamera(float dt, const PadState& pad) {
 
 int Hunt::update(float dt, const PadState& pad, bool engageAllowed) {
     time_ += dt;
-    // movement relative to the camera
+    // Smooth movement relative to the camera with natural acceleration and deceleration
     Vec3 fwd(std::sin(camYaw_), 0, -std::cos(camYaw_));
     Vec3 right(std::cos(camYaw_), 0, std::sin(camYaw_));
     Vec3 move = fwd * pad.axisY + right * pad.axisX;
     float ml = move.length();
     running_ = pad.down(BTN_DASH);
     if (ml > 1.0f) move = move / ml;
-    if (ml > 0.05f) {
-        float speed = running_ ? RUN_SPEED : WALK_SPEED;
-        playerPos_ += move * (speed * dt);
+    float targetSpeed = (ml > 0.05f) ? (running_ ? RUN_SPEED : WALK_SPEED) * std::min(1.0f, ml) : 0.0f;
+    Vec3 wantVel = (ml > 0.05f) ? move * targetSpeed : Vec3();
+    float accelRate = (ml > 0.05f) ? 12.0f : 10.0f;
+    playerVel_ = lerp(playerVel_, wantVel, std::min(1.0f, dt * accelRate));
+    float curSpeed = playerVel_.length();
+    if (curSpeed > 0.08f) {
+        playerPos_ += playerVel_ * dt;
         playerPos_ = maze_.collideCircle(playerPos_, PLAYER_RADIUS);
-        float want = yawToward(move);
-        playerYaw_ += wrapAngle(want - playerYaw_) * std::min(1.0f, dt * 12.0f);
-        walkPhase_ += dt * (running_ ? 12.0f : 8.0f);
-        moveBlend_ = std::min(1.0f, moveBlend_ + dt * 6.0f);
-    } else moveBlend_ = std::max(0.0f, moveBlend_ - dt * 6.0f);
+        if (ml > 0.05f) {
+            float want = yawToward(move);
+            playerYaw_ += wrapAngle(want - playerYaw_) * std::min(1.0f, dt * 11.0f);
+        }
+        walkPhase_ += dt * (curSpeed * 1.65f);
+        moveBlend_ = std::min(1.0f, curSpeed / WALK_SPEED);
+    } else {
+        playerVel_ = Vec3();
+        moveBlend_ = std::max(0.0f, moveBlend_ - dt * 6.0f);
+    }
 
     for (HuntOpponent& o : opps_) updateOpponent(o, dt);
 

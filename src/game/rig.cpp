@@ -66,13 +66,138 @@ Pose standIdlePose(float time) {
     return p;
 }
 
-static Pose walkPose(float time, float dir) {
+Pose menuPose(int charId, float time) {
     Pose p = idlePose(time);
-    float s = std::sin(time * 9.0f) * dir;
-    p.legPitch[0] = 0.5f * s; p.legPitch[1] = -0.5f * s;
-    p.knee[0] = 0.4f + 0.4f * std::max(0.0f, -s); p.knee[1] = 0.4f + 0.4f * std::max(0.0f, s);
-    p.hipHeight = 0.86f + 0.025f * std::fabs(std::cos(time * 9.0f));
-    p.spinePitch = 0.12f;
+    const float b = std::sin(time * 2.0f);
+    const float b2 = std::cos(time * 1.6f);
+    switch (charId) {
+    case 0: // KAIN — confident crimson point stance
+        p.hipHeight = 0.87f + 0.012f * b;
+        p.spinePitch = -0.12f + 0.02f * b;
+        p.spineYaw = 0.32f;
+        p.headYaw = -0.26f;
+        p.headPitch = 0.06f;
+        p.armPitch[0] = 1.48f + 0.03f * b; p.armOut[0] = 0.14f; p.elbow[0] = 0.22f;
+        p.armPitch[1] = 0.35f; p.armOut[1] = 0.52f; p.elbow[1] = 2.05f;
+        p.legPitch[0] = 0.28f; p.legPitch[1] = -0.22f;
+        p.legOut[0] = 0.22f; p.legOut[1] = 0.24f;
+        p.knee[0] = 0.38f; p.knee[1] = 0.28f;
+        break;
+    case 1: // VESPER — composed aristocrat crossed-guard stance
+        p.hipHeight = 0.89f + 0.010f * b;
+        p.spinePitch = -0.06f + 0.015f * b;
+        p.spineYaw = -0.38f;
+        p.headYaw = 0.34f;
+        p.headPitch = -0.06f;
+        p.armPitch[0] = 1.15f; p.armOut[0] = -0.24f; p.elbow[0] = 2.15f;
+        p.armPitch[1] = 1.22f; p.armOut[1] = -0.18f; p.elbow[1] = 2.08f;
+        p.legPitch[0] = 0.18f; p.legPitch[1] = -0.16f;
+        p.legOut[0] = 0.13f; p.legOut[1] = 0.15f;
+        p.knee[0] = 0.26f; p.knee[1] = 0.24f;
+        break;
+    case 2: // ORSOLO — iron colossus wide guard
+        p.hipHeight = 0.80f + 0.012f * b;
+        p.spinePitch = 0.14f + 0.015f * b;
+        p.spineYaw = -0.16f;
+        p.headYaw = 0.14f;
+        p.headPitch = -0.12f;
+        p.armPitch[0] = 0.78f + 0.03f * b; p.armOut[0] = 0.50f; p.elbow[0] = 1.65f;
+        p.armPitch[1] = 0.86f - 0.03f * b; p.armOut[1] = 0.50f; p.elbow[1] = 1.55f;
+        p.legPitch[0] = 0.25f; p.legPitch[1] = -0.15f;
+        p.legOut[0] = 0.30f; p.legOut[1] = 0.30f;
+        p.knee[0] = 0.52f; p.knee[1] = 0.48f;
+        break;
+    case 3: // MIRA — graceful silk martial-dancer stance
+        p.hipHeight = 0.88f + 0.014f * b;
+        p.spinePitch = -0.07f + 0.02f * b;
+        p.spineYaw = 0.36f;
+        p.headYaw = -0.30f;
+        p.headPitch = 0.04f;
+        p.armPitch[0] = 2.05f + 0.05f * b; p.armOut[0] = 0.40f; p.elbow[0] = 1.10f;
+        p.armPitch[1] = 0.68f + 0.04f * b2; p.armOut[1] = 0.62f; p.elbow[1] = 0.80f;
+        p.legPitch[0] = 0.36f; p.legPitch[1] = -0.16f;
+        p.legOut[0] = 0.18f; p.legOut[1] = 0.16f;
+        p.knee[0] = 0.58f; p.knee[1] = 0.24f;
+        break;
+    case 4: // KAZE — low coiled gale-shinobi stance
+        p.hipHeight = 0.77f + 0.012f * b;
+        p.spinePitch = 0.34f + 0.02f * b;
+        p.spineYaw = -0.45f;
+        p.headYaw = 0.40f;
+        p.headPitch = -0.20f;
+        p.armPitch[0] = 1.32f + 0.04f * b; p.armOut[0] = 0.16f; p.elbow[0] = 0.85f;
+        p.armPitch[1] = -0.22f; p.armOut[1] = 0.34f; p.elbow[1] = 1.95f;
+        p.legPitch[0] = 0.52f; p.legPitch[1] = -0.34f;
+        p.legOut[0] = 0.24f; p.legOut[1] = 0.24f;
+        p.knee[0] = 0.78f; p.knee[1] = 0.62f;
+        break;
+    case 5: // BRAM — forge master raised-fist stance
+        p.hipHeight = 0.84f + 0.012f * b;
+        p.spinePitch = -0.05f + 0.02f * b;
+        p.spineYaw = -0.28f;
+        p.headYaw = 0.24f;
+        p.headPitch = 0.05f;
+        p.armPitch[0] = 1.05f; p.armOut[0] = 0.28f; p.elbow[0] = 1.85f;
+        p.armPitch[1] = 1.82f + 0.04f * b; p.armOut[1] = 0.44f; p.elbow[1] = 1.72f;
+        p.legPitch[0] = 0.28f; p.legPitch[1] = -0.20f;
+        p.legOut[0] = 0.26f; p.legOut[1] = 0.26f;
+        p.knee[0] = 0.42f; p.knee[1] = 0.36f;
+        break;
+    default:
+        break;
+    }
+    return p;
+}
+
+Pose standMenuPose(int charId, float time) {
+    Pose p = standIdlePose(time);
+    const float b = std::sin(time * 1.8f);
+    switch (charId) {
+    case 0: // Crimson Heart — heroic power flex
+        p.armPitch[0] = 1.45f; p.armPitch[1] = 1.45f;
+        p.armOut[0] = 0.48f; p.armOut[1] = 0.48f;
+        p.elbow[0] = 1.65f; p.elbow[1] = 1.65f;
+        p.spinePitch = -0.08f + 0.03f * b;
+        break;
+    case 1: // Silver Mirror — floating lotus guard
+        p.armPitch[0] = 1.05f; p.armPitch[1] = 1.65f;
+        p.armOut[0] = 0.35f; p.armOut[1] = 0.15f;
+        p.elbow[0] = 1.40f; p.elbow[1] = 0.45f;
+        p.spineYaw = 0.22f;
+        break;
+    case 2: // Iron Bell — towering sentinel
+        p.armPitch[0] = 0.85f; p.armPitch[1] = 0.85f;
+        p.armOut[0] = 0.38f; p.armOut[1] = 0.38f;
+        p.elbow[0] = 1.85f; p.elbow[1] = 1.85f;
+        p.spinePitch = 0.08f;
+        break;
+    case 3: // Velvet Thread — celestial open-wing pose
+        p.armPitch[0] = 1.75f + 0.06f * b; p.armPitch[1] = 1.75f - 0.06f * b;
+        p.armOut[0] = 0.65f; p.armOut[1] = 0.65f;
+        p.elbow[0] = 0.85f; p.elbow[1] = 0.85f;
+        p.spinePitch = -0.10f;
+        break;
+    default:
+        break;
+    }
+    return p;
+}
+
+static Pose walkPose(float time, float dirF, float dirS = 0.0f) {
+    Pose p = idlePose(time);
+    float mag = clampf(std::sqrt(dirF * dirF + dirS * dirS), 0.25f, 1.0f);
+    float sign = (dirF < -0.05f) ? -1.0f : 1.0f;
+    float s = std::sin(time * 8.5f) * sign * mag;
+    p.legPitch[0] = 0.48f * s; p.legPitch[1] = -0.48f * s;
+    p.knee[0] = 0.38f + 0.38f * std::max(0.0f, -s);
+    p.knee[1] = 0.38f + 0.38f * std::max(0.0f, s);
+    p.hipHeight = 0.86f + 0.022f * mag * std::fabs(std::cos(time * 8.5f));
+    p.spinePitch = 0.10f + 0.08f * dirF;
+    p.spineRoll = -0.10f * dirS;
+    p.legOut[0] = 0.18f + 0.08f * std::fabs(dirS);
+    p.legOut[1] = 0.18f + 0.08f * std::fabs(dirS);
+    p.armPitch[0] = 1.05f - 0.18f * s;
+    p.armPitch[1] = 0.82f + 0.18f * s;
     return p;
 }
 
@@ -313,22 +438,51 @@ Pose attackPose(AnimKind kind, float phase, float time, bool variant) {
 
 Pose poseForFighter(const Fighter& f, float time) {
     switch (f.state) {
-    case FState::Intro: return idlePose(time);
-    case FState::Idle: return idlePose(time);
-    case FState::Walk: return walkPose(time, 1.0f);
+    case FState::Intro: return f.ch ? menuPose((int)(f.ch - roster().data()), time) : idlePose(time);
+    case FState::Idle: {
+        Pose p = idlePose(time);
+        // Subtle residual momentum lean when decelerating smoothly into Idle
+        if (std::fabs(f.moveF_smooth) > 0.02f || std::fabs(f.moveS_smooth) > 0.02f) {
+            p.spinePitch += 0.08f * f.moveF_smooth;
+            p.spineRoll -= 0.08f * f.moveS_smooth;
+        }
+        return p;
+    }
+    case FState::Walk: {
+        float mf = (std::fabs(f.moveF_smooth) > 0.01f || std::fabs(f.moveS_smooth) > 0.01f) ? f.moveF_smooth : 1.0f;
+        return walkPose(time, mf, f.moveS_smooth);
+    }
     case FState::Crouch: return crouchPose(time);
     case FState::Jump: return jumpPose(f.vy);
     case FState::Land: return lerpPose(crouchPose(time), idlePose(time), (float)f.timer / 4.0f);
     case FState::Dash: {
-        Pose p = walkPose(time * 1.5f, 1.0f); p.spinePitch = 0.4f; p.rootOffset.z = 0.1f; return p;
+        float df = dot(f.dashDir, f.fwd);
+        float ds = dot(f.dashDir, f.right());
+        if (std::fabs(df) < 0.01f && std::fabs(ds) < 0.01f) df = 1.0f;
+        Pose p = walkPose(time * 1.4f, df >= -0.1f ? 1.0f : -1.0f, ds);
+        p.spinePitch = 0.36f * df + 0.12f;
+        p.spineRoll = -0.24f * ds;
+        p.rootOffset.z = 0.08f * df;
+        return p;
     }
     case FState::Backdash: {
-        Pose p = jumpPose(0.0f); p.spinePitch = -0.3f; p.hipHeight = 0.95f; return p;
+        float ds = dot(f.dashDir, f.right());
+        Pose p = jumpPose(0.0f);
+        p.spinePitch = -0.28f;
+        p.spineRoll = -0.20f * ds;
+        p.hipHeight = 0.94f;
+        return p;
     }
     case FState::Sidestep: {
         float t = (float)f.timer / (float)std::max(1, f.stateLen);
-        Pose p = idlePose(time); p.bodyYaw = -f.sideDir * std::sin(PI * t) * 0.9f;
-        p.hipHeight = 0.86f + 0.12f * std::sin(PI * t); p.knee[0] = 0.9f; p.knee[1] = 0.9f; p.legPitch[0] = 0.5f; p.legPitch[1] = 0.5f;
+        float df = dot(f.dashDir, f.fwd);
+        Pose p = idlePose(time);
+        p.bodyYaw = -f.sideDir * std::sin(PI * t) * 0.75f;
+        p.spinePitch = 0.18f * df * std::sin(PI * t);
+        p.spineRoll = -0.22f * f.sideDir * std::sin(PI * t);
+        p.hipHeight = 0.85f + 0.10f * std::sin(PI * t);
+        p.knee[0] = 0.85f; p.knee[1] = 0.85f;
+        p.legPitch[0] = 0.45f; p.legPitch[1] = 0.45f;
         return p;
     }
     case FState::Attack: {
@@ -490,19 +644,19 @@ void drawHair(const Painter& P, const Mat4& head, const Look& L, const Palette& 
         break;
     }
     case HairStyle::Ponytail: {
-        // high tie, then a swaying tail made of tapering segments
-        P.ball(head, Vec3(0, 0.325f, -0.09f), Vec3(0.09f, 0.08f, 0.09f), pal.accent);
-        Mat4 m = head * Mat4::translate(Vec3(0, 0.33f, -0.1f));
-        float w = 0.11f;
-        for (int i = 0; i < 4; ++i) {
-            m = m * Mat4::rotateX(0.55f + 0.14f * sway + (i > 0 ? 0.12f : 0.0f));
-            float len = 0.17f;
-            P.box(m, Vec3(0, -len * 0.5f, 0), Vec3(w, len, w * 0.85f), i == 3 ? shade(hair, 0.9f) : hair);
+        // High silk tie at the crown-back, with a sleek ponytail hanging down behind the head (no upward curl)
+        P.ball(head, Vec3(0, 0.29f, -0.115f), Vec3(0.085f, 0.075f, 0.085f), pal.accent);
+        Mat4 m = head * Mat4::translate(Vec3(0, 0.275f, -0.135f)) * Mat4::rotateX(0.26f + 0.06f * sway);
+        float w = 0.105f;
+        for (int i = 0; i < 3; ++i) {
+            if (i > 0) m = m * Mat4::rotateX(-0.08f + 0.05f * sway);
+            float len = 0.16f;
+            P.box(m, Vec3(0, -len * 0.5f, 0), Vec3(w, len, w * 0.72f), i == 2 ? shade(hair, 0.90f) : hair);
             m = m * Mat4::translate(Vec3(0, -len, 0));
-            w *= 0.82f;
+            w *= 0.80f;
         }
-        for (int s = -1; s <= 1; s += 2) P.box(head, Vec3(s * 0.128f, 0.15f, 0.04f), Vec3(0.04f, 0.2f, 0.08f), hair);
-        P.box(head, Vec3(0, 0.30f, 0.108f), Vec3(0.22f, 0.04f, 0.05f), hair);
+        for (int s = -1; s <= 1; s += 2) P.box(head, Vec3(s * 0.130f, 0.155f, 0.035f), Vec3(0.038f, 0.19f, 0.075f), hair);
+        P.box(head, Vec3(0, 0.302f, 0.112f), Vec3(0.21f, 0.038f, 0.048f), hair);
         break;
     }
     case HairStyle::Mohawk: {
@@ -582,19 +736,14 @@ void drawStandOrnaments(const Painter& P, const Mat4& spine, const Mat4& head, c
         break;
     }
     case StandDesign::Silk: {
-        // trailing ribbons and a halo
-        P.tube(head * Mat4::rotateX(PI * 0.5f), Vec3(0, 0.13f, 0.1f), Vec3(0.42f, 0.02f, 0.42f), bright, 0.9f);
-        for (int k = 0; k < 4; ++k) {
-            float sx = (k & 1) ? 1.0f : -1.0f;
-            float off = 0.08f + 0.1f * (k >> 1);
-            Mat4 m = spine * Mat4::translate(Vec3(sx * off, 0.42f, -0.12f)) * Mat4::rotateZ(sx * (0.35f + 0.1f * k) + 0.1f * std::sin(t * 2.0f + k))
-                   * Mat4::rotateX(0.9f + 0.2f * std::sin(t * 2.6f + k * 1.7f));
-            for (int i = 0; i < 3; ++i) {
-                P.box(m, Vec3(0, -0.17f, 0), Vec3(0.07f - 0.015f * i, 0.36f, 0.015f), i & 1 ? bright : style, 0.5f);
-                m = m * Mat4::translate(Vec3(0, -0.34f, 0)) * Mat4::rotateX(0.35f * std::sin(t * 3.0f + k + i));
-            }
+        // Celestial halo, clean shoulder crests, and luminous chest core (no tentacles)
+        P.tube(head * Mat4::rotateX(PI * 0.5f), Vec3(0, 0.13f, 0.11f), Vec3(0.40f, 0.022f, 0.40f), bright, 0.9f);
+        for (int i = 0; i < 2; ++i) {
+            float sx = i == 0 ? 1.0f : -1.0f;
+            P.ball(shoulder[i], Vec3(sx * 0.03f, 0.035f, 0), Vec3(0.22f, 0.13f, 0.20f), shade(style, 0.85f), 0.45f);
+            P.spike(shoulder[i], Vec3(sx * 0.06f, 0.06f, -0.02f), Vec3(sx * 0.75f, 0.85f, -0.25f), 0.18f, 0.07f, bright, 0.65f);
         }
-        P.ball(spine, Vec3(0, 0.34f, 0.125f * T), Vec3(0.12f, 0.12f, 0.08f), bright, 1.0f);
+        P.ball(spine, Vec3(0, 0.34f, 0.132f * T), Vec3(0.12f, 0.12f, 0.08f), bright, 1.0f);
         (void)S; (void)sway;
         break;
     }
@@ -626,55 +775,60 @@ void drawClothes(const Painter& P, const Mat4& root, const Mat4& spine, const Ma
     const float sway = std::sin(t * 2.4f), sway2 = std::sin(t * 3.1f + 1.0f);
 
     if (L.has(ACC_BELT)) {
-        P.box(root, Vec3(0, 0.03f, 0), Vec3(0.365f * T, 0.065f, 0.245f * T), shade(pal.cloth, 0.55f));
-        P.box(root, Vec3(0, 0.03f, 0.125f * T), Vec3(0.07f, 0.07f, 0.02f), pal.accent, 0.15f);
+        P.box(root, Vec3(0, 0.032f, 0), Vec3(0.376f * T, 0.068f, 0.256f * T), shade(pal.cloth, 0.55f));
+        P.box(root, Vec3(0, 0.032f, 0.136f * T), Vec3(0.074f, 0.072f, 0.022f), pal.accent, 0.15f);
     }
     if (L.has(ACC_SASH)) {
-        P.box(root, Vec3(0, 0.035f, 0), Vec3(0.36f * T, 0.085f, 0.24f * T), pal.cloth);
-        P.ball(root, Vec3(0.1f, 0.035f, 0.125f * T), Vec3(0.07f, 0.07f, 0.05f), pal.cloth);
+        P.box(root, Vec3(0, 0.042f, 0), Vec3(0.372f * T, 0.082f, 0.252f * T), pal.cloth);
+        P.ball(root, Vec3(0.105f, 0.042f, 0.136f * T), Vec3(0.072f, 0.072f, 0.052f), pal.cloth);
         for (int i = 0; i < 2; ++i) {
-            Mat4 m = root * Mat4::translate(Vec3(0.1f + 0.045f * i, 0.0f, 0.125f * T)) * Mat4::rotateZ(0.12f * (i ? -1 : 1) + 0.08f * sway2 * (i ? -1 : 1)) * Mat4::rotateX(-0.1f);
-            P.box(m, Vec3(0, -0.14f, 0), Vec3(0.05f, 0.28f - 0.04f * i, 0.012f), i ? shade(pal.cloth, 0.9f) : pal.cloth);
+            float zOff = (0.138f + 0.014f * i) * T;
+            Mat4 m = root * Mat4::translate(Vec3(0.095f + 0.048f * i, 0.01f, zOff))
+                   * Mat4::rotateZ(0.14f * (i ? -1 : 1) + 0.05f * sway2 * (i ? -1 : 1))
+                   * Mat4::rotateX(-0.14f);
+            P.box(m, Vec3(0, -0.13f, 0), Vec3(0.048f, 0.26f - 0.04f * i, 0.014f), i ? shade(pal.cloth, 0.88f) : pal.cloth);
         }
     }
     if (L.has(ACC_COAT)) {
-        // long tails behind and at the sides, high collar
-        Mat4 backM = root * Mat4::translate(Vec3(0, -0.06f, -0.115f * T)) * Mat4::rotateX(0.10f + 0.07f * sway);
-        P.box(backM, Vec3(0, -0.28f, 0), Vec3(0.38f * T, 0.56f, 0.04f), pal.cloth);
-        P.box(backM, Vec3(0, -0.56f, 0), Vec3(0.38f * T, 0.025f, 0.045f), pal.accent, 0.1f);
+        // long tails behind and at the sides, high collar — offset cleanly outside torso/pelvis
+        Mat4 backM = root * Mat4::translate(Vec3(0, -0.06f, -0.132f * T)) * Mat4::rotateX(0.10f + 0.06f * sway);
+        P.box(backM, Vec3(0, -0.28f, 0), Vec3(0.388f * T, 0.56f, 0.038f), pal.cloth);
+        P.box(backM, Vec3(0, -0.565f, 0), Vec3(0.392f * T, 0.028f, 0.044f), pal.accent, 0.1f);
         for (int s = -1; s <= 1; s += 2) {
-            Mat4 sideM = root * Mat4::translate(Vec3(s * 0.185f * T, -0.05f, 0.0f)) * Mat4::rotateZ(-s * (0.08f + 0.05f * sway2));
-            P.box(sideM, Vec3(0, -0.22f, 0), Vec3(0.04f, 0.46f, 0.2f * T), shade(pal.cloth, 0.92f));
+            Mat4 sideM = root * Mat4::translate(Vec3(s * 0.196f * T, -0.05f, 0.0f)) * Mat4::rotateZ(-s * (0.09f + 0.04f * sway2));
+            P.box(sideM, Vec3(0, -0.22f, 0), Vec3(0.038f, 0.46f, 0.21f * T), shade(pal.cloth, 0.92f));
         }
-        P.box(spine, Vec3(0, 0.33f, 0), Vec3(0.43f * T, 0.35f, 0.27f * T), pal.cloth);          // coat front over the chest
-        P.box(spine, Vec3(0, 0.33f, 0.138f * T), Vec3(0.05f, 0.35f, 0.012f), pal.accent, 0.1f);   // button line
-        P.box(spine, Vec3(0, 0.56f, -0.055f), Vec3(0.30f, 0.16f, 0.1f), shade(pal.cloth, 0.8f));    // popped collar
-        for (int s = -1; s <= 1; s += 2) P.box(spine * Mat4::rotateZ(-s * 0.3f), Vec3(s * 0.13f, 0.55f, 0.07f), Vec3(0.1f, 0.16f, 0.04f), shade(pal.cloth, 0.8f));
+        P.box(spine, Vec3(0, 0.33f, 0), Vec3(0.436f * T, 0.356f, 0.276f * T), pal.cloth);            // coat front over the chest
+        P.box(spine, Vec3(0, 0.33f, 0.146f * T), Vec3(0.052f, 0.358f, 0.014f), pal.accent, 0.1f);    // button line
+        P.box(spine, Vec3(0, 0.565f, -0.058f), Vec3(0.305f, 0.155f, 0.095f), shade(pal.cloth, 0.8f));// popped collar
+        for (int s = -1; s <= 1; s += 2) P.box(spine * Mat4::rotateZ(-s * 0.3f), Vec3(s * 0.135f, 0.555f, 0.075f), Vec3(0.095f, 0.155f, 0.038f), shade(pal.cloth, 0.8f));
     }
     if (L.has(ACC_TABARD)) {
         // hanging cloth panels with gold hems; broad bands across the chest
-        Mat4 f = root * Mat4::translate(Vec3(0, -0.04f, 0.125f * T)) * Mat4::rotateX(-0.04f * sway2);
-        P.box(f, Vec3(0, -0.24f, 0), Vec3(0.20f, 0.48f, 0.025f), pal.cloth);
-        P.box(f, Vec3(0, -0.47f, 0.004f), Vec3(0.2f, 0.035f, 0.03f), pal.accent, 0.1f);
-        P.box(f, Vec3(0, -0.30f, 0.016f), Vec3(0.07f, 0.07f, 0.01f), pal.accent, 0.25f);
-        Mat4 b = root * Mat4::translate(Vec3(0, -0.04f, -0.125f * T)) * Mat4::rotateX(0.05f * sway);
-        P.box(b, Vec3(0, -0.24f, 0), Vec3(0.24f, 0.48f, 0.025f), shade(pal.cloth, 0.9f));
-        P.box(b, Vec3(0, -0.47f, -0.004f), Vec3(0.24f, 0.035f, 0.03f), pal.accent, 0.1f);
-        P.box(spine, Vec3(0, 0.46f, 0.0f), Vec3(0.2f, 0.6f * 0.1f, 0.3f * T), pal.cloth);         // stole collar
+        Mat4 f = root * Mat4::translate(Vec3(0, -0.04f, 0.142f * T)) * Mat4::rotateX(-0.04f * sway2);
+        P.box(f, Vec3(0, -0.24f, 0), Vec3(0.20f, 0.48f, 0.024f), pal.cloth);
+        P.box(f, Vec3(0, -0.475f, 0.005f), Vec3(0.204f, 0.036f, 0.030f), pal.accent, 0.1f);
+        P.box(f, Vec3(0, -0.30f, 0.018f), Vec3(0.072f, 0.072f, 0.012f), pal.accent, 0.25f);
+        Mat4 b = root * Mat4::translate(Vec3(0, -0.04f, -0.142f * T)) * Mat4::rotateX(0.05f * sway);
+        P.box(b, Vec3(0, -0.24f, 0), Vec3(0.24f, 0.48f, 0.024f), shade(pal.cloth, 0.9f));
+        P.box(b, Vec3(0, -0.475f, -0.005f), Vec3(0.244f, 0.036f, 0.030f), pal.accent, 0.1f);
+        P.box(spine, Vec3(0, 0.468f, 0.0f), Vec3(0.22f, 0.065f, 0.285f * T), pal.cloth);            // stole collar
     }
     if (L.has(ACC_APRON)) {
-        P.box(spine, Vec3(0, 0.2f, 0.128f * T), Vec3(0.33f * T, 0.5f, 0.03f), pal.cloth);
-        P.box(spine, Vec3(0, 0.12f, 0.15f * T), Vec3(0.2f * T, 0.1f, 0.025f), shade(pal.cloth, 0.7f));   // pocket
-        P.box(root, Vec3(0, -0.2f, 0.115f * T), Vec3(0.30f * T, 0.34f, 0.03f), shade(pal.cloth, 0.95f));
-        for (int s = -1; s <= 1; s += 2) P.box(spine * Mat4::rotateZ(s * 0.1f), Vec3(s * 0.145f * T, 0.43f, 0.0f), Vec3(0.045f, 0.12f, 0.27f * T), shade(pal.cloth, 0.7f));
+        P.box(spine, Vec3(0, 0.20f, 0.136f * T), Vec3(0.335f * T, 0.48f, 0.028f), pal.cloth);
+        P.box(spine, Vec3(0, 0.12f, 0.156f * T), Vec3(0.20f * T, 0.10f, 0.022f), shade(pal.cloth, 0.72f));   // pocket
+        P.box(root, Vec3(0, -0.21f, 0.136f * T), Vec3(0.305f * T, 0.34f, 0.028f), shade(pal.cloth, 0.95f));
+        for (int s = -1; s <= 1; s += 2) P.box(spine * Mat4::rotateZ(s * 0.08f), Vec3(s * 0.148f * T, 0.44f, 0.0f), Vec3(0.048f, 0.115f, 0.278f * T), shade(pal.cloth, 0.72f));
     }
     if (L.has(ACC_SKIRT)) {
-        // layered dancer skirt: petals fanned around the hips
-        for (int k = 0; k < 10; ++k) {
-            float a = (float)k / 10.0f * 2.0f * PI;
-            float lift = 0.06f * std::sin(t * 2.6f + k * 1.3f);
-            Mat4 m = root * Mat4::rotateY(a) * Mat4::translate(Vec3(0, -0.05f, 0.085f)) * Mat4::rotateX(0.72f + lift);
-            P.box(m, Vec3(0, 0, 0.1f), Vec3(0.135f, 0.022f, 0.22f), (k & 1) ? pal.cloth : pal.body);
+        // Clean non-overlapping 8-panel pleated martial skirt with subtle gold hem
+        for (int k = 0; k < 8; ++k) {
+            float a = (float)k / 8.0f * 2.0f * PI + (PI / 8.0f);
+            float lift = 0.025f * std::sin(t * 2.2f + k * 0.8f);
+            Mat4 m = root * Mat4::rotateY(a) * Mat4::translate(Vec3(0, -0.02f, 0.118f * T)) * Mat4::rotateX(0.34f + lift);
+            Color panelCol = (k & 1) ? shade(pal.cloth, 0.92f) : pal.cloth;
+            P.box(m, Vec3(0, -0.105f, 0.0f), Vec3(0.096f, 0.21f, 0.020f), panelCol);
+            P.box(m, Vec3(0, -0.212f, 0.002f), Vec3(0.098f, 0.022f, 0.024f), pal.accent, 0.12f);
         }
     }
     if (L.has(ACC_SCARF)) {
@@ -734,14 +888,14 @@ void drawClothes(const Painter& P, const Mat4& root, const Mat4& spine, const Ma
             P.box(elbow[i], Vec3(0, -0.315f, 0.01f), Vec3(0.15f * A, 0.115f, 0.15f * A), shade(pal.body, 0.8f));
         }
         if (L.has(ACC_RIBBONS)) {
-            Mat4 m = elbow[i] * Mat4::translate(Vec3(0, -0.27f, 0)) * Mat4::rotateX(0.5f + 0.25f * std::sin(t * 3.2f + i * 2.0f)) * Mat4::rotateZ(sx * 0.1f);
-            P.box(m, Vec3(0, -0.2f, 0), Vec3(0.06f, 0.42f, 0.012f), pal.accent, 0.12f);
-            P.box(m * Mat4::translate(Vec3(0, -0.4f, 0)) * Mat4::rotateX(0.3f * std::sin(t * 4.0f + i)), Vec3(0, -0.1f, 0), Vec3(0.05f, 0.22f, 0.012f), pal.body, 0.12f);
+            // Subtle silk wrist cuffs (no protruding tentacles)
+            P.box(elbow[i], Vec3(0, -0.24f, 0), Vec3(0.132f * A, 0.045f, 0.132f * A), pal.accent, 0.12f);
         }
         if (L.has(ACC_BOOTS)) {
             const RigLeg& lg = legs[i];
-            P.put(P.boxMesh, lg.shin * Mat4::translate(Vec3(0, -0.2f, 0)) * Mat4::scale(Vec3(1.28f, 0.52f, 1.22f)), pal.boots, 0);
-            P.put(P.boxMesh, lg.shin * Mat4::translate(Vec3(0, 0.07f, 0)) * Mat4::scale(Vec3(1.36f, 0.08f, 1.3f)), shade(pal.boots, 1.5f), 0);
+            const float lgW = (0.5f + 0.5f * L.legs);
+            P.put(P.boxMesh, lg.shin * Mat4::translate(Vec3(0, -0.18f, 0)) * Mat4::scale(Vec3(lgW * 1.16f, 0.54f, lgW * 1.16f)), pal.boots, 0);
+            P.put(P.boxMesh, lg.shin * Mat4::translate(Vec3(0, 0.11f, 0)) * Mat4::scale(Vec3(lgW * 1.24f, 0.075f, lgW * 1.24f)), shade(pal.boots, 1.45f), 0);
         }
     }
 }
@@ -808,16 +962,16 @@ void RigRenderer::draw(Renderer& r, const Pose& p, const Vec3& feet, float yaw, 
     P.box(spine, Vec3(0, 0.09f, 0), Vec3(0.31f * T, 0.23f, 0.215f * T), vest ? pal.skin : pal.body);
     P.box(spine, Vec3(0, 0.33f, 0), Vec3(0.40f * T, 0.34f, 0.25f * T), vest ? pal.skin : pal.body);
     if (vest) {
-        // open vest: cloth panels either side of a bare chest, with a pectoral line
+        // open vest: cloth panels either side of a bare chest, with non-coplanar offsets
         for (int s = -1; s <= 1; s += 2) {
-            P.box(spine, Vec3(s * 0.15f * T, 0.31f, 0.006f), Vec3(0.115f * T, 0.38f, 0.262f * T), pal.body);
-            P.box(spine, Vec3(s * 0.15f * T, 0.31f, 0.132f * T), Vec3(0.012f, 0.38f, 0.01f), pal.accent, 0.1f);
-            P.box(spine, Vec3(s * 0.055f * T, 0.30f, 0.127f * T), Vec3(0.09f * T, 0.1f, 0.01f), shade(pal.skin, 0.88f));   // pec
+            P.box(spine, Vec3(s * 0.152f * T, 0.312f, 0.008f), Vec3(0.118f * T, 0.382f, 0.268f * T), pal.body);
+            P.box(spine, Vec3(s * 0.152f * T, 0.312f, 0.144f * T), Vec3(0.014f, 0.384f, 0.012f), pal.accent, 0.1f);
+            P.box(spine, Vec3(s * 0.055f * T, 0.30f, 0.132f * T), Vec3(0.088f * T, 0.095f, 0.012f), shade(pal.skin, 0.88f));   // pec
         }
-        P.box(spine, Vec3(0, 0.09f, 0.108f * T), Vec3(0.02f, 0.2f, 0.01f), shade(pal.skin, 0.8f));                    // abs line
-        P.box(spine, Vec3(0, 0.33f, -0.1f * T), Vec3(0.40f * T, 0.34f, 0.06f), pal.body);                                // vest back
-    } else {
-        P.box(spine, Vec3(0, 0.455f, 0.005f), Vec3(0.455f * S * (0.5f + 0.5f * T), 0.115f, 0.265f * T), pal.accent);
+        P.box(spine, Vec3(0, 0.09f, 0.114f * T), Vec3(0.022f, 0.19f, 0.012f), shade(pal.skin, 0.8f));                        // abs line
+        P.box(spine, Vec3(0, 0.33f, -0.106f * T), Vec3(0.412f * T, 0.348f, 0.058f), pal.body);                               // vest back (wider/taller than skin chest)
+    } else if (asStand || (!L.has(ACC_COAT) && !L.has(ACC_APRON) && !L.has(ACC_TABARD))) {
+        P.box(spine, Vec3(0, 0.456f, 0.004f), Vec3(0.455f * S * (0.5f + 0.5f * T), 0.112f, 0.268f * T), pal.accent);
     }
 
     // ---- head

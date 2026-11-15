@@ -58,20 +58,26 @@ void Input::poll(float dt) {
         prevKeys_[k] = d;
     }
 
-    // ---- keyboard, player 2 (arrows + numpad)
-    if (key(GLFW_KEY_UP)) held[1] |= BTN_UP;
-    if (key(GLFW_KEY_DOWN)) held[1] |= BTN_DOWN;
-    if (key(GLFW_KEY_LEFT)) held[1] |= BTN_LEFT;
-    if (key(GLFW_KEY_RIGHT)) held[1] |= BTN_RIGHT;
-    if (key(GLFW_KEY_KP_1)) held[1] |= BTN_LIGHT;
-    if (key(GLFW_KEY_KP_2)) held[1] |= BTN_MEDIUM;
-    if (key(GLFW_KEY_KP_3)) held[1] |= BTN_HEAVY;
-    if (key(GLFW_KEY_KP_4)) held[1] |= BTN_STYLE;
-    if (key(GLFW_KEY_KP_5) || key(GLFW_KEY_KP_0)) held[1] |= BTN_DASH;
-    if (key(GLFW_KEY_KP_6)) held[1] |= BTN_TAUNT;
+    // ---- keyboard, player 2 (rebindable via settings_->keysP2)
+    auto boundP2 = [&](Action a) {
+        for (int k : settings_->keysP2[(int)a]) if (k && key(k)) return true;
+        return false;
+    };
+    if (boundP2(Action::Up)) held[1] |= BTN_UP;
+    if (boundP2(Action::Down)) held[1] |= BTN_DOWN;
+    if (boundP2(Action::Left)) held[1] |= BTN_LEFT;
+    if (boundP2(Action::Right)) held[1] |= BTN_RIGHT;
+    if (boundP2(Action::Light)) held[1] |= BTN_LIGHT;
+    if (boundP2(Action::Medium)) held[1] |= BTN_MEDIUM;
+    if (boundP2(Action::Heavy)) held[1] |= BTN_HEAVY;
+    if (boundP2(Action::Style)) held[1] |= BTN_STYLE;
+    if (boundP2(Action::Dash)) held[1] |= BTN_DASH;
+    if (boundP2(Action::Taunt)) held[1] |= BTN_TAUNT;
+    if (boundP2(Action::Jump)) held[1] |= BTN_JUMP;
+    if (boundP2(Action::Crouch)) held[1] |= BTN_CROUCH;
     if (key(GLFW_KEY_KP_ENTER)) held[1] |= BTN_START;
-    if (key(GLFW_KEY_RIGHT_SHIFT) || key(GLFW_KEY_KP_8)) held[1] |= BTN_JUMP;
-    if (key(GLFW_KEY_RIGHT_CONTROL) || key(GLFW_KEY_KP_7)) held[1] |= BTN_CROUCH;
+    if (boundP2(Action::LookLeft)) lx[1] -= rate;
+    if (boundP2(Action::LookRight)) lx[1] += rate;
 
     // ---- mouse look for player 1
     double mx, my;

@@ -52,15 +52,18 @@ void FightSim::startRound() {
     for (int i = 0; i < 2; ++i) {
         Fighter& f = f_[i];
         float hhg = f.hhg; int wins = f.roundsWon; const Character* ch = f.ch;
+        bool easy = f.easyControls;
         f = Fighter();
         f.ch = ch; f.index = i; f.hhg = hhg; f.roundsWon = wins;
+        f.easyControls = easy;
         f.pos = Vec3((i == 0 ? -0.5f : 0.5f) * arena_.spawnGap, 0, 0);
         f.fwd = Vec3(i == 0 ? 1.0f : -1.0f, 0, 0);
+        f.dashDir = f.fwd;
         f.hp = f.hpShown = f.hpRedShown = ch->hp;
         f.styleGauge = 1.0f;
         f.state = FState::Intro;
     }
-    timerFrames_ = ROUND_SECONDS * 60;
+    timerFrames_ = (roundSeconds_ > 0 ? roundSeconds_ : 999) * 60;
     phase_ = Phase::Intro; phaseTimer_ = 0;
     winner_ = -1; dramatic_ = false; timeScale_ = 1.0f;
     clash_ = ClashState();
@@ -76,6 +79,13 @@ void FightSim::setState(Fighter& f, FState s, int len) {
 
 // ------------------------------------------------------------------ input ----
 Vec3 FightSim::clampArena(Vec3 p, float r) const {
+    if (arena_.hasLavaPit) {
+        // In the lava arena there is no ring barrier; only clamp far out in the lava moat so camera stays reasonable
+        float maxMoat = arena_.radius + 3.5f;
+        float d = std::sqrt(p.x * p.x + p.z * p.z);
+        if (d > maxMoat) { p.x *= maxMoat / d; p.z *= maxMoat / d; }
+        return p;
+    }
     float lim = std::max(0.0f, arena_.radius - r);
     float d = std::sqrt(p.x * p.x + p.z * p.z);
     if (d > lim) { p.x *= lim / d; p.z *= lim / d; }
@@ -84,18 +94,28 @@ Vec3 FightSim::clampArena(Vec3 p, float r) const {
 
 void FightSim::updateInput(Fighter& f, const SimInput& in) {
     int rel = in.moveF > 0.4f ? 1 : (in.moveF < -0.4f ? -1 : 0);
+    int relS = in.moveS > 0.4f ? 1 : (in.moveS < -0.4f ? -1 : 0);
     int numpad = 5 + rel + 3 * in.dirY;
     f.dirHistory[f.histHead % 32] = numpad;
     f.histHead = (f.histHead + 1) % 32;
     f.wantsBlock = rel == -1;
 
-    // double-tap dash
+    // double-tap dash (forward / back)
     f.tapTimer++;
     if (rel == 0) f.neutralSeen = true;
     else if (f.neutralSeen) {
         f.neutralSeen = false;
-        if (rel == f.lastTapDir && f.tapTimer <= 12) f.dashRequest = rel;
+        if (rel == f.lastTapDir && f.tapTimer <= 13) f.dashRequest = rel;
         f.lastTapDir = rel; f.tapTimer = 0;
+    }
+
+    // double-tap dash (left / right strafe)
+    f.tapTimerS++;
+    if (relS == 0) f.neutralSeenS = true;
+    else if (f.neutralSeenS) {
+        f.neutralSeenS = false;
+        if (relS == f.lastTapDirS && f.tapTimerS <= 13) f.dashRequestS = relS;
+        f.lastTapDirS = relS; f.tapTimerS = 0;
     }
 
     uint32_t atk = in.pressed & (ATTACK_MASK | BTN_TAUNT);
@@ -168,7 +188,7 @@ bool FightSim::tryFlashCancel(Fighter& f, uint32_t group) {
     if (f.hhg < 1000) return false;
     if (f.move->kind == MoveKind::GHA || f.move->kind == MoveKind::Throw || f.move->kind == MoveKind::Taunt) return false;
     if (f.moveFrame < 3) return false;
-    f.hhg -= 1000;
+    f.hhg -= (arena_.arenaId == 3) ? 750.0f : 1000.0f; // Glass Cathedral refunds 250 Heat on Flash Cancel
     f.pendingButtons = 0;
     emit(FightEvent::FlashCancel, f.pos + Vec3(0, 1.0f, 0), 1, f.index, "FLASH CANCEL");
     setState(f, f.grounded() ? FState::Idle : FState::Jump);
@@ -194,8 +214,8 @@ bool FightSim::tryStartMove(Fighter& f, Fighter& o, uint32_t group, bool fromCan
         return (m.stand == StandUse::On) == f.styleOn;
     };
 
-    // ---- Easy Beat: tapping Light repeatedly auto-chains L -> M -> H -> special
-    if (fromCancel && cur_move && cur_move->kind == MoveKind::Normal && group == BTN_LIGHT && !air) {
+    // ---- Easy Beat: tapping Light repeatedly auto-chains L -> M -> H -> special (when enabled for player)
+    if (f.easyControls && fromCancel && cur_move && cur_move->kind == MoveKind::Normal && group == BTN_LIGHT && !air) {
         int want = cur_move->chainLevel + 1;
         if (want <= 2) {
             for (const Move& m : c.moves)
@@ -220,6 +240,7 @@ bool FightSim::tryStartMove(Fighter& f, Fighter& o, uint32_t group, bool fromCan
     const bool simpleDp = rel > 0 && strongest == BTN_HEAVY && nAtk == 1;
     const bool simpleQcf = rel > 0 && !simpleDp;
     const bool simpleQcb = rel < 0;
+    const bool allowAirSpecial = (c.trait == TraitKind::SilkAcrobatics);
 
     for (const Move* mp : cands) {
         const Move& m = *mp;
@@ -236,12 +257,12 @@ bool FightSim::tryStartMove(Fighter& f, Fighter& o, uint32_t group, bool fromCan
                 ok = nAtk == 2 && (group & BTN_LIGHT) && (group & BTN_MEDIUM) && !qcf && !air && !fromCancel;
                 break;
             case MoveKind::Special:
-                ok = (group & m.buttons) != 0 && nAtk == 1 && !air &&
+                ok = (group & m.buttons) != 0 && nAtk == 1 && (!air || (allowAirSpecial && !m.commandThrow)) &&
                      (motionDetected(f, m.motion) ||
                       (m.motion == Motion::QCF && simpleQcf) ||
                       (m.motion == Motion::QCB && simpleQcb) ||
                       (m.motion == Motion::DP && simpleDp));
-                if (ok && fromCancel) ok = cur_move && cur_move->kind == MoveKind::Normal && cur_move->specialCancel;
+                if (ok && fromCancel) ok = cur_move && cur_move->kind == MoveKind::Normal && (cur_move->specialCancel || allowAirSpecial);
                 break;
             case MoveKind::Normal:
                 ok = (m.buttons == strongest) && m.stance == stance && nAtk >= 1;
@@ -271,11 +292,13 @@ void FightSim::updateFacing(Fighter& f, const Fighter& o) {
 
 void FightSim::applyPhysics(Fighter& f) {
     const Character& c = *f.ch;
+    const bool overLava = arena_.hasLavaPit && (f.pos.x * f.pos.x + f.pos.z * f.pos.z > arena_.radius * arena_.radius);
+    const float grav = c.gravity * (arena_.arenaId == 1 ? 0.92f : 1.0f);
     bool wasAir = !f.grounded();
-    if (wasAir || f.vy > 0) {
-        f.vy -= c.gravity;
+    if (wasAir || f.vy > 0 || overLava) {
+        f.vy -= grav;
         f.pos.y += f.vy;
-        if (f.pos.y <= 0) {
+        if (!overLava && f.pos.y <= 0) {
             f.pos.y = 0; f.vy = 0;
             if (wasAir) {
                 // landing
@@ -292,22 +315,39 @@ void FightSim::applyPhysics(Fighter& f) {
                     emit(FightEvent::Land, f.pos, 1.0f, f.index);
                 }
                 f.airAttackUsed = false;
+                f.airDashUsed = false;
+            }
+        } else if (overLava) {
+            if (f.state != FState::AirHit && f.state != FState::KO && f.pos.y < -0.02f) {
+                setState(f, FState::AirHit);
+            }
+            if (f.pos.y <= -0.24f) {
+                f.pos.y = -0.24f;
+                f.vy = 0;
+                f.vel *= 0.4f;
+                if (f.hp > 0) {
+                    f.hp = 0;
+                    f.flash = 1.0f;
+                    shake_ = 1.0f;
+                    emit(FightEvent::Hit, f.pos + Vec3(0, 0.5f, 0), 2.5f, f.index);
+                    emit(FightEvent::Text, f.pos + Vec3(0, 1.8f, 0), 2.0f, f.index, "BURNED IN LAVA!");
+                }
             }
         }
     }
     f.pos.x += f.vel.x; f.pos.z += f.vel.z;
-    f.vel *= f.grounded() ? 0.82f : 0.995f;
+    f.vel *= f.grounded() ? 0.84f : 0.992f;
     f.vel.y = 0;
     if (f.vel.lengthSq() < 1e-6f) f.vel = Vec3();
     f.pos = clampArena(f.pos, FIGHTER_RADIUS);
 }
 
 void FightSim::updateMovement(Fighter& f, Fighter& o, const SimInput& in) {
+    (void)o;
     const Character& c = *f.ch;
-    int rel = in.moveF > 0.4f ? 1 : (in.moveF < -0.4f ? -1 : 0);
     float spd = c.walkSpeed * f.effectiveSpeedMul();
     float bspd = c.backSpeed * f.effectiveSpeedMul();
-    float sspd = c.walkSpeed * 0.9f * f.effectiveSpeedMul();   // circling around the opponent
+    float sspd = c.walkSpeed * 0.92f * f.effectiveSpeedMul();   // circling around the opponent
     const Vec3 fwd = f.fwd, right = f.right();
 
     // style toggle
@@ -321,23 +361,46 @@ void FightSim::updateMovement(Fighter& f, Fighter& o, const SimInput& in) {
         }
     }
 
-    // dash / sidestep: dash with a sideways direction is a sidestep (invulnerable lateral hop)
-    int dashDir = f.dashRequest;
-    f.dashRequest = 0;
-    if (in.pressed & BTN_DASH) {
-        if (std::fabs(in.moveS) > 0.5f && std::fabs(in.moveS) >= std::fabs(in.moveF)) {
-            setState(f, FState::Sidestep, 22);
-            f.sideDir = in.moveS > 0 ? 1.0f : -1.0f;
-            f.vel = right * (f.sideDir * 0.21f * f.effectiveSpeedMul());
+    // Omnidirectional Dash: triggered by BTN_DASH or double-tapping any movement direction (F/B/L/R)
+    int tapF = f.dashRequest;  f.dashRequest = 0;
+    int tapS = f.dashRequestS; f.dashRequestS = 0;
+    bool dashPressed = (in.pressed & BTN_DASH) != 0;
+    if (dashPressed || tapF != 0 || tapS != 0) {
+        float df = dashPressed ? in.moveF : (tapF != 0 ? (float)tapF : in.moveF);
+        float ds = dashPressed ? in.moveS : (tapS != 0 ? (float)tapS : in.moveS);
+        float dlen = std::sqrt(df * df + ds * ds);
+        if (dlen < 0.2f) { df = 1.0f; ds = 0.0f; dlen = 1.0f; }
+        df /= dlen; ds /= dlen;
+
+        Vec3 worldDir = normalize(fwd * df + right * ds);
+        f.dashDir = worldDir;
+        if (c.trait == TraitKind::TailwindStep) f.galeChargeTimer = 75;
+
+        if (std::fabs(ds) > std::fabs(df) + 0.15f && std::fabs(ds) > 0.35f) {
+            // Pure lateral evasion dash (preserves Sidestep state & strike/throw invulnerability)
+            setState(f, FState::Sidestep, 20);
+            f.sideDir = ds > 0 ? 1.0f : -1.0f;
+            f.vel = worldDir * (0.21f * f.effectiveSpeedMul());
             f.invulStrikes = 14;
             f.invulThrows = 16;
+            emit(FightEvent::Dust, f.pos, 0.55f, f.index);
+            return;
+        }
+        if (df < -0.15f) {
+            // Backward or back-diagonal dash
+            setState(f, FState::Backdash, 17);
+            f.vel = worldDir * (0.15f * f.effectiveSpeedMul());
+            f.invulStrikes = 8;
+            f.invulThrows = 10;
             emit(FightEvent::Dust, f.pos, 0.5f, f.index);
             return;
         }
-        dashDir = rel >= 0 ? 1 : -1;
+        // Forward or forward-diagonal dash
+        setState(f, FState::Dash, 14);
+        f.vel = worldDir * (0.18f * f.effectiveSpeedMul());
+        emit(FightEvent::Dust, f.pos, 0.55f, f.index);
+        return;
     }
-    if (dashDir == 1) { setState(f, FState::Dash, 14); f.vel = fwd * (0.17f * f.effectiveSpeedMul()); emit(FightEvent::Dust, f.pos, 0.5f, f.index); return; }
-    if (dashDir == -1) { setState(f, FState::Backdash, 18); f.vel = fwd * -0.14f; f.invulStrikes = 8; f.invulThrows = 10; emit(FightEvent::Dust, f.pos, 0.5f, f.index); return; }
 
     // jump (in the held direction)
     if (in.dirY > 0) {
@@ -345,21 +408,38 @@ void FightSim::updateMovement(Fighter& f, Fighter& o, const SimInput& in) {
         f.vy = c.jumpVel;
         f.vel = fwd * (in.moveF * (in.moveF > 0 ? spd : bspd) * 1.15f) + right * (in.moveS * sspd * 1.15f);
         f.airAttackUsed = false;
+        f.airDashUsed = false;
         emit(FightEvent::Dust, f.pos, 0.4f, f.index);
         return;
     }
     // crouch
-    if (in.dirY < 0) { if (f.state != FState::Crouch) setState(f, FState::Crouch); return; }
-    // walk freely: forward / back relative to the opponent plus circling sideways
-    float mf = in.moveF, ms = in.moveS;
-    float len = std::sqrt(mf * mf + ms * ms);
-    if (len > 0.2f) {
-        if (len > 1.0f) { mf /= len; ms /= len; }
+    if (in.dirY < 0) {
+        f.moveF_smooth = moveTowards(f.moveF_smooth, 0.0f, 0.25f);
+        f.moveS_smooth = moveTowards(f.moveS_smooth, 0.0f, 0.25f);
+        if (f.state != FState::Crouch) setState(f, FState::Crouch);
+        return;
+    }
+
+    // Smooth ground movement: interpolate velocity inputs for fluid start/stop/turn transitions
+    float targetF = in.moveF, targetS = in.moveS;
+    float inLen = std::sqrt(targetF * targetF + targetS * targetS);
+    if (inLen > 1.0f) { targetF /= inLen; targetS /= inLen; }
+    else if (inLen <= 0.18f) { targetF = 0.0f; targetS = 0.0f; }
+
+    float accelRate = (inLen > 0.18f) ? 0.28f : 0.22f;
+    f.moveF_smooth = moveTowards(f.moveF_smooth, targetF, accelRate);
+    f.moveS_smooth = moveTowards(f.moveS_smooth, targetS, accelRate);
+
+    float smLen = std::sqrt(f.moveF_smooth * f.moveF_smooth + f.moveS_smooth * f.moveS_smooth);
+    if (smLen > 0.04f) {
         if (f.state != FState::Walk) setState(f, FState::Walk);
-        f.pos += fwd * (mf * (mf > 0 ? spd : bspd)) + right * (ms * sspd);
+        float mf = f.moveF_smooth, ms = f.moveS_smooth;
+        f.pos += fwd * (mf * (mf >= 0 ? spd : bspd)) + right * (ms * sspd);
         f.pos = clampArena(f.pos, FIGHTER_RADIUS);
         return;
     }
+    f.moveF_smooth = 0.0f;
+    f.moveS_smooth = 0.0f;
     if (f.state != FState::Idle) setState(f, FState::Idle);
 }
 
@@ -370,16 +450,29 @@ void FightSim::updateFighter(Fighter& f, Fighter& o, const SimInput& in) {
     if (f.invulThrows > 0) f.invulThrows--;
     if (f.comboShow > 0) f.comboShow--;
     if (f.lastMoveNameTimer > 0) f.lastMoveNameTimer--;
+    if (f.chillTimer > 0) f.chillTimer--;
+    if (f.galeChargeTimer > 0) f.galeChargeTimer--;
+    if (f.burnTimer > 0) {
+        f.burnTimer--;
+        if (f.burnTimer % 15 == 0 && f.hp > 1.0f && phase_ == Phase::Fight) {
+            f.hp = std::max(1.0f, f.hp - 4.0f * damageScale_);
+        }
+    }
+    if (f.state != FState::Walk && f.state != FState::Idle) {
+        f.moveF_smooth = moveTowards(f.moveF_smooth, 0.0f, 0.18f);
+        f.moveS_smooth = moveTowards(f.moveS_smooth, 0.0f, 0.18f);
+    }
     f.flash = std::max(0.0f, f.flash - 0.08f);
 
-    // style gauge
+    // style gauge (Shrine arena grants +50% passive Style recovery)
+    const float styleRegenMul = (arena_.arenaId == 1) ? 1.5f : 1.0f;
     if (c.style == StyleType::Stand) {
-        if (f.state != FState::StyleBreak) f.styleGauge = std::min(1.0f, f.styleGauge + (f.styleOn ? 0.0004f : 0.0012f));
+        if (f.state != FState::StyleBreak) f.styleGauge = std::min(1.0f, f.styleGauge + (f.styleOn ? 0.0004f : 0.0012f) * styleRegenMul);
     } else {
         if (f.styleOn) {
             f.styleGauge -= 0.0011f;
             if (f.styleGauge <= 0) { f.styleGauge = 0; f.styleOn = false; f.styleLock = 60; emit(FightEvent::Text, f.pos + Vec3(0, 2.2f, 0), 1, f.index, "MODE EXHAUSTED"); }
-        } else f.styleGauge = std::min(1.0f, f.styleGauge + 0.0007f);
+        } else f.styleGauge = std::min(1.0f, f.styleGauge + 0.0007f * styleRegenMul);
     }
 
     if (f.hitstop > 0) { f.hitstop--; return; }
@@ -415,18 +508,40 @@ void FightSim::updateFighter(Fighter& f, Fighter& o, const SimInput& in) {
         break;
 
     case FState::Jump: {
+        // SilkAcrobatics (Mira): Air Dash or Double Jump once per jump
+        if (c.trait == TraitKind::SilkAcrobatics && !f.airDashUsed) {
+            if (in.pressed & BTN_DASH) {
+                float df = in.moveF, ds = in.moveS;
+                float dlen = std::sqrt(df * df + ds * ds);
+                if (dlen < 0.2f) { df = 1.0f; ds = 0.0f; dlen = 1.0f; }
+                df /= dlen; ds /= dlen;
+                Vec3 worldDir = normalize(f.fwd * df + f.right() * ds);
+                f.dashDir = worldDir;
+                f.vel = worldDir * (0.19f * f.effectiveSpeedMul());
+                f.vy = std::max(f.vy, 0.045f);
+                f.airDashUsed = true;
+                emit(FightEvent::Dust, f.pos, 0.5f, f.index);
+                emit(FightEvent::Text, f.pos + Vec3(0, 1.8f, 0), 0.9f, f.index, "SILK AIR DASH");
+            } else if (in.dirY > 0 && f.timer > 10 && f.vy < 0.04f) {
+                f.vy = c.jumpVel * 0.88f;
+                f.vel = f.fwd * (in.moveF * c.walkSpeed * 1.15f) + f.right() * (in.moveS * c.walkSpeed * 1.05f);
+                f.airDashUsed = true;
+                emit(FightEvent::Dust, f.pos, 0.45f, f.index);
+            }
+        }
         if (in.requestMove && in.requestMove->stance == Stance::Air && !f.airAttackUsed) { beginMove(f, in.requestMove); break; }
         if (group && tryStartMove(f, o, group, false)) break;
         break;
     }
     case FState::Dash:
     case FState::Backdash:
-        if (f.timer >= f.stateLen) setState(f, FState::Idle);
-        else if (f.state == FState::Dash && f.timer >= 6 && group && tryStartMove(f, o, group, false)) break;
+        if (f.timer >= f.stateLen) { setState(f, FState::Idle); updateFacing(f, o); }
+        else if (f.timer >= 5 && group && tryStartMove(f, o, group, false)) break;
         break;
 
     case FState::Sidestep:
         if (f.timer >= f.stateLen) { setState(f, FState::Idle); updateFacing(f, o); }
+        else if (f.timer >= 6 && group && tryStartMove(f, o, group, false)) break;
         break;
 
     case FState::Attack: {
@@ -450,12 +565,12 @@ void FightSim::updateFighter(Fighter& f, Fighter& o, const SimInput& in) {
                 emit(FightEvent::Text, f.pos + Vec3(0, 2.3f, 0), 1, f.index, "TAUNT!");
             }
         }
-        // projectile spawn
+        // projectile spawn (Glass Cathedral accelerates projectiles by +20%)
         if (m->projectile && !m->hits.empty() && f.moveFrame == m->hits[0].start) {
             Projectile p;
             const Vec3 bp = m->hits[0].boxPos;
             p.pos = f.pos + f.fwd * bp.x + f.right() * bp.z + Vec3(0, bp.y, 0);
-            p.dir = f.fwd; p.speed = m->projectileSpeed;
+            p.dir = f.fwd; p.speed = m->projectileSpeed * (arena_.arenaId == 3 ? 1.20f : 1.0f);
             p.owner = f.index; p.life = 110; p.hit = m->hits[0]; p.color = c.styleColor;
             projectiles_.push_back(p);
             emit(FightEvent::Projectile, p.pos, 1, f.index);
@@ -465,6 +580,21 @@ void FightSim::updateFighter(Fighter& f, Fighter& o, const SimInput& in) {
 
         // cancels
         bool connectedWindow = f.moveConnected && f.moveFrame >= m->startup && f.moveFrame <= m->startup + m->active + 8;
+        // TailwindStep (Kaze): can cancel connected attacks into an omnidirectional Dash
+        if (connectedWindow && c.trait == TraitKind::TailwindStep && (in.pressed & BTN_DASH) && m->kind != MoveKind::GHA && m->kind != MoveKind::HHA) {
+            float df = in.moveF, ds = in.moveS;
+            float dlen = std::sqrt(df * df + ds * ds);
+            if (dlen < 0.2f) { df = 1.0f; ds = 0.0f; dlen = 1.0f; }
+            df /= dlen; ds /= dlen;
+            Vec3 worldDir = normalize(f.fwd * df + f.right() * ds);
+            f.dashDir = worldDir;
+            f.galeChargeTimer = 75;
+            setState(f, FState::Dash, 14);
+            f.vel = worldDir * (0.19f * f.effectiveSpeedMul());
+            emit(FightEvent::Dust, f.pos, 0.55f, f.index);
+            emit(FightEvent::Text, f.pos + Vec3(0, 2.0f, 0), 0.9f, f.index, "GALE STEP");
+            break;
+        }
         if (in.requestMove && connectedWindow) {
             const Move& r = *in.requestMove;
             bool ok = false;
@@ -486,11 +616,17 @@ void FightSim::updateFighter(Fighter& f, Fighter& o, const SimInput& in) {
     }
     case FState::Block:
     case FState::CrouchBlock:
-        // Stylish Evade: sidestep out of blockstun
-        if ((in.pressed & BTN_DASH) && std::fabs(in.moveS) > 0.5f) {
+        // Stylish Evade: omnidirectional evade out of blockstun
+        if ((in.pressed & BTN_DASH) && (std::fabs(in.moveS) > 0.4f || std::fabs(in.moveF) > 0.4f)) {
+            float df = in.moveF, ds = in.moveS;
+            if (std::fabs(ds) < 0.2f) ds = 1.0f;
+            float dlen = std::sqrt(df * df + ds * ds);
+            df /= dlen; ds /= dlen;
+            Vec3 worldDir = normalize(f.fwd * df + f.right() * ds);
+            f.dashDir = worldDir;
             setState(f, FState::Sidestep, 22);
-            f.sideDir = in.moveS > 0 ? 1.0f : -1.0f;
-            f.vel = f.right() * (f.sideDir * 0.21f);
+            f.sideDir = ds >= 0 ? 1.0f : -1.0f;
+            f.vel = worldDir * 0.21f;
             f.invulStrikes = 14; f.invulThrows = 16;
             emit(FightEvent::Text, f.pos + Vec3(0, 2.2f, 0), 1, f.index, "STYLISH EVADE");
             break;
@@ -559,9 +695,14 @@ bool FightSim::checkHit(Fighter& att, Fighter& def, const HitWindow& w, const Mo
     // armor
     if (!isThrow && def.state == FState::Attack && def.move && def.move->armor && !def.armorUsed && def.moveFrame < def.move->startup) {
         def.armorUsed = true;
-        float dmg = w.damage * 0.5f;
+        float dmg = w.damage * 0.5f * damageScale_;
         def.hp -= dmg; att.hhg = std::min(3000.0f, att.hhg + dmg);
-        def.flash = 1.0f; att.hitstop = 4; def.hitstop = 4;
+        if (def.ch && def.ch->trait == TraitKind::IronColossus) {
+            def.hhg = std::min(3000.0f, def.hhg + 120.0f);
+            att.styleGauge = std::max(0.0f, att.styleGauge - 0.14f);
+        }
+        def.flash = 1.0f;
+        if (hitstopEnabled_) { att.hitstop = 4; def.hitstop = 4; }
         emit(FightEvent::Block, Vec3(box.x, box.y, box.z), 1.2f, att.index, "ARMOR");
         att.moveConnected = true;
         return true;
@@ -592,11 +733,19 @@ void FightSim::applyBlock(Fighter& att, Fighter& def, const HitWindow& w, Vec3 a
                   (def.state != FState::Block && def.dirHistory[((def.histHead - 1) % 32 + 32) % 32] <= 3);
     setState(def, crouch ? FState::CrouchBlock : FState::Block, w.blockstun);
     def.vel = pushDir * (w.knockX * 0.7f);
-    float dmg = w.damage * att.effectiveDamageMul();
-    if (w.chip > 0) def.hp = std::max(1.0f, def.hp - dmg * w.chip);
+    float dmg = w.damage * att.effectiveDamageMul() * damageScale_;
+    float chipRatio = w.chip;
+    // MoltenTemper (Bram): Ember Mode adds +12% chip damage on block
+    if (att.ch && att.ch->trait == TraitKind::MoltenTemper && att.styleOn) chipRatio += 0.12f;
+    if (chipRatio > 0) def.hp = std::max(1.0f, def.hp - dmg * chipRatio);
+    // MirrorAegis (Vesper): blocking restores Style gauge and grants bonus Heat
+    if (def.ch && def.ch->trait == TraitKind::MirrorAegis) {
+        def.styleGauge = std::min(1.0f, def.styleGauge + 0.08f);
+        def.hhg = std::min(3000.0f, def.hhg + 60.0f);
+    }
     att.hhg = std::min(3000.0f, att.hhg + dmg * 0.3f);
     def.hhg = std::min(3000.0f, def.hhg + dmg * 0.25f);
-    att.hitstop = 3; def.hitstop = 3;
+    if (hitstopEnabled_) { att.hitstop = 3; def.hitstop = 3; }
     att.moveConnected = true;
     if (!fromProjectile && atWall(def)) att.vel -= pushDir * (w.knockX * 0.6f);   // pushed off a cornered opponent
     emit(FightEvent::Block, at, 0.8f, att.index);
@@ -609,14 +758,54 @@ void FightSim::applyHit(Fighter& att, Fighter& def, const HitWindow& w, const Mo
     bool wasInCombo = def.inHitstun() || def.inCombo;
     if (wasInCombo) att.comboHits++; else { att.comboHits = 1; att.comboDamage = 0; }
     float scale = isThrow ? 1.0f : std::max(0.3f, 1.0f - 0.08f * (att.comboHits - 1));
-    float dmg = w.damage * scale * att.effectiveDamageMul();
+    float dmg = w.damage * scale * att.effectiveDamageMul() * damageScale_;
+    if (att.galeChargeTimer > 0) att.galeChargeTimer = 0; // TailwindStep consumed on hit
+
+    // Unique Character Traits on hit
+    if (att.ch) {
+        switch (att.ch->trait) {
+        case TraitKind::BloodRush: {
+            float heal = dmg * (att.styleOn ? 0.12f : 0.06f);
+            att.hp = std::min((float)att.ch->hp, att.hp + heal);
+            break;
+        }
+        case TraitKind::MirrorAegis:
+            if (fromProjectile) {
+                if (def.chillTimer == 0) emit(FightEvent::Text, def.pos + Vec3(0, 2.0f, 0), 0.9f, att.index, "FROST MIRROR");
+                def.chillTimer = 150;
+            }
+            break;
+        case TraitKind::IronColossus:
+            if (isThrow || (move && move->armor)) {
+                def.styleGauge = std::max(0.0f, def.styleGauge - 0.18f);
+                att.hhg = std::min(3000.0f, att.hhg + 100.0f);
+            }
+            break;
+        case TraitKind::MoltenTemper:
+            if (move && (move->buttons == BTN_HEAVY || move->kind == MoveKind::Special || move->kind == MoveKind::HHA || move->kind == MoveKind::GHA)) {
+                if (def.burnTimer == 0) emit(FightEvent::Text, def.pos + Vec3(0, 2.0f, 0), 0.9f, att.index, "IGNITED!");
+                def.burnTimer = 150;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    // Colosseum Arena (ID 0): Wall Brazier Burn on cornered opponent + +20% Heat gain
+    if (arena_.arenaId == 0 && atWall(def) && !fromProjectile && w.damage >= 50.0f) {
+        dmg += 10.0f * damageScale_;
+        emit(FightEvent::Spark, def.pos + Vec3(0, 1.1f, 0), 1.3f, att.index);
+    }
+
     def.hp -= dmg;
     att.comboDamage += dmg;
     att.comboShow = 100;
     def.inCombo = true;
-    att.hhg = std::min(3000.0f, att.hhg + dmg * 1.1f);
+    float hhgGainMul = (arena_.arenaId == 0 ? 1.20f : 1.0f) * ((att.ch && att.ch->trait == TraitKind::BloodRush && att.hp < 400.0f) ? 1.20f : 1.0f);
+    att.hhg = std::min(3000.0f, att.hhg + dmg * 1.1f * hhgGainMul);
     def.hhg = std::min(3000.0f, def.hhg + dmg * 0.55f);
-    att.hitstop = w.hitstop; def.hitstop = w.hitstop;
+    if (hitstopEnabled_) { att.hitstop = w.hitstop; def.hitstop = w.hitstop; }
     def.flash = 1.0f;
     att.moveConnected = true;
     shake_ = std::max(shake_, std::min(1.0f, dmg / 120.0f));
@@ -812,8 +1001,11 @@ void FightSim::checkRoundEnd() {
             const Fighter& o = f_[1 - i];
             setState(f, FState::KO);
             Vec3 away = flat(f.pos - o.pos);
-            f.vy = 0.14f; f.vel = (away.length() > 1e-3f ? normalize(away) : o.fwd) * 0.10f;
-            if (f.pos.y <= 0) f.pos.y = 0.01f;
+            if (!f.inLavaPit()) {
+                f.vy = 0.14f;
+                f.vel = (away.length() > 1e-3f ? normalize(away) : o.fwd) * 0.10f;
+                if (f.pos.y <= 0) f.pos.y = 0.01f;
+            }
             if (o.state == FState::Attack && o.move && (o.move->kind == MoveKind::HHA || o.move->kind == MoveKind::GHA)) dramatic_ = true;
         }
     }

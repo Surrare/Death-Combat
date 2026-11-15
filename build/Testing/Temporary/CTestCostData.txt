@@ -1,5 +1,5 @@
-sim_smoke 1 0.037297
-rig_grounding 1 0.0985607
-font_layout 1 0.66747
-localization 1 0.00347518
+sim_smoke 4 0.0117245
+rig_grounding 6 0.118494
+font_layout 6 0.0736196
+localization 6 0.00403242
 ---

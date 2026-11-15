@@ -230,6 +230,21 @@ void Maze::buildMesh(MeshBuilder& floorOut, MeshBuilder& wallsOut, MeshBuilder& 
                 propsOut.addBox(c + Vec3(0, H * 0.5f, 0), Vec3(0.7f, H, 0.7f), T.pillar);
                 propsOut.addBox(c + Vec3(0, 0.2f, 0), Vec3(1.0f, 0.4f, 1.0f), T.pillar * 0.85f);
                 propsOut.addBox(c + Vec3(0, H - 0.2f, 0), Vec3(1.0f, 0.4f, 1.0f), T.pillar * 0.85f);
+                if (T.lightStyle == 0) {
+                    // Catacombs: carved ossuary bands and glowing amber runes on each crypt pillar
+                    propsOut.addBox(c + Vec3(0, 1.4f, 0), Vec3(0.82f, 0.18f, 0.82f), Vec3(0.55f, 0.42f, 0.22f));
+                    propsOut.addBox(c + Vec3(0, 2.2f, 0), Vec3(0.76f, 0.10f, 0.76f), T.lightColor * 0.85f);
+                } else if (T.lightStyle == 1) {
+                    // Bamboo Grove: clustered emerald bamboo shoots rising around each stone shrine post
+                    for (int b = 0; b < 4; ++b) {
+                        float ox = (b & 1) ? 0.36f : -0.36f, oz = (b & 2) ? 0.36f : -0.36f;
+                        propsOut.addCylinder(c + Vec3(ox, 0, oz), 0.08f, H + 1.4f, 8, Vec3(0.24f, 0.52f, 0.26f));
+                    }
+                } else {
+                    // Foundry Depths: glowing molten core conduit rings around industrial columns
+                    propsOut.addBox(c + Vec3(0, 1.1f, 0), Vec3(0.84f, 0.14f, 0.84f), T.lightColor);
+                    propsOut.addBox(c + Vec3(0, 2.5f, 0), Vec3(0.84f, 0.14f, 0.84f), T.lightColor);
+                }
             }
     for (const Vec3& t : torches_) {
         if (T.lightStyle == 0) {

@@ -84,6 +84,11 @@ int main() {
                     }
                 }
                 fighter.move = nullptr;
+                // Check signature menu poses for every character
+                int charIdx = static_cast<int>(&character - roster().data());
+                for (int frame = 0; frame <= 60; frame += 15) {
+                    checkPose(menuPose(charIdx, frame / 30.0f), Vec3(0, 0, 0), 0.5f, scale, floor);
+                }
             }
         }
     }

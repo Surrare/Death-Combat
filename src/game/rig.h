@@ -24,6 +24,8 @@ struct Pose {
 Pose lerpPose(const Pose& a, const Pose& b, float t);
 Pose idlePose(float time);
 Pose standIdlePose(float time);      // floating guardian pose for Stands
+Pose menuPose(int charId, float time);       // signature character pose for menus
+Pose standMenuPose(int charId, float time);  // signature Stand pose for menus
 Pose poseForFighter(const Fighter& f, float time);
 Pose attackPose(AnimKind kind, float phase, float time, bool variant);   // phase: 0..1 startup, 1..2 active, 2..3 recovery
 

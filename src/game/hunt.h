@@ -59,6 +59,7 @@ private:
     Mesh floor_, walls_, ceiling_, props_;
     int playerChar_ = 0;
     Vec3 playerPos_;
+    Vec3 playerVel_;
     float playerYaw_ = 0;
     float camYaw_ = 0, camPitch_ = 0.32f;
     float walkPhase_ = 0;

@@ -74,6 +74,8 @@ SimInput FightAI::think(const FightSim& sim, int meIdx) {
 
     Vec3 toOpp = opp.pos - me.pos; toOpp.y = 0;
     float dist = toOpp.length();
+    const bool nearLavaEdge = sim.arena().hasLavaPit &&
+        (me.pos.x * me.pos.x + me.pos.z * me.pos.z) > (sim.arena().radius - 1.6f) * (sim.arena().radius - 1.6f);
 
     float reactChance = difficulty_ == 0 ? 0.25f : (difficulty_ == 1 ? 0.5f : 0.8f);
 
@@ -97,8 +99,8 @@ SimInput FightAI::think(const FightSim& sim, int meIdx) {
             bool low = false;
             if (opp.move) for (const HitWindow& w : opp.move->hits) if (w.low) low = true;
             if (opp.move && opp.move->commandThrow) {
-                // escape the throw: backdash or jump
-                if (rng_.chance(0.5f)) { in.pressed |= BTN_DASH; in.moveF = -1; }
+                // escape the throw: backdash (if not on lava cliff) or jump
+                if (!nearLavaEdge && rng_.chance(0.5f)) { in.pressed |= BTN_DASH; in.moveF = -1; }
                 else in.dirY = 1;
                 return in;
             }
@@ -214,12 +216,13 @@ SimInput FightAI::think(const FightSim& sim, int meIdx) {
     } else {
         float aggression = 0.45f + 0.15f * difficulty_;
         if (r < aggression) { in.requestMove = pickAttack(me, opp, dist); }
-        else if (r < aggression + 0.12f) { holdDir_ = -1; holdDirY_ = 0; holdSide_ = 0; holdFrames_ = 6 + rng_.range(0, 10); in.moveF = -1; }
-        else if (r < aggression + 0.2f) { in.pressed |= BTN_DASH; in.moveS = rng_.chance(0.5f) ? 1.0f : -1.0f; }   // sidestep
+        else if (!nearLavaEdge && r < aggression + 0.12f) { holdDir_ = -1; holdDirY_ = 0; holdSide_ = 0; holdFrames_ = 6 + rng_.range(0, 10); in.moveF = -1; }
+        else if (r < aggression + 0.2f) { in.pressed |= BTN_DASH; in.moveS = rng_.chance(0.5f) ? 1.0f : -1.0f; in.moveF = nearLavaEdge ? 0.6f : 0.0f; }   // sidestep / diagonal evade
         else if (r < aggression + 0.28f) { in.dirY = 1; in.moveF = 1; }
         else if (r < aggression + 0.36f) { holdDir_ = 0; holdDirY_ = -1; holdSide_ = 0; holdFrames_ = 6 + rng_.range(0, 10); in.dirY = -1; }
         else { holdDir_ = 1; holdDirY_ = 0; holdSide_ = 0; holdFrames_ = 3 + rng_.range(0, 6); in.moveF = 1; }
     }
+    if (nearLavaEdge && in.moveF < 0 && blockFrames_ <= 0) in.moveF = 1.0f;
     return in;
 }
 

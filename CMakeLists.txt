@@ -76,6 +76,9 @@ endif()
 file(GLOB_RECURSE DC_SOURCES CONFIGURE_DEPENDS src/*.cpp src/*.h)
 list(REMOVE_ITEM DC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/core/font.cpp")
 list(REMOVE_ITEM DC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/core/localization.cpp")
+if(WIN32)
+    list(APPEND DC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/death_combat.rc")
+endif()
 add_executable(DeathCombat ${DC_SOURCES})
 target_include_directories(DeathCombat PRIVATE src third_party)
 target_link_libraries(DeathCombat PRIVATE glfw glad dc_font dc_localization)
@@ -86,7 +89,9 @@ add_custom_command(TARGET DeathCombat POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Noto-OFL.txt"
         "$<TARGET_FILE_DIR:DeathCombat>/licenses/Noto-OFL.txt"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/third_party/stb/LICENSE"
-        "$<TARGET_FILE_DIR:DeathCombat>/licenses/stb-LICENSE.txt")
+        "$<TARGET_FILE_DIR:DeathCombat>/licenses/stb-LICENSE.txt"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+        "$<TARGET_FILE_DIR:DeathCombat>/shaders")
 target_compile_definitions(DeathCombat PRIVATE GLFW_INCLUDE_NONE)
 if(MSVC)
     target_compile_options(DeathCombat PRIVATE /W4 /utf-8 /MP)

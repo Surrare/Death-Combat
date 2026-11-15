@@ -252,6 +252,9 @@ std::vector<Character> buildRoster() {
         Character c = base("KAIN", "The Crimson Tempo", "BLOOD TEMPO", StyleType::Stand,
             Color(0.55f, 0.08f, 0.10f), Color(0.95f, 0.85f, 0.60f), Color(0.08f, 0.06f, 0.08f), Color(1.0f, 0.15f, 0.2f),
             "A brawler whose Stand beats in time with his heart. Close the distance and never stop punching.");
+        c.trait = TraitKind::BloodRush;
+        c.traitName = "CRIMSON PULSE";
+        c.traitDesc = "Attacks drain small amounts of HP on hit. Below 40% HP, damage and Heat gain increase by 20%.";
         c.look = makeLook(HairStyle::Spiky, StandDesign::Heart,
             ACC_VEST | ACC_BARE_ARMS | ACC_WRAPS | ACC_HEADBAND | ACC_BELT | ACC_BOOTS, 1.10f, 1.08f, 1.12f, 1.0f, 1.0f,
             Color(0.86f, 0.62f, 0.47f), Color(0.10f, 0.09f, 0.11f), Color(0.24f, 0.07f, 0.07f), Color(0.12f, 0.1f, 0.12f));
@@ -267,6 +270,9 @@ std::vector<Character> buildRoster() {
         Character c = base("VESPER", "The Night Glass", "NIGHT GLASS", StyleType::Stand,
             Color(0.18f, 0.10f, 0.32f), Color(0.80f, 0.75f, 0.95f), Color(0.85f, 0.85f, 0.95f), Color(0.65f, 0.30f, 1.0f),
             "A calm tactician who shatters her Stand into glass shards. Keep away and punish every approach.");
+        c.trait = TraitKind::MirrorAegis;
+        c.traitName = "MIRROR AEGIS";
+        c.traitDesc = "Projectiles chill enemies, slowing movement. Blocking attacks restores Stand gauge and pushes foes back.";
         c.walkSpeed = 0.052f;
         c.look = makeLook(HairStyle::LongFlow, StandDesign::Crystal,
             ACC_COAT | ACC_SCARF | ACC_VISOR | ACC_BELT | ACC_BOOTS, 0.88f, 0.88f, 0.85f, 0.92f, 0.98f,
@@ -283,11 +289,17 @@ std::vector<Character> buildRoster() {
         Character c = base("ORSOLO", "The Iron Choir", "IRON CHOIR", StyleType::Stand,
             Color(0.30f, 0.30f, 0.34f), Color(0.80f, 0.60f, 0.25f), Color(0.45f, 0.40f, 0.35f), Color(0.75f, 0.80f, 0.90f),
             "A giant of a man whose Stand sings like a cathedral bell. Slow, armored and devastating up close.");
+        c.trait = TraitKind::IronColossus;
+        c.traitName = "IRON COLOSSUS";
+        c.traitDesc = "Standing heavy attacks have super armor. Throws and armor hits ring a bell shockwave that drains enemy gauge.";
         c.walkSpeed = 0.045f; c.backSpeed = 0.035f; c.height = 2.05f;
         c.look = makeLook(HairStyle::Bald, StandDesign::Bell,
             ACC_PAULDRONS | ACC_BELT | ACC_BEARD | ACC_TABARD | ACC_GAUNTLETS | ACC_BOOTS, 1.30f, 1.28f, 1.35f, 1.15f, 1.05f,
             Color(0.74f, 0.52f, 0.40f), Color(0.17f, 0.15f, 0.15f), Color(0.12f, 0.10f, 0.08f), Color(0.62f, 0.15f, 0.18f));
         addUniversal(c);
+        for (Move& m : c.moves) {
+            if (m.kind == MoveKind::Normal && m.stance == Stance::Ground && m.chainLevel == 2) m.armor = true;
+        }
         addCharge(c, "Choir Lariat", Motion::QCF, AnimKind::Lariat, 120, true);
         addCommandThrow(c, "Iron Embrace", Motion::QCB, 180);
         addUppercut(c, "Bell Toll", Motion::DP, AnimKind::Headbutt, 120);
@@ -299,9 +311,12 @@ std::vector<Character> buildRoster() {
         Character c = base("MIRA", "The Silk Echo", "SILK ECHO", StyleType::Stand,
             Color(0.90f, 0.45f, 0.65f), Color(1.0f, 0.95f, 0.95f), Color(0.95f, 0.60f, 0.30f), Color(1.0f, 0.55f, 0.85f),
             "A dancer whose Stand weaves a thousand threads. Fast, slippery and relentless in the air.");
+        c.trait = TraitKind::SilkAcrobatics;
+        c.traitName = "SILK ACROBATICS";
+        c.traitDesc = "Can Double Jump or Air Dash in any direction while airborne, and cancel air normals into specials.";
         c.walkSpeed = 0.064f; c.backSpeed = 0.05f; c.jumpVel = 0.215f;
         c.look = makeLook(HairStyle::Ponytail, StandDesign::Silk,
-            ACC_BARE_ARMS | ACC_SKIRT | ACC_RIBBONS | ACC_SASH | ACC_BOOTS, 0.85f, 0.84f, 0.80f, 0.95f, 1.0f,
+            ACC_BARE_ARMS | ACC_SKIRT | ACC_SASH | ACC_BOOTS, 0.85f, 0.84f, 0.80f, 0.95f, 1.0f,
             Color(0.97f, 0.80f, 0.70f), Color(0.28f, 0.12f, 0.24f), Color(0.97f, 0.92f, 0.92f), Color(1.0f, 0.95f, 0.95f));
         addUniversal(c);
         addRush(c, "Echo Needle", Motion::QCF, 4, 20, 0.05f, true, -2);
@@ -315,6 +330,9 @@ std::vector<Character> buildRoster() {
         Character c = base("KAZE", "The Gale", "GALE MODE", StyleType::Mode,
             Color(0.10f, 0.40f, 0.25f), Color(0.85f, 0.95f, 0.70f), Color(0.10f, 0.10f, 0.12f), Color(0.35f, 1.0f, 0.55f),
             "A martial artist without a Stand. Gale Mode spends his gauge for blinding speed.");
+        c.trait = TraitKind::TailwindStep;
+        c.traitName = "TAILWIND STEP";
+        c.traitDesc = "Can cancel any connected attack into a Dash. Dashing empowers his next strike with +18% damage and speed.";
         c.walkSpeed = 0.060f; c.backSpeed = 0.048f; c.jumpVel = 0.21f;
         c.look = makeLook(HairStyle::TopKnot, StandDesign::None,
             ACC_VEST | ACC_BARE_ARMS | ACC_WRAPS | ACC_HEADBAND | ACC_SASH, 0.98f, 0.96f, 0.95f, 1.0f, 1.0f,
@@ -331,6 +349,9 @@ std::vector<Character> buildRoster() {
         Character c = base("BRAM", "The Ember", "EMBER MODE", StyleType::Mode,
             Color(0.55f, 0.30f, 0.10f), Color(1.0f, 0.75f, 0.30f), Color(0.80f, 0.30f, 0.10f), Color(1.0f, 0.55f, 0.15f),
             "A blacksmith who burns his own stamina as fuel. Ember Mode turns every blow into a hammer strike.");
+        c.trait = TraitKind::MoltenTemper;
+        c.traitName = "MOLTEN TEMPER";
+        c.traitDesc = "Heavy and special attacks ignite foes with Ember Burn. Ember Mode adds heavy chip damage on block.";
         c.walkSpeed = 0.05f; c.backSpeed = 0.04f;
         c.look = makeLook(HairStyle::Mohawk, StandDesign::None,
             ACC_BARE_ARMS | ACC_APRON | ACC_GAUNTLETS | ACC_GOGGLES | ACC_BELT | ACC_BEARD | ACC_BOOTS | ACC_HAMMER, 1.20f, 1.25f, 1.30f, 1.10f, 1.02f,

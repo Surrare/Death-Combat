@@ -85,6 +85,53 @@ int main() {
         SimInput back; back.moveF = -1;
         for (int i = 0; i < 600; ++i) sim.step(back, neutral);
         if (!sim.insideArena(sim.fighter(0).pos, 0.001f)) { std::printf("walked out of the arena\n"); failures++; }
+
+        // omnidirectional diagonal dash (forward-left) moves in both forward and lateral axes
+        sim.init(&ros[0], &ros[1], 2);
+        for (int i = 0; i < 150; ++i) sim.step(neutral, neutral);
+        Vec3 diagBefore = sim.fighter(0).pos;
+        Vec3 diagFwd = sim.fighter(0).fwd;
+        Vec3 diagRight = sim.fighter(0).right();
+        SimInput diagDash; diagDash.moveF = 1.0f; diagDash.moveS = -1.0f; diagDash.pressed = BTN_DASH;
+        sim.step(diagDash, neutral);
+        if (sim.fighter(0).state != FState::Dash) { std::printf("diagonal dash did not enter Dash state\n"); failures++; }
+        for (int i = 0; i < 18; ++i) sim.step(neutral, neutral);
+        Vec3 diagDelta = sim.fighter(0).pos - diagBefore;
+        if (dot(diagDelta, diagFwd) < 0.6f || dot(diagDelta, diagRight) > -0.6f) {
+            std::printf("diagonal dash failed: fwd=%f lat=%f\n", dot(diagDelta, diagFwd), dot(diagDelta, diagRight));
+            failures++;
+        }
+
+        // Ember Forge lava pit: no outer barrier, falling off kills the fighter
+        ArenaShape lavaArena;
+        lavaArena.radius = 8.8f;
+        lavaArena.spawnGap = 5.0f;
+        lavaArena.hasLavaPit = true;
+        lavaArena.arenaId = 2;
+        sim.setArena(lavaArena);
+        sim.init(&ros[4], &ros[1], 2); // Kaze (index 4) has TailwindStep
+        for (int i = 0; i < 150; ++i) sim.step(neutral, neutral);
+        // Check Kaze's TailwindStep trait activates on dash
+        SimInput kazeDash; kazeDash.moveF = -1.0f; kazeDash.pressed = BTN_DASH;
+        sim.step(kazeDash, neutral);
+        if (sim.fighter(0).galeChargeTimer <= 0) {
+            std::printf("Kaze TailwindStep trait did not activate on dash\n");
+            failures++;
+        }
+        // Walk off the cliff into the lava
+        for (int i = 0; i < 400 && sim.fighter(0).hp > 0; ++i) sim.step(back, neutral);
+        if (sim.fighter(0).hp > 0 || sim.fighter(0).pos.y >= 0.0f) {
+            std::printf("Lava pit did not kill fighter who walked off cliff (hp=%f, y=%f)\n", sim.fighter(0).hp, sim.fighter(0).pos.y);
+            failures++;
+        }
+    }
+
+    // Verify all characters have unique trait names and descriptions
+    for (const Character& character : ros) {
+        if (character.traitName.empty() || character.traitDesc.empty()) {
+            std::printf("Missing trait metadata for %s\n", character.name.c_str());
+            failures++;
+        }
     }
 
     std::map<std::string, int> eventCounts;

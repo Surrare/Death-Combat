@@ -1,0 +1,2 @@
+C:\msys64\ucrt64\bin\ar.exe qc libdc_font.a CMakeFiles/dc_font.dir/src/core/font.cpp.obj
+C:\msys64\ucrt64\bin\ranlib.exe libdc_font.a

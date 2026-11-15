@@ -41,6 +41,11 @@ std::string keyName(int k) {
     case GLFW_KEY_PAGE_UP: return "PAGE UP";
     case GLFW_KEY_PAGE_DOWN: return "PAGE DOWN";
     case GLFW_KEY_KP_ENTER: return "NUM ENTER";
+    case GLFW_KEY_COMMA: return ",";
+    case GLFW_KEY_PERIOD: return ".";
+    case GLFW_KEY_SLASH: return "/";
+    case GLFW_KEY_SEMICOLON: return ";";
+    case GLFW_KEY_APOSTROPHE: return "'";
     default: break;
     }
     if (k >= GLFW_KEY_F1 && k <= GLFW_KEY_F25) return "F" + std::to_string(k - GLFW_KEY_F1 + 1);
@@ -54,7 +59,7 @@ std::string keyName(int k) {
     return "KEY " + std::to_string(k);
 }
 
-void Settings::resetKeys() {
+void Settings::resetKeysP1() {
     for (auto& row : keys) row[0] = row[1] = 0;
     auto set = [&](Action a, int k0, int k1 = 0) { keys[(int)a][0] = k0; keys[(int)a][1] = k1; };
     set(Action::Up, GLFW_KEY_W);
@@ -73,14 +78,39 @@ void Settings::resetKeys() {
     set(Action::Crouch, GLFW_KEY_LEFT_CONTROL, GLFW_KEY_C);
 }
 
-void Settings::bind(Action a, int slot, int key) {
-    for (auto& row : keys)
-        for (int& k : row) if (k == key) k = 0;
-    keys[(int)a][slot] = key;
+void Settings::resetKeysP2() {
+    for (auto& row : keysP2) row[0] = row[1] = 0;
+    auto set = [&](Action a, int k0, int k1 = 0) { keysP2[(int)a][0] = k0; keysP2[(int)a][1] = k1; };
+    set(Action::Up, GLFW_KEY_UP);
+    set(Action::Down, GLFW_KEY_DOWN);
+    set(Action::Left, GLFW_KEY_LEFT);
+    set(Action::Right, GLFW_KEY_RIGHT);
+    set(Action::Light, GLFW_KEY_KP_1, GLFW_KEY_N);
+    set(Action::Medium, GLFW_KEY_KP_2, GLFW_KEY_M);
+    set(Action::Heavy, GLFW_KEY_KP_3, GLFW_KEY_COMMA);
+    set(Action::Style, GLFW_KEY_KP_4, GLFW_KEY_PERIOD);
+    set(Action::Dash, GLFW_KEY_KP_5, GLFW_KEY_KP_0);
+    set(Action::Taunt, GLFW_KEY_KP_6, GLFW_KEY_SLASH);
+    set(Action::LookLeft, GLFW_KEY_KP_7);
+    set(Action::LookRight, GLFW_KEY_KP_9);
+    set(Action::Jump, GLFW_KEY_RIGHT_SHIFT, GLFW_KEY_KP_8);
+    set(Action::Crouch, GLFW_KEY_RIGHT_CONTROL);
 }
 
-std::string Settings::keyLabel(Action a) const {
-    const int* k = keys[(int)a];
+void Settings::resetKeys() {
+    resetKeysP1();
+    resetKeysP2();
+}
+
+void Settings::bind(Action a, int slot, int key, int player) {
+    auto& table = (player == 1) ? keysP2 : keys;
+    for (auto& row : table)
+        for (int& k : row) if (k == key) k = 0;
+    table[(int)a][slot] = key;
+}
+
+std::string Settings::keyLabel(Action a, int player) const {
+    const int* k = (player == 1) ? keysP2[(int)a] : keys[(int)a];
     if (!k[1]) return keyName(k[0]);
     return keyName(k[0]) + " / " + keyName(k[1]);
 }
@@ -104,10 +134,16 @@ bool Settings::save() const {
     std::ofstream f(path());
     if (!f) return false;
     f << "master=" << master << "\nmusic=" << music << "\nsfx=" << sfx << "\n";
-    f << "fullscreen=" << (fullscreen ? 1 : 0) << "\nvsync=" << (vsync ? 1 : 0)
-      << "\nlanguage=" << static_cast<int>(language) << "\nrenderMode=" << renderMode << "\nmouse=" << mouseSens << "\n";
+    f << "fullscreen=" << (fullscreen ? 1 : 0) << "\nwindowPreset=" << windowPreset << "\nvsync=" << (vsync ? 1 : 0)
+      << "\nlanguage=" << static_cast<int>(language) << "\nrenderMode=" << renderMode << "\nfovDeg=" << fovDeg << "\nmouse=" << mouseSens << "\n";
+    f << "roundsToWin=" << roundsToWin << "\nroundTimeIndex=" << roundTimeIndex << "\naiDifficulty=" << aiDifficulty
+      << "\ndamageScalePct=" << damageScalePct << "\nscreenShakePct=" << screenShakePct
+      << "\nhitstopEnabled=" << (hitstopEnabled ? 1 : 0) << "\nshowHudPrompts=" << (showHudPrompts ? 1 : 0)
+      << "\ndevMode=" << (devMode ? 1 : 0) << "\neasyP1=" << (easyControls[0] ? 1 : 0) << "\neasyP2=" << (easyControls[1] ? 1 : 0) << "\n";
     for (int a = 0; a < ACTION_COUNT; ++a)
         f << "key" << a << "=" << keys[a][0] << "," << keys[a][1] << "\n";
+    for (int a = 0; a < ACTION_COUNT; ++a)
+        f << "keyP2_" << a << "=" << keysP2[a][0] << "," << keysP2[a][1] << "\n";
     return (bool)f;
 }
 
@@ -124,11 +160,30 @@ bool Settings::load() {
         else if (k == "music") music = std::clamp(n, 0, 10);
         else if (k == "sfx") sfx = std::clamp(n, 0, 10);
         else if (k == "fullscreen") fullscreen = n != 0;
+        else if (k == "windowPreset") windowPreset = std::clamp(n, 0, 2);
         else if (k == "vsync") vsync = n != 0;
         else if (k == "language") language = static_cast<Language>(std::clamp(n, 0, 2));
         else if (k == "renderMode") renderMode = std::clamp(n, 0, 4);
+        else if (k == "fovDeg") fovDeg = std::clamp(n, 45, 65);
         else if (k == "mouse") mouseSens = std::clamp(n, 1, 10);
-        else if (k.rfind("key", 0) == 0) {
+        else if (k == "roundsToWin") roundsToWin = std::clamp(n, 1, 3);
+        else if (k == "roundTimeIndex") roundTimeIndex = std::clamp(n, 0, 3);
+        else if (k == "aiDifficulty") aiDifficulty = std::clamp(n, 0, 2);
+        else if (k == "damageScalePct") damageScalePct = std::clamp(n, 50, 200);
+        else if (k == "screenShakePct") screenShakePct = std::clamp(n, 0, 200);
+        else if (k == "hitstopEnabled") hitstopEnabled = n != 0;
+        else if (k == "showHudPrompts") showHudPrompts = n != 0;
+        else if (k == "devMode") devMode = n != 0;
+        else if (k == "easyP1") easyControls[0] = n != 0;
+        else if (k == "easyP2") easyControls[1] = n != 0;
+        else if (k.rfind("keyP2_", 0) == 0) {
+            int a = std::atoi(k.c_str() + 6);
+            size_t comma = v.find(',');
+            if (a >= 0 && a < ACTION_COUNT && comma != std::string::npos) {
+                keysP2[a][0] = std::atoi(v.c_str());
+                keysP2[a][1] = std::atoi(v.c_str() + comma + 1);
+            }
+        } else if (k.rfind("key", 0) == 0) {
             int a = std::atoi(k.c_str() + 3);
             size_t comma = v.find(',');
             if (a >= 0 && a < ACTION_COUNT && comma != std::string::npos) {

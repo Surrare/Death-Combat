@@ -13,6 +13,7 @@ constexpr int ARENA_COUNT = 4;
 struct ArenaInfo {
     const char* name;
     const char* blurb;
+    const char* trait;     // unique environmental mechanic description
     ArenaShape shape;      // what the simulation uses
     float cameraRadius;    // the fight camera's eye is kept inside this circle
     Color clear;           // sky / background colour

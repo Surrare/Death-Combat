@@ -45,9 +45,21 @@ public:
     Renderer& operator=(const Renderer&) = delete;
 
     bool init();
+    bool reloadShaders();
     void resize(int width, int height) { width_ = width > 0 ? width : 1; height_ = height > 0 ? height : 1; }
     void setLanguage(Language language) { language_ = language; }
     void setDebugMode(RenderDebugMode mode) { debugMode_ = mode; }
+    RenderDebugMode debugMode() const { return debugMode_; }
+    void rotateLight(float dYawDeg, float dPitchDeg) {
+        lightYawDeg_ += dYawDeg;
+        while (lightYawDeg_ > 180.0f) lightYawDeg_ -= 360.0f;
+        while (lightYawDeg_ < -180.0f) lightYawDeg_ += 360.0f;
+        lightPitchDeg_ = clampf(lightPitchDeg_ + dPitchDeg, -35.0f, 35.0f);
+    }
+    void resetLight() { lightYawDeg_ = 0.0f; lightPitchDeg_ = 0.0f; }
+    float lightYawDeg() const { return lightYawDeg_; }
+    float lightPitchDeg() const { return lightPitchDeg_; }
+    Vec3 sunDir() const { return sunDir_; }
     int width() const { return width_; }
     int height() const { return height_; }
 
@@ -123,6 +135,8 @@ private:
     Vec3 sunDir_{-0.4f, -1.0f, -0.3f};
     Vec3 sunColor_{1, 1, 1};
     float ambient_ = 0.3f;
+    float lightYawDeg_ = 0.0f;
+    float lightPitchDeg_ = 0.0f;
     Vec3 shadowCenter_;
     float shadowExtent_ = 12.0f;
     Vec3 fogColor_{0, 0, 0};

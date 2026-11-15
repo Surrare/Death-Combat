@@ -15,20 +15,46 @@ const char* actionName(Action a);
 std::string keyName(int glfwKey);   // upper-case label for a GLFW key code, "NONE" for 0
 
 struct Settings {
+    // Audio & Video
     int master = 10, music = 8, sfx = 10;   // 0..10
     bool fullscreen = false;
+    int windowPreset = 1;                   // 0 = 1280x720, 1 = 1600x900, 2 = 1920x1080
     bool vsync = true;
     Language language = Language::English;
     int renderMode = 0;                     // RenderDebugMode value: full, direct, no bloom/outline/shadows
+    int fovDeg = 50;                        // Fight camera base FOV (45..65)
+
+    // Gameplay & Match Rules
+    int roundsToWin = 2;                    // 1..3 (Best of 1, 3, 5)
+    int roundTimeIndex = 1;                 // 0 = 60s, 1 = 99s, 2 = 120s, 3 = Infinite
+    int aiDifficulty = 1;                   // 0 = Easy, 1 = Normal, 2 = Hard
+    int damageScalePct = 100;               // 75, 100, 125, 150
+    int screenShakePct = 100;               // 0, 50, 100, 150
+    bool hitstopEnabled = true;
+    bool showHudPrompts = true;
+    bool devMode = false;                   // Developer Mode overlay & hitboxes
+
+    // Per-Player Controls (Player 1 & Player 2)
     int mouseSens = 5;                      // 1..10, 5 = default
-    int keys[ACTION_COUNT][BIND_SLOTS];     // GLFW key codes, 0 = unbound
+    bool easyControls[2] = {true, true};    // Easy Beat auto-combo per player
+    int keys[ACTION_COUNT][BIND_SLOTS];     // Player 1 GLFW key codes, 0 = unbound
+    int keysP2[ACTION_COUNT][BIND_SLOTS];   // Player 2 GLFW key codes, 0 = unbound
 
     Settings() { resetKeys(); }
     void resetKeys();
+    void resetKeysP1();
+    void resetKeysP2();
     float mouseScale() const { return 0.12f * (float)mouseSens / 5.0f; }
-    // Rebind: assigns key to slot, clearing it from any other action's slots.
-    void bind(Action a, int slot, int key);
-    std::string keyLabel(Action a) const;   // e.g. "J / NONE"
+    int roundSeconds() const {
+        static const int SEC[4] = {60, 99, 120, 0};
+        return SEC[roundTimeIndex >= 0 && roundTimeIndex < 4 ? roundTimeIndex : 1];
+    }
+    float damageScale() const { return (float)damageScalePct / 100.0f; }
+    float shakeScale() const { return (float)screenShakePct / 100.0f; }
+
+    // Rebind: assigns key to slot for the given player (0 or 1), clearing it from that player's other actions.
+    void bind(Action a, int slot, int key, int player = 0);
+    std::string keyLabel(Action a, int player = 0) const;   // e.g. "J / NONE"
 
     bool load();                            // false if no file (defaults kept)
     bool save() const;

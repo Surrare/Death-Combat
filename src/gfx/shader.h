@@ -14,6 +14,8 @@ public:
     Shader& operator=(const Shader&) = delete;
 
     bool compile(const char* vertexSrc, const char* fragmentSrc, const char* debugName);
+    bool compileFromFiles(const char* vertFile, const char* fragFile,
+                          const char* fallbackVS, const char* fallbackFS, const char* debugName);
     void use() const { glUseProgram(program_); }
     GLuint id() const { return program_; }
 

@@ -27,6 +27,8 @@ struct AppOptions {
     int arena = -1;               // --arena N: arena / hunting ground for the demo screens (-1 random / default)
     RenderDebugMode renderDebugMode = RenderDebugMode::Full;
     bool renderDebugModeSet = false;
+    bool devMode = false;
+    bool showHelp = false;
 };
 
 struct Particle {
@@ -76,6 +78,10 @@ private:
     void drawFightHud();
     void drawPauseMenu();
     void drawMoveList();
+    void updateDevKeys();
+    void drawDevOverlay();
+    void drawDevFightWorld();
+    void applyOrbitCamera(Camera& cam) const;
 
     void startHunt(int playerChar, int ground = 0);
     void startFight(int charA, int charB, FightMode mode, int difficulty, int arena = -1);   // arena -1 = random
@@ -104,17 +110,28 @@ private:
 
     // settings screen
     Scene settingsReturn_ = Scene::Title;
+    int settingsTab_ = 0;
     int settingsIndex_ = 0, settingsSlot_ = 0;
     bool settingsCapturing_ = false;
     int windowedX_ = 100, windowedY_ = 100, windowedW_ = 1280, windowedH_ = 720;
     Scene scene_ = Scene::Title;
     float time_ = 0;
     float frameDt_ = 1.0f / 60.0f;   // last frame time, for smoothing done in render code
+    float fpsSmoothed_ = 60.0f;
     bool quit_ = false;
     int width_ = 1280, height_ = 720;
     bool shotTaken_ = false;
     int shotCounter_ = 0;
     bool f12Was_ = false;
+    bool devKeysWas_[16] = {};
+    bool devFramePause_ = false;
+    bool devStepOnce_ = false;
+    bool devSlowMo_ = false;
+    bool showHelp_ = false;
+    bool animPaused_ = false;
+    bool orbitCamActive_ = false;
+    float orbitYaw_ = 0.45f, orbitPitch_ = 0.35f, orbitDist_ = 6.5f;
+    float shaderReloadToast_ = 0.0f;
 
     // title
     int menuIndex_ = 0;
@@ -166,6 +183,8 @@ private:
     float splitAmount_ = 0;       // 0..1 divider visibility
     Vec2 splitNormal_{1, 0};      // screen direction from player 1 to player 2
     float displayYaw_[2] = {0, 0};
+    Pose displayPose_[2];
+    bool displayPoseInit_[2] = {false, false};
     Camera fightCam_;
     bool fightCamInit_ = false;
     std::vector<Particle> particles_;

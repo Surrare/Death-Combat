@@ -6,14 +6,18 @@ namespace dc {
 namespace {
 
 const ArenaInfo ARENAS[ARENA_COUNT] = {
-    {"CRIMSON COLOSSEUM", "A torch-lit hall of brick and banners. The crowd is long gone; the blood stays.",
-     {9.0f, 4.4f}, 14.0f, Color(0.05f, 0.04f, 0.06f)},
-    {"MOONLIT SHRINE", "A stone courtyard under a full moon, ringed by lanterns and falling blossoms.",
-     {9.5f, 4.4f}, 14.5f, Color(0.04f, 0.05f, 0.11f)},
-    {"EMBER FORGE", "A cavern foundry on an island of rock, surrounded by a moat of molten iron.",
-     {9.0f, 4.4f}, 13.5f, Color(0.07f, 0.025f, 0.02f)},
-    {"GLASS CATHEDRAL", "Stained glass throws coloured light across a marble floor. Pray quietly.",
-     {9.0f, 4.4f}, 14.0f, Color(0.05f, 0.045f, 0.08f)},
+    {"CRIMSON COLOSSEUM", "A torch-lit amphitheatre of brick, imperial arches and roaring braziers.",
+     "CROWD FERVOR: +20% Heat gain on hit; cornered foes take Wall Brazier burn.",
+     {9.0f, 4.4f, false, 0}, 14.0f, Color(0.05f, 0.04f, 0.06f)},
+    {"MOONLIT SHRINE", "A sacred stone courtyard under a full moon, ringed by torii gates and sakura.",
+     "SACRED SPIRIT: +50% Style Gauge recovery and lighter aerial gravity.",
+     {9.5f, 4.4f, false, 1}, 14.5f, Color(0.04f, 0.05f, 0.11f)},
+    {"EMBER FORGE", "An open basalt island over a lethal sea of molten magma - no barriers!",
+     "LETHAL LAVA PIT: No ring barriers! Falling off the platform edge is instant K.O.",
+     {8.8f, 4.4f, true, 2}, 13.8f, Color(0.08f, 0.025f, 0.018f)},
+    {"GLASS CATHEDRAL", "A grand Gothic nave with a pipe organ, flying arches and stained glass.",
+     "RESONANT SANCTUM: Expansive floor, +20% projectile speed & 25% Flash Cancel refund.",
+     {10.2f, 4.8f, false, 3}, 14.8f, Color(0.05f, 0.045f, 0.085f)},
 };
 
 // ------------------------------------------------------------ mesh helpers ----
@@ -103,13 +107,19 @@ void buildColosseum(MeshBuilder& ground, MeshBuilder& dais, MeshBuilder& walls, 
         boxAt(props, polar(a, 20.24f, 5.2f) * Mat4::rotateZ(PI * 0.25f), Vec3(0.6f, 0.6f, 0.05f), trim);
         boxAt(props, polar(a, 20.22f, 5.2f) * Mat4::rotateZ(PI * 0.25f), Vec3(0.32f, 0.32f, 0.06f), cloth);
     }
-    // braziers just outside the camera's path
-    for (int k = 0; k < 4; ++k) {
-        float a = (k + 0.25f) / 4 * 2 * PI;
-        Vec3 p(std::sin(a) * 14.8f, 0, std::cos(a) * 14.8f);
-        props.addCylinder(p, 0.45f, 1.3f, 12, Vec3(0.2f, 0.18f, 0.16f));
-        props.addCylinder(p + Vec3(0, 1.3f, 0), 0.7f, 0.3f, 12, Vec3(0.3f, 0.25f, 0.2f));
+    // braziers around the ring and Imperial Tribune balcony on the north wall
+    for (int k = 0; k < 8; ++k) {
+        float a = (k + 0.5f) / 8 * 2 * PI;
+        Vec3 p(std::sin(a) * 14.6f, 0, std::cos(a) * 14.6f);
+        props.addCylinder(p, 0.45f, 1.35f, 12, Vec3(0.22f, 0.19f, 0.17f));
+        props.addCylinder(p + Vec3(0, 1.35f, 0), 0.72f, 0.32f, 12, Vec3(0.34f, 0.27f, 0.20f));
+        glow.addSphere(p + Vec3(0, 1.72f, 0), 0.42f, 6, 8, Vec3(1.0f, 0.55f, 0.16f));
     }
+    // Imperial Tribune Box at a = 0
+    Mat4 trib = polar(0.0f, 18.8f, 0.0f);
+    boxAt(walls, trib * Mat4::translate(Vec3(0, 4.8f, 0)), Vec3(6.8f, 3.2f, 2.6f), Vec3(0.42f, 0.36f, 0.38f));
+    boxAt(props, trib * Mat4::translate(Vec3(0, 6.6f, -1.35f)), Vec3(7.2f, 0.45f, 0.35f), gold);
+    boxAt(glow, trib * Mat4::translate(Vec3(0, 5.2f, -1.38f)), Vec3(1.8f, 1.8f, 0.12f), gold);
 }
 
 void buildShrine(MeshBuilder& ground, MeshBuilder& dais, MeshBuilder& walls, MeshBuilder& props, MeshBuilder& glow) {
@@ -138,6 +148,11 @@ void buildShrine(MeshBuilder& ground, MeshBuilder& dais, MeshBuilder& walls, Mes
         boxAt(walls, g * Mat4::translate(Vec3(0, 5.95f, 0)), Vec3(6.6f, 0.35f, 0.5f), vermilion);
         boxAt(walls, g * Mat4::translate(Vec3(0, 5.0f, 0)), Vec3(5.6f, 0.3f, 0.35f), vermilion);
         boxAt(walls, g * Mat4::translate(Vec3(0, 5.5f, 0)), Vec3(0.5f, 0.8f, 0.2f), black);
+        // Sacred Shimenawa rope & white paper shide hanging beneath the lintel
+        boxAt(props, g * Mat4::translate(Vec3(0, 4.65f, 0)), Vec3(4.2f, 0.18f, 0.22f), Vec3(0.76f, 0.66f, 0.44f));
+        for (int sh = -2; sh <= 2; ++sh) {
+            boxAt(glow, g * Mat4::translate(Vec3(sh * 0.85f, 4.25f, 0)), Vec3(0.16f, 0.55f, 0.04f), Vec3(0.95f, 0.95f, 1.0f));
+        }
     }
     // stone lanterns
     for (int k = 0; k < 16; ++k) {
@@ -174,36 +189,51 @@ void buildShrine(MeshBuilder& ground, MeshBuilder& dais, MeshBuilder& walls, Mes
 }
 
 void buildForge(MeshBuilder& ground, MeshBuilder& dais, MeshBuilder& walls, MeshBuilder& props, MeshBuilder& glow, MeshBuilder& pulse) {
-    ground.addPlane(Vec3(0, -0.08f, 0), 140, 140, 40, Vec3(0.07f, 0.06f, 0.06f), Vec3(0.08f, 0.065f, 0.06f));
-    daisAt(dais, 10.4f, SURFACE, 0.4f, Vec3(0.2f, 0.15f, 0.13f));
-    // molten moat and glowing cracks
-    ringAt(pulse, 10.3f, 15.2f, -0.05f, Vec3(1.0f, 0.42f, 0.1f), 96);
-    ringAt(dais, 15.2f, 16.0f, -0.04f, Vec3(0.12f, 0.09f, 0.08f), 96);
+    // Deep magma sea floor at y = -0.26f surrounding the unguarded basalt rock platform (r = 8.85f)
+    ground.addPlane(Vec3(0, -0.26f, 0), 140, 140, 40, Vec3(0.18f, 0.05f, 0.02f), Vec3(0.12f, 0.03f, 0.01f));
+    daisAt(dais, 8.85f, SURFACE, 0.45f, Vec3(0.20f, 0.15f, 0.13f));
+    daisAt(dais, 9.15f, -0.12f, 0.22f, Vec3(0.14f, 0.10f, 0.09f));
+    // Open molten lava sea directly below the platform cliff edge (8.8f .. 21.0f)
+    ringAt(pulse, 8.75f, 21.0f, -0.22f, Vec3(1.0f, 0.44f, 0.10f), 96);
+    ringAt(glow, 8.85f, 9.35f, -0.20f, Vec3(1.0f, 0.72f, 0.22f), 96);
+    ringAt(dais, 21.0f, 22.5f, -0.18f, Vec3(0.12f, 0.09f, 0.08f), 96);
     Rng rng(777);
-    for (int k = 0; k < 22; ++k) {
-        float a = rng.uniform(0, 2 * PI), r0 = rng.uniform(1.0f, 7.5f), len = rng.uniform(0.8f, 2.6f);
+    for (int k = 0; k < 24; ++k) {
+        float a = rng.uniform(0, 2 * PI), r0 = rng.uniform(1.0f, 7.2f), len = rng.uniform(0.8f, 2.4f);
         Vec3 d(std::cos(a), 0, std::sin(a)), t(-d.z, 0, d.x);
         Vec3 p0 = d * r0 + Vec3(0, SURFACE + 0.004f, 0), p1 = p0 + (d + t * rng.uniform(-0.6f, 0.6f)) * len;
         Vec3 side = normalize(cross(p1 - p0, Vec3(0, 1, 0))) * 0.03f;
         glow.addQuad(p0 + side, p1 + side, p1 - side, p0 - side, Vec3(1.0f, 0.45f, 0.12f));
     }
-    ringAt(glow, 8.9f, 9.0f, SURFACE + 0.006f, Vec3(1.0f, 0.5f, 0.15f), 96);
-    // jagged cavern wall and stalactites
+    // Scorched cliff-edge warning ring (no physical barrier — step past 8.8m and you fall into the lava!)
+    ringAt(glow, 8.55f, 8.78f, SURFACE + 0.006f, Vec3(1.0f, 0.38f, 0.08f), 96);
+    for (int k = 0; k < 16; ++k) {
+        float a = (float)k / 16 * 2 * PI;
+        boxAt(glow, polar(a, 8.40f, SURFACE + 0.005f), Vec3(0.35f, 0.004f, 0.14f), Vec3(1.0f, 0.65f, 0.18f));
+    }
+    // Jagged cavern wall, stalactites, and 4 towering magma waterfalls pouring into the lava sea
     for (int k = 0; k < 40; ++k) {
-        float a = (float)k / 40 * 2 * PI + rng.uniform(-0.05f, 0.05f), rad = rng.uniform(22.0f, 25.0f);
+        float a = (float)k / 40 * 2 * PI + rng.uniform(-0.05f, 0.05f), rad = rng.uniform(22.5f, 25.5f);
         float h = rng.uniform(7.0f, 17.0f), w = rng.uniform(3.0f, 5.0f);
         Mat4 m = polar(a, rad, h * 0.5f - 0.5f) * Mat4::rotateY(rng.uniform(-0.4f, 0.4f)) * Mat4::rotateZ(rng.uniform(-0.15f, 0.15f));
         boxAt(walls, m, Vec3(w, h, rng.uniform(2.5f, 4.0f)), Vec3(0.14f, 0.11f, 0.1f) * rng.uniform(0.75f, 1.2f));
+    }
+    for (int k = 0; k < 4; ++k) {
+        float a = (k + 0.25f) / 4 * 2 * PI;
+        Mat4 wf = polar(a, 21.2f, 0);
+        boxAt(pulse, wf * Mat4::translate(Vec3(0, 6.5f, 0)), Vec3(1.8f, 13.5f, 0.35f), Vec3(1.0f, 0.52f, 0.12f));
+        boxAt(glow, wf * Mat4::translate(Vec3(0, 6.5f, -0.15f)), Vec3(1.1f, 13.5f, 0.25f), Vec3(1.0f, 0.80f, 0.28f));
     }
     for (int k = 0; k < 36; ++k) {
         float a = rng.uniform(0, 2 * PI), rad = rng.uniform(12.0f, 23.0f);
         coneAt(walls, Vec3(std::sin(a) * rad, 17.0f, std::cos(a) * rad), rng.uniform(0.6f, 1.4f), rng.uniform(2.0f, 6.0f), 6, Vec3(0.12f, 0.09f, 0.08f), true);
     }
-    // anvils and furnaces past the moat
+    // Giant foundry furnaces & anvils on basalt pillars rising out of the outer lava sea
     for (int k = 0; k < 4; ++k) {
         float a = (k + 0.5f) / 4 * 2 * PI;
         Mat4 m = polar(a, 16.6f, 0);
         const Vec3 iron(0.22f, 0.22f, 0.25f);
+        boxAt(props, m * Mat4::translate(Vec3(0, -0.1f, 0)), Vec3(2.2f, 0.4f, 2.2f), Vec3(0.16f, 0.12f, 0.11f));
         boxAt(props, m * Mat4::translate(Vec3(0, 0.25f, 0)), Vec3(0.55f, 0.5f, 0.4f), iron);
         boxAt(props, m * Mat4::translate(Vec3(0, 0.62f, 0)), Vec3(1.15f, 0.32f, 0.45f), iron);
         Mat4 f = polar(a + PI / 4, 18.5f, 0);
@@ -211,7 +241,7 @@ void buildForge(MeshBuilder& ground, MeshBuilder& dais, MeshBuilder& walls, Mesh
         boxAt(props, f * Mat4::translate(Vec3(0, 5.0f, 0)), Vec3(0.9f, 3.0f, 0.9f), Vec3(0.16f, 0.11f, 0.1f));
         boxAt(glow, f * Mat4::translate(Vec3(0, 1.2f, -1.11f)), Vec3(1.1f, 0.9f, 0.05f), Vec3(1.0f, 0.55f, 0.15f));
     }
-    // chains hanging from the dark
+    // Chains & suspended Crucible high overhead
     for (int k = 0; k < 6; ++k) {
         float a = (k + 0.2f) / 6 * 2 * PI;
         for (int l = 0; l < 14; ++l)
@@ -270,6 +300,13 @@ void buildCathedral(MeshBuilder& ground, MeshBuilder& dais, MeshBuilder& walls, 
         glow.addSphere(Vec3(std::sin(a) * 4.5f, 13.0f, std::cos(a) * 4.5f), 0.18f, 6, 8, Vec3(1.0f, 0.85f, 0.55f));
     }
     ringAt(props, 4.3f, 4.7f, 13.0f, Vec3(0.45f, 0.36f, 0.18f), 48);
+    // Grand Golden Pipe Organ at the north sanctum wall (a = 0)
+    Mat4 org = polar(0.0f, 18.2f, 0.0f);
+    boxAt(props, org * Mat4::translate(Vec3(0, 1.8f, 0)), Vec3(6.4f, 3.6f, 1.6f), Vec3(0.26f, 0.18f, 0.14f));
+    for (int p = -7; p <= 7; ++p) {
+        float ph = 6.8f - std::fabs((float)p) * 0.36f;
+        boxAt(props, org * Mat4::translate(Vec3(p * 0.40f, 3.6f + ph * 0.5f, -0.2f)), Vec3(0.24f, ph, 0.24f), Vec3(0.78f, 0.64f, 0.28f));
+    }
 }
 
 } // namespace
